@@ -1,0 +1,38 @@
+name: Circles-Chain-Simulator
+plugins:
+  - name: solidity
+  - name: foundry
+  - name: etherscan
+
+etherscan:
+  gnosis:
+    rate_limit: 5
+
+    
+node:
+  gnosis:
+    mainnet:
+      uri: http://192.168.2.186:8545
+
+gnosis:
+  default_network: mainnet-fork
+  mainnet_fork:
+    default_provider: foundry
+    gas_limit: max
+    transaction_acceptance_timeout: 180
+    default_transaction_type: 0
+  mainnet:
+    default_provider: node
+    transaction_acceptance_timeout: 180
+
+foundry:
+  host: http://localhost:8545
+  fork:
+    gnosis:
+      mainnet_fork:
+        upstream_provider: http://192.168.2.186:8545
+
+test:
+  mnemonic: test test test test test test test test test test test junk
+  number_of_accounts: 10
+  hd_path: "m/44'/60'/0'/0/0" 
