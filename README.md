@@ -21,6 +21,7 @@ This framework allows researchers and developers to:
 - Foundry for local blockchain simulation
 - Git
 - pip package manager
+- DuckDB for data storage and analysis
 
 ## Installation
 
@@ -46,6 +47,7 @@ pip install -e .
 This will automatically install all required dependencies, including:
 - eth-ape with recommended plugins
 - pandas for data analysis
+- duckdb for data storage
 - other required packages
 
 ## Project Structure
@@ -56,70 +58,125 @@ pyCircleSim/
 ├── setup.py
 ├── rings_network/
 │   ├── __init__.py
-│   ├── network_builder.py    # Network creation and trust setup
-│   ├── network_evolver.py    # Time evolution and minting
-│   ├── network_analyzer.py   # Analysis tools
-│   └── data_collector.py     # Data collection and storage
+│   ├── network_builder.py     # Network creation and trust setup
+│   ├── network_evolver.py     # Time evolution and minting
+│   ├── network_analyzer.py    # Analysis tools
+│   ├── circles_data_collector.py  # Data collection and storage
+│   └── duckdb/               # SQL queries for data management
+│       ├── schema/           # Table and view definitions
+│       │   ├── humans.up.sql
+│       │   ├── trusts.up.sql
+│       │   ├── balance_changes.up.sql
+│       │   └── network_stats.up.sql
+│       ├── views/            # SQL view definitions
+│       │   ├── current_balances.view.sql
+│       │   └── active_trusts.view.sql
+│       ├── queries/          # Data manipulation queries
+│       │   ├── insert_human.sql
+│       │   ├── insert_trust.sql
+│       │   └── insert_balance_change.sql
+│       └── analysis/         # Analysis queries
+│           ├── human_growth.sql
+│           ├── trust_growth.sql
+│           └── token_velocity.sql
 └── scripts/
-    ├── rings.py             # Main simulation script
-    └── abi/                 # Contract ABIs
+    ├── rings.py              # Main simulation script
+    └── abi/                  # Contract ABIs
 ```
 
-## Usage
+## Data Collection System
 
-The framework provides several components that can be used independently or together:
+PyCircleSim uses DuckDB as its data storage engine, with a well-organized SQL query system for data management. All database operations are defined in SQL files, making the system highly maintainable and extensible.
 
-1. Network Building:
+### Database Schema
+
+The data collection system tracks four main entities:
+
+1. Humans (Registration Data):
+   - Blockchain addresses
+   - Registration timestamps
+   - Invitation relationships
+   - Welcome bonus amounts
+
+2. Trust Relationships:
+   - Directional trust connections
+   - Trust limits
+   - Temporal validity
+   - Historical trust changes
+
+3. Balance Changes:
+   - Account balances over time
+   - Transaction details
+   - Token types and amounts
+   - Event classifications
+
+4. Network Statistics:
+   - Periodic network snapshots
+   - Global metrics
+   - Trust network density
+   - Token distribution stats
+
+### Using the Data Collector
+
+The CirclesDataCollector class provides a high-level interface to the data storage system:
+
 ```python
-from rings_network import NetworkBuilder
+from rings_network import CirclesDataCollector
 
-builder = NetworkBuilder(RINGS_ADDRESS, ABI_PATH)
-builder.build_complete_network()  # Creates a fully connected test network
+# Initialize collector with default SQL directory
+collector = CirclesDataCollector()
+
+# Record network events
+collector.record_human_registration(
+    address="0x123...",
+    block_number=1000,
+    timestamp=current_time,
+    welcome_bonus=100.0
+)
+
+# Record trust relationships
+collector.record_trust_relationship(
+    truster="0x123...",
+    trustee="0x456...",
+    block_number=1001,
+    timestamp=current_time,
+    trust_limit=1000.0,
+    expiry_time=expiry_time
+)
+
+# Export data for analysis
+collector.export_to_csv("analysis_results")
 ```
 
-2. Network Evolution:
+### Extending the Data Collection
+
+To add new data collection capabilities:
+
+1. Add new SQL files to the appropriate subdirectory in `duckdb/`
+2. Update the schema if needed using new `.up.sql` files
+3. Create new analysis queries in the `analysis/` directory
+4. Use the collector's `_read_sql_file()` method to execute the new queries
+
+### Analysis Queries
+
+The system comes with pre-built analysis queries for common metrics:
+
+- Human growth analysis
+- Trust network evolution
+- Token velocity tracking
+- Balance distribution analysis
+- Network density calculations
+
+Access these through the collector's interface:
+
 ```python
-from rings_network import NetworkEvolver
+# Get pre-defined analysis queries
+queries = collector.get_analysis_queries()
 
-evolver = NetworkEvolver(RINGS_ADDRESS, ABI_PATH)
-evolver.advance_time(100)        # Advance blockchain by 100 blocks
-evolver.personal_mint(account)   # Mint tokens for an account
+# Execute specific analysis
+human_growth = collector.con.execute(queries["human_growth"]).df()
 ```
-
-3. Data Collection:
-```python
-from rings_network import DataCollector, NetworkAnalyzer
-
-analyzer = NetworkAnalyzer(RINGS_ADDRESS, ABI_PATH)
-collector = DataCollector(analyzer)
-collector.collect_state(accounts)     # Record current network state
-collector.export_data("results.json") # Save collected data
-```
-
-For a complete simulation, use the provided script:
-```bash
-ape run rings
-```
-
-## Data Format
-
-The simulation generates JSON files containing:
-- Balance histories for all accounts
-- Trust relationship matrices
-- Temporal evolution data
-- Network statistics
-
-Example data structure:
-```json
-{
-    "timestamps": [...],
-    "balance_history": [...],
-    "trust_history": [...]
-}
-```
-
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-

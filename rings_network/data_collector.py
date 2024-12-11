@@ -95,13 +95,13 @@ class CirclesDataCollector:
         try:
             # Execute table creation scripts
             for table_file in tables:
-                sql = self._read_sql_file(table_file)
+                sql = self._read_sql_file('schema/' + table_file)
                 self.con.execute(sql)
                 logger.info(f"Created table from {table_file}")
                 
             # Execute view creation scripts    
             for view_file in views:
-                sql = self._read_sql_file(view_file)
+                sql = self._read_sql_file('views/' + view_file)
                 self.con.execute(sql)
                 logger.info(f"Created view from {view_file}")
                 
@@ -123,7 +123,7 @@ class CirclesDataCollector:
         Record a new human registration in the network.
         """
         try:
-            sql = self._read_sql_file("insert_human.sql")
+            sql = self._read_sql_file("queries/insert_human.sql")
             self.con.execute(sql, [
                 address, timestamp, block_number, inviter_address, welcome_bonus
             ])
@@ -146,7 +146,7 @@ class CirclesDataCollector:
         Record a new or updated trust relationship.
         """
         try:
-            sql = self._read_sql_file("insert_trust.sql")
+            sql = self._read_sql_file("queries/insert_trust.sql")
             self.con.execute(sql, [
                 truster, trustee, timestamp, block_number, trust_limit, expiry_time
             ])
@@ -178,7 +178,7 @@ class CirclesDataCollector:
             new_balance_scaled = new_balance / scale
             change_amount = new_balance_scaled - previous_balance_scaled
             
-            sql = self._read_sql_file("insert_balance_change.sql")
+            sql = self._read_sql_file("queries/insert_balance_change.sql")
             self.con.execute(sql, [
                 account, token_id, block_number, timestamp,
                 previous_balance_scaled, new_balance_scaled, change_amount,
@@ -200,11 +200,11 @@ class CirclesDataCollector:
         """
         try:
             # Calculate statistics using the stats calculation query
-            calc_sql = self._read_sql_file("calculate_network_stats.sql")
+            calc_sql = self._read_sql_file("analysis/calculate_network_stats.sql")
             stats = self.con.execute(calc_sql).fetchone()
             
             # Insert the calculated statistics
-            insert_sql = self._read_sql_file("insert_network_stats.sql")
+            insert_sql = self._read_sql_file("queries/insert_network_stats.sql")
             self.con.execute(insert_sql, [timestamp, block_number, *stats])
             self.con.commit()
             logger.info(f"Recorded network statistics for block {block_number}")
@@ -224,7 +224,7 @@ class CirclesDataCollector:
         }
         
         return {
-            name: self._read_sql_file(filename)
+            name: self._read_sql_file('analysis/' + filename)
             for name, filename in analysis_queries.items()
         }
     
