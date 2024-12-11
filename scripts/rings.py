@@ -64,8 +64,7 @@ class RingsSimulation:
                     
                 # Perform minting for all accounts and record changes
                 mint_results = self.evolver.mint_for_all(accounts.test_accounts)
-               # if mint_results:
-               #     self._record_mint_activity(mint_results)
+
                 
                 # Take a snapshot of network state after each iteration
                 self._record_network_snapshot()
@@ -90,21 +89,6 @@ class RingsSimulation:
             timestamp=current_time
         )
         
-    def _record_mint_activity(self, mint_results):
-        current_block = chain.blocks.head.number
-        current_time = datetime.fromtimestamp(chain.blocks.head.timestamp)
-        
-        for account, amount in mint_results.items():
-            self.collector.record_balance_change(
-                account=account,
-                token_id=account,
-                block_number=current_block,
-                timestamp=current_time,
-                previous_balance=self.analyzer.get_balance(account),
-                new_balance=amount,
-                tx_hash="",
-                event_type="MINT"
-            )
             
     def _export_results(self):
         output_dir = "simulation_results"
