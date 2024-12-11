@@ -1,4 +1,8 @@
 .env
 **/__pycache__/
+*.duckdb
+*.log
+
 circles_ape/*
 rings_network.egg-info/*
+simulation_results/*

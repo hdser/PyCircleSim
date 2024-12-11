@@ -7,5 +7,13 @@ setup(
     install_requires=[
         "eth-ape[recommended-plugins]",
         "pandas",
+        "duckdb>=0.9.0",
+        "click>=8.0.0",
+        "python-dotenv>=0.19.0",
     ],
+    entry_points={
+        'console_scripts': [
+            'rings-sim=scripts.rings:cli',
+        ],
+    },
 )
