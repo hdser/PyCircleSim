@@ -21,6 +21,7 @@ gnosis:
     gas_limit: max
     transaction_acceptance_timeout: 180
     default_transaction_type: 0
+    block_time: 0.1
   mainnet:
     default_provider: node
     transaction_acceptance_timeout: 180

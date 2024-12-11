@@ -1,3 +1,4 @@
 .env
 **/__pycache__/
 circles_ape/*
+rings_network.egg-info/*
