@@ -1,6 +1,7 @@
 .env
 **/__pycache__/
 *.duckdb
+*.duckdb.wal
 *.log
 
 circles_ape/*

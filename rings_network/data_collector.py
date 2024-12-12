@@ -1,19 +1,19 @@
 import duckdb
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 import pandas as pd
 import logging
 import json
 import os
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-
 class CirclesDataCollector:
     """
-    A data collection system for the Circles network using DuckDB as the storage backend.
-    Tracks network events and state changes in real-time.
+    Enhanced data collection system for the Circles network that maintains SQL queries
+    in external files while providing improved data handling and validation.
     """
     
     def __init__(self, db_path: str = "circles_network.duckdb", sql_dir: Optional[str] = None):
@@ -27,38 +27,41 @@ class CirclesDataCollector:
         """
         self.db_path = db_path
         
-        # If sql_dir is not provided, use the duckdb directory next to this module
         if sql_dir is None:
-            # Get the directory where this module is located
             module_dir = Path(__file__).parent
             self.sql_dir = module_dir / "duckdb"
         else:
             self.sql_dir = Path(sql_dir)
             
-        # Ensure the SQL directory exists
         if not self.sql_dir.exists():
             raise FileNotFoundError(
                 f"SQL directory not found at {self.sql_dir}. "
                 "Please ensure the duckdb directory exists and contains the SQL files."
             )
             
+        # Initialize database connection and tracking data
         self.con = duckdb.connect(db_path)
+        self._last_timestamp = defaultdict(lambda: datetime.min)
+        self.sequence_number = defaultdict(int)
+        
+        # Set up database schema
         self._initialize_database()
         logger.info(f"Initialized CirclesDataCollector with database at {db_path}")
-        
+
+    def _get_unique_timestamp(self, base_timestamp: datetime, table_name: str) -> datetime:
+        """Generate a unique timestamp for database operations."""
+        if base_timestamp <= self._last_timestamp[table_name]:
+            self.sequence_number[table_name] += 1
+            unique_timestamp = self._last_timestamp[table_name] + timedelta(microseconds=self.sequence_number[table_name])
+        else:
+            self.sequence_number[table_name] = 0
+            unique_timestamp = base_timestamp
+            
+        self._last_timestamp[table_name] = unique_timestamp
+        return unique_timestamp
+
     def _read_sql_file(self, filename: str) -> str:
-        """
-        Read SQL query from a file in the SQL directory.
-        
-        Args:
-            filename: Name of the SQL file to read
-            
-        Returns:
-            str: Contents of the SQL file
-            
-        Raises:
-            FileNotFoundError: If the SQL file doesn't exist
-        """
+        """Read SQL query from the file system."""
         sql_file = self.sql_dir / filename
         if not sql_file.exists():
             raise FileNotFoundError(
@@ -72,34 +75,29 @@ class CirclesDataCollector:
         except Exception as e:
             logger.error(f"Error reading SQL file {filename}: {e}")
             raise
-        
+
     def _initialize_database(self):
-        """
-        Set up the database schema by executing SQL files from the duckdb directory.
-        Each table has its own .up.sql file for creation.
-        """
-        # Create tables using SQL files
-        tables = [
-            "humans.up.sql",
-            "trusts.up.sql", 
-            "balance_changes.up.sql",
-            "network_stats.up.sql"
-        ]
-        
-        # Create views using SQL files
-        views = [
-            "current_balances.view.sql",
-            "active_trusts.view.sql"
-        ]
-        
+        """Initialize database using SQL files from the schema directory."""
         try:
             # Execute table creation scripts
+            tables = [
+                "humans.up.sql",
+                "trusts.up.sql", 
+                "balance_changes.up.sql",
+                "network_stats.up.sql"
+            ]
+            
             for table_file in tables:
                 sql = self._read_sql_file('schema/' + table_file)
                 self.con.execute(sql)
                 logger.info(f"Created table from {table_file}")
                 
             # Execute view creation scripts    
+            views = [
+                "current_balances.view.sql",
+                "active_trusts.view.sql"
+            ]
+            
             for view_file in views:
                 sql = self._read_sql_file('views/' + view_file)
                 self.con.execute(sql)
@@ -110,7 +108,17 @@ class CirclesDataCollector:
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
             raise
-        
+
+    def _validate_ethereum_address(self, address: str) -> bool:
+        """Validate Ethereum address format."""
+        if not address:
+            return False
+        return (
+            address.startswith('0x') and 
+            len(address) == 42 and 
+            all(c in '0123456789abcdefABCDEF' for c in address[2:])
+        )
+
     def record_human_registration(
         self,
         address: str,
@@ -119,20 +127,30 @@ class CirclesDataCollector:
         inviter_address: Optional[str] = None,
         welcome_bonus: Optional[float] = None
     ):
-        """
-        Record a new human registration in the network.
-        """
+        """Record a new human registration with validation."""
         try:
-            sql = self._read_sql_file("queries/insert_human.sql")
+            if not self._validate_ethereum_address(address):
+                raise ValueError(f"Invalid address format: {address}")
+                
+            if inviter_address and not self._validate_ethereum_address(inviter_address):
+                raise ValueError(f"Invalid inviter address format: {inviter_address}")
+                
+            unique_timestamp = self._get_unique_timestamp(timestamp, 'humans')
+            
+            sql = self._read_sql_file("queries/insert_humans.sql")
             self.con.execute(sql, [
-                address, timestamp, block_number, inviter_address, welcome_bonus
+                address, unique_timestamp, block_number,
+                inviter_address, welcome_bonus
             ])
             self.con.commit()
+            
             logger.info(f"Recorded new human registration: {address}")
+            
         except Exception as e:
             logger.error(f"Failed to record human registration: {e}")
+            self.con.rollback()
             raise
-            
+
     def record_trust_relationship(
         self,
         truster: str,
@@ -142,20 +160,30 @@ class CirclesDataCollector:
         trust_limit: float,
         expiry_time: datetime
     ):
-        """
-        Record a new or updated trust relationship.
-        """
+        """Record a trust relationship with validation."""
         try:
+            if not self._validate_ethereum_address(truster):
+                raise ValueError(f"Invalid truster address: {truster}")
+                
+            if not self._validate_ethereum_address(trustee):
+                raise ValueError(f"Invalid trustee address: {trustee}")
+                
+            unique_timestamp = self._get_unique_timestamp(timestamp, 'trusts')
+            
             sql = self._read_sql_file("queries/insert_trust.sql")
             self.con.execute(sql, [
-                truster, trustee, timestamp, block_number, trust_limit, expiry_time
+                truster, trustee, unique_timestamp, block_number,
+                trust_limit, expiry_time
             ])
             self.con.commit()
+            
             logger.info(f"Recorded trust relationship: {truster} -> {trustee}")
+            
         except Exception as e:
             logger.error(f"Failed to record trust relationship: {e}")
+            self.con.rollback()
             raise
-            
+
     def record_balance_change(
         self,
         account: str,
@@ -167,55 +195,64 @@ class CirclesDataCollector:
         tx_hash: str,
         event_type: str
     ):
-        """
-        Record a balance change event, handling the conversion from blockchain's
-        18-decimal integer representation to human-readable numbers.
-        """
+        """Record a balance change with proper scaling."""
         try:
-            # Convert to human-readable numbers
-            scale = 10**15
+            if not self._validate_ethereum_address(account):
+                raise ValueError(f"Invalid account address: {account}")
+                
+            scale = 10**18  # Full 18 decimal places
             previous_balance_scaled = previous_balance / scale
             new_balance_scaled = new_balance / scale
             change_amount = new_balance_scaled - previous_balance_scaled
             
+            unique_timestamp = self._get_unique_timestamp(timestamp, 'balance_changes')
+            
             sql = self._read_sql_file("queries/insert_balance_change.sql")
             self.con.execute(sql, [
-                account, token_id, block_number, timestamp,
+                account, token_id, block_number, unique_timestamp,
                 previous_balance_scaled, new_balance_scaled, change_amount,
                 tx_hash, event_type
             ])
             self.con.commit()
+            
             logger.info(f"Recorded {event_type} balance change for {account}: {change_amount}")
+            
         except Exception as e:
             logger.error(f"Failed to record balance change: {e}")
+            self.con.rollback()
             raise
-            
+
     def record_network_statistics(
         self,
         block_number: int,
         timestamp: datetime
     ):
-        """
-        Record network-wide statistics at a given point in time.
-        """
+        """Record network-wide statistics with unique timestamp handling."""
         try:
-            # Calculate statistics using the stats calculation query
+            # Get unique timestamp for this statistic record
+            unique_timestamp = self._get_unique_timestamp(timestamp, 'network_stats')
+            
+            # Calculate statistics using the external SQL file
             calc_sql = self._read_sql_file("analysis/calculate_network_stats.sql")
             stats = self.con.execute(calc_sql).fetchone()
             
-            # Insert the calculated statistics
+            if not stats:
+                raise ValueError("Failed to calculate network statistics")
+                
+            # Insert using the external SQL file
             insert_sql = self._read_sql_file("queries/insert_network_stats.sql")
-            self.con.execute(insert_sql, [timestamp, block_number, *stats])
+            self.con.execute(insert_sql, [unique_timestamp, block_number, *stats])
             self.con.commit()
+            
             logger.info(f"Recorded network statistics for block {block_number}")
+            
         except Exception as e:
             logger.error(f"Failed to record network statistics: {e}")
+            self.con.rollback()
             raise
-            
+
     def get_analysis_queries(self) -> Dict[str, str]:
-        """
-        Returns a dictionary of analysis queries read from SQL files.
-        """
+        """Load analysis queries from files."""
         analysis_queries = {
             "human_growth": "analyze_human_growth.sql",
             "trust_network_growth": "analyze_trust_growth.sql",
@@ -227,73 +264,47 @@ class CirclesDataCollector:
             name: self._read_sql_file('analysis/' + filename)
             for name, filename in analysis_queries.items()
         }
-    
-    def export_to_csv(self, output_dir: str = "analysis_results"):
-        """
-        Export all tables to CSV files for external analysis.
-        """
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
-        
-        tables = ["humans", "trusts", "balance_changes", "network_stats"]
-        for table in tables:
-            df = self.con.execute(f"SELECT * FROM {table}").df()
-            df.to_csv(f"{output_dir}/{table}.csv", index=False)
-            
-        logger.info(f"Exported all tables to CSV in {output_dir}")
-        
-    def close(self):
-        """
-        Close the database connection.
-        """
-        self.con.close()
-        logger.info("Closed database connection")
 
-# Example usage
-if __name__ == "__main__":
-    # Initialize collector
-    collector = CirclesDataCollector()
-    
-    # Record some test data
-    test_timestamp = datetime.now()
-    
-    # Record a new human
-    collector.record_human_registration(
-        "0x123...",
-        block_number=1000,
-        timestamp=test_timestamp,
-        welcome_bonus=100.0
-    )
-    
-    # Record a trust relationship
-    collector.record_trust_relationship(
-        "0x123...",
-        "0x456...",
-        block_number=1001,
-        timestamp=test_timestamp,
-        trust_limit=1000.0,
-        expiry_time=test_timestamp
-    )
-    
-    # Record a balance change
-    collector.record_balance_change(
-        "0x123...",
-        "0x789...",
-        block_number=1002,
-        timestamp=test_timestamp,
-        previous_balance=0.0,
-        new_balance=100.0,
-        tx_hash="0xabc...",
-        event_type="MINT"
-    )
-    
-    # Record network statistics
-    collector.record_network_statistics(
-        block_number=1002,
-        timestamp=test_timestamp
-    )
-    
-    # Export data
-    collector.export_to_csv()
-    
-    # Close connection
-    collector.close()
+    def export_to_csv(self, output_dir: str = "analysis_results"):
+        """Export all tables to CSV files with metadata."""
+        try:
+            output_path = Path(output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+            
+            tables = ["humans", "trusts", "balance_changes", "network_stats"]
+            
+            metadata = {
+                "export_timestamp": datetime.now().isoformat(),
+                "database_path": str(self.db_path),
+                "table_statistics": {}
+            }
+            
+            for table in tables:
+                df = self.con.execute(f"SELECT * FROM {table}").df()
+                csv_path = output_path / f"{table}.csv"
+                df.to_csv(csv_path, index=False)
+                
+                metadata["table_statistics"][table] = {
+                    "row_count": len(df),
+                    "columns": list(df.columns),
+                    "export_path": str(csv_path)
+                }
+                
+            # Save metadata
+            with open(output_path / "export_metadata.json", "w") as f:
+                json.dump(metadata, f, indent=2)
+                
+            logger.info(f"Exported all tables to CSV in {output_dir}")
+            
+        except Exception as e:
+            logger.error(f"Failed to export data: {e}")
+            raise
+
+    def close(self):
+        """Safely close the database connection."""
+        try:
+            self.con.close()
+            logger.info("Closed database connection")
+        except Exception as e:
+            logger.error(f"Error closing database connection: {e}")
+            raise
