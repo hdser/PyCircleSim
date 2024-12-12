@@ -6,6 +6,7 @@ import random
 import logging
 from eth_account import Account
 import secrets
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -132,36 +133,53 @@ class Agent:
 class AgentManager:
     """Manages a collection of agents in the simulation"""
     
-    def __init__(self):
-        self.agents: Dict[str, Agent] = {}  # address -> Agent
-        self.address_to_agent_id: Dict[str, str] = {}  # maps addresses to agent IDs
+    def __init__(self, data_collector: Optional['CirclesDataCollector'] = None):
+        self.agents: Dict[str, Agent] = {}  # agent_id -> Agent
+        self.address_to_agent_id: Dict[str, str] = {}  # address -> agent_id
+        self.data_collector = data_collector
+
+    def create_agent(self, profile: Optional[AgentProfile] = None) -> Tuple[Agent, str, str]:
+        """
+        Create a new agent with initial account.
         
-    def create_agent(self, profile: Optional[AgentProfile] = None) -> Tuple[Agent, str]:
-        """Create a new agent with initial account"""
+        Returns:
+            Tuple of (Agent instance, agent_id, primary_address)
+        """
+        # Create the agent with the profile
         agent = Agent(profile)
-        address, _ = agent.create_account()
         
-        # Use first account address as agent ID
-        self.agents[address] = agent
-        self.address_to_agent_id[address] = address
+        # Generate the blockchain address and private key
+        address, private_key = agent.create_account()
         
-        return agent, address
+        # Generate unique ID for the agent
+        agent_id = str(uuid.uuid4())
         
-    def get_agent_by_address(self, address: str) -> Optional[Agent]:
-        """Get agent instance by any of their account addresses"""
-        agent_id = self.address_to_agent_id.get(address)
-        return self.agents.get(agent_id)
+        # Store the mappings
+        self.agents[agent_id] = agent
+        self.address_to_agent_id[address] = agent_id
         
+        # Record in database if collector is available
+        if self.data_collector:
+            self.data_collector.record_agent(agent_id, agent.profile)
+            self.data_collector.record_agent_address(agent_id, address, is_primary=True)
+            
+        return agent, agent_id, address
+
     def create_random_agents(
         self,
         count: int,
         personality_weights: Optional[Dict[AgentPersonality, float]] = None
-    ) -> List[Tuple[Agent, str]]:
-        """Create multiple agents with random or weighted personalities"""
+    ) -> List[Tuple[Agent, str, str]]:
+        """
+        Create multiple agents with random or weighted personalities.
+        
+        Returns:
+            List of tuples (Agent, agent_id, primary_address)
+        """
         if personality_weights is None:
             personality_weights = {p: 1.0 for p in AgentPersonality}
             
-        agents = []
+        agents_data = []
         for _ in range(count):
             personality = random.choices(
                 list(personality_weights.keys()),
@@ -177,6 +195,19 @@ class AgentManager:
                 risk_tolerance=random.uniform(0.2, 0.8)
             )
             
-            agents.append(self.create_agent(profile))
+            agents_data.append(self.create_agent(profile))
             
-        return agents
+        return agents_data
+
+    def get_agent_by_id(self, agent_id: str) -> Optional[Agent]:
+        """Get agent instance by its ID."""
+        return self.agents.get(agent_id)
+
+    def get_agent_by_address(self, address: str) -> Optional[Agent]:
+        """Get agent instance by any of their account addresses."""
+        agent_id = self.address_to_agent_id.get(address)
+        return self.agents.get(agent_id)
+
+    def get_agent_id_by_address(self, address: str) -> Optional[str]:
+        """Get agent ID associated with an address."""
+        return self.address_to_agent_id.get(address)

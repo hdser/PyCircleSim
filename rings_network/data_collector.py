@@ -1,7 +1,7 @@
 import duckdb
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 import pandas as pd
 import logging
 import json
@@ -17,14 +17,7 @@ class CirclesDataCollector:
     """
     
     def __init__(self, db_path: str = "circles_network.duckdb", sql_dir: Optional[str] = None):
-        """
-        Initialize the data collector with a DuckDB database connection.
-        
-        Args:
-            db_path: Path where the DuckDB database file will be stored
-            sql_dir: Directory containing SQL query files. If None, defaults to 
-                    'duckdb' directory next to this module
-        """
+        """Initialize the data collector with a DuckDB database connection."""
         self.db_path = db_path
         
         if sql_dir is None:
@@ -34,15 +27,13 @@ class CirclesDataCollector:
             self.sql_dir = Path(sql_dir)
             
         if not self.sql_dir.exists():
-            raise FileNotFoundError(
-                f"SQL directory not found at {self.sql_dir}. "
-                "Please ensure the duckdb directory exists and contains the SQL files."
-            )
+            raise FileNotFoundError(f"SQL directory not found at {self.sql_dir}")
             
-        # Initialize database connection and tracking data
+        # Initialize database connection
         self.con = duckdb.connect(db_path)
         self._last_timestamp = defaultdict(lambda: datetime.min)
         self.sequence_number = defaultdict(int)
+        self.current_run_id = None
         
         # Set up database schema
         self._initialize_database()
@@ -79,12 +70,16 @@ class CirclesDataCollector:
     def _initialize_database(self):
         """Initialize database using SQL files from the schema directory."""
         try:
-            # Execute table creation scripts
+            # Execute table creation scripts in order of dependencies
             tables = [
-                "humans.up.sql",
-                "trusts.up.sql", 
-                "balance_changes.up.sql",
-                "network_stats.up.sql"
+                # First create base tables without foreign key dependencies
+                "simulation_runs.up.sql",  # Must come first as other tables reference it
+                "agents.up.sql",           # Depends on simulation_runs
+                "agent_addresses.up.sql",  # Depends on agents and simulation_runs
+                "humans.up.sql",           # Depends on simulation_runs
+                "trusts.up.sql",           # Depends on simulation_runs
+                "balance_changes.up.sql",  # Depends on simulation_runs
+                "network_stats.up.sql",    # Depends on simulation_runs
             ]
             
             for table_file in tables:
@@ -92,7 +87,7 @@ class CirclesDataCollector:
                 self.con.execute(sql)
                 logger.info(f"Created table from {table_file}")
                 
-            # Execute view creation scripts    
+            # Execute view creation scripts after all tables exist   
             views = [
                 "current_balances.view.sql",
                 "active_trusts.view.sql"
@@ -119,6 +114,86 @@ class CirclesDataCollector:
             all(c in '0123456789abcdefABCDEF' for c in address[2:])
         )
 
+    def start_simulation_run(self, parameters: Dict = None, description: str = None) -> int:
+        """Start a new simulation run and return its ID."""
+        try:
+            sql = self._read_sql_file("queries/insert_simulation_run.sql")
+            result = self.con.execute(sql, [
+                datetime.now(),
+                json.dumps(parameters) if parameters else None,
+                description
+            ]).fetchone()
+            
+            self.current_run_id = result[0]
+            self.con.commit()
+            logger.info(f"Started simulation run {self.current_run_id}")
+            return self.current_run_id
+            
+        except Exception as e:
+            logger.error(f"Failed to start simulation run: {e}")
+            raise
+            
+    def end_simulation_run(self):
+        """Mark the current simulation run as completed."""
+        if not self.current_run_id:
+            logger.warning("No active simulation run to end")
+            return
+            
+        try:
+            sql = self._read_sql_file("queries/update_simulation_run.sql")
+            self.con.execute(sql, [datetime.now(), self.current_run_id])
+            self.con.commit()
+            logger.info(f"Ended simulation run {self.current_run_id}")
+            self.current_run_id = None
+            
+        except Exception as e:
+            logger.error(f"Failed to end simulation run: {e}")
+            raise
+            
+    def record_agent(self, agent_id: str, profile: 'AgentProfile'):
+        """Record agent details in the database."""
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+            
+        try:
+            sql = self._read_sql_file("queries/insert_agent.sql")
+            self.con.execute(sql, [
+                agent_id,
+                self.current_run_id,
+                profile.personality.value,
+                profile.economic_status.value,
+                profile.trust_threshold,
+                profile.max_connections,
+                profile.activity_level,
+                profile.risk_tolerance
+            ])
+            self.con.commit()
+            logger.debug(f"Recorded agent {agent_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to record agent: {e}")
+            raise
+            
+    def record_agent_address(self, agent_id: str, address: str, is_primary: bool = False):
+        """Record an address associated with an agent."""
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+            
+        try:
+            sql = self._read_sql_file("queries/insert_agent_address.sql")
+            self.con.execute(sql, [
+                agent_id,
+                address,
+                is_primary,
+                self.current_run_id
+            ])
+            self.con.commit()
+            logger.debug(f"Recorded address {address} for agent {agent_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to record agent address: {e}")
+            raise
+            
     def record_human_registration(
         self,
         address: str,
@@ -127,7 +202,10 @@ class CirclesDataCollector:
         inviter_address: Optional[str] = None,
         welcome_bonus: Optional[float] = None
     ):
-        """Record a new human registration with validation."""
+        """Record a new human registration."""
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+            
         try:
             if not self._validate_ethereum_address(address):
                 raise ValueError(f"Invalid address format: {address}")
@@ -139,18 +217,20 @@ class CirclesDataCollector:
             
             sql = self._read_sql_file("queries/insert_humans.sql")
             self.con.execute(sql, [
-                address, unique_timestamp, block_number,
-                inviter_address, welcome_bonus
+                address,
+                self.current_run_id,
+                unique_timestamp,
+                block_number,
+                inviter_address,
+                welcome_bonus
             ])
             self.con.commit()
-            
             logger.info(f"Recorded new human registration: {address}")
             
         except Exception as e:
             logger.error(f"Failed to record human registration: {e}")
-            self.con.rollback()
             raise
-
+            
     def record_trust_relationship(
         self,
         truster: str,
@@ -160,30 +240,36 @@ class CirclesDataCollector:
         trust_limit: float,
         expiry_time: datetime
     ):
-        """Record a trust relationship with validation."""
+        """Record a trust relationship."""
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+            
         try:
-            if not self._validate_ethereum_address(truster):
-                raise ValueError(f"Invalid truster address: {truster}")
+           # if not self._validate_ethereum_address(truster):
+           #     raise ValueError(f"Invalid truster address: {truster}")
                 
-            if not self._validate_ethereum_address(trustee):
-                raise ValueError(f"Invalid trustee address: {trustee}")
+           # if not self._validate_ethereum_address(trustee):
+           #     raise ValueError(f"Invalid trustee address: {trustee}")
                 
             unique_timestamp = self._get_unique_timestamp(timestamp, 'trusts')
-            
+
             sql = self._read_sql_file("queries/insert_trust.sql")
             self.con.execute(sql, [
-                truster, trustee, unique_timestamp, block_number,
-                trust_limit, expiry_time
+                truster,
+                trustee,
+                self.current_run_id,
+                unique_timestamp,
+                block_number,
+                trust_limit,
+                expiry_time
             ])
             self.con.commit()
-            
             logger.info(f"Recorded trust relationship: {truster} -> {trustee}")
             
         except Exception as e:
             logger.error(f"Failed to record trust relationship: {e}")
-            self.con.rollback()
             raise
-
+            
     def record_balance_change(
         self,
         account: str,
@@ -195,31 +281,35 @@ class CirclesDataCollector:
         tx_hash: str,
         event_type: str
     ):
-        """Record a balance change with proper scaling."""
+        """Record a balance change."""
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+            
         try:
             if not self._validate_ethereum_address(account):
                 raise ValueError(f"Invalid account address: {account}")
                 
-            scale = 10**18  # Full 18 decimal places
-            previous_balance_scaled = previous_balance / scale
-            new_balance_scaled = new_balance / scale
-            change_amount = new_balance_scaled - previous_balance_scaled
-            
             unique_timestamp = self._get_unique_timestamp(timestamp, 'balance_changes')
+            change_amount = new_balance - previous_balance
             
             sql = self._read_sql_file("queries/insert_balance_change.sql")
             self.con.execute(sql, [
-                account, token_id, block_number, unique_timestamp,
-                previous_balance_scaled, new_balance_scaled, change_amount,
-                tx_hash, event_type
+                account,
+                token_id,
+                self.current_run_id,
+                block_number,
+                unique_timestamp,
+                previous_balance,
+                new_balance,
+                change_amount,
+                tx_hash,
+                event_type
             ])
             self.con.commit()
-            
             logger.info(f"Recorded {event_type} balance change for {account}: {change_amount}")
             
         except Exception as e:
             logger.error(f"Failed to record balance change: {e}")
-            self.con.rollback()
             raise
 
     def record_network_statistics(
@@ -227,43 +317,189 @@ class CirclesDataCollector:
         block_number: int,
         timestamp: datetime
     ):
-        """Record network-wide statistics with unique timestamp handling."""
+        """Record network-wide statistics for the current simulation run."""
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+            
         try:
-            # Get unique timestamp for this statistic record
             unique_timestamp = self._get_unique_timestamp(timestamp, 'network_stats')
             
-            # Calculate statistics using the external SQL file
+            # Calculate statistics using the SQL file
             calc_sql = self._read_sql_file("analysis/calculate_network_stats.sql")
             stats = self.con.execute(calc_sql).fetchone()
             
             if not stats:
                 raise ValueError("Failed to calculate network statistics")
                 
-            # Insert using the external SQL file
-            insert_sql = self._read_sql_file("queries/insert_network_stats.sql")
-            self.con.execute(insert_sql, [unique_timestamp, block_number, *stats])
+            # Insert using the SQL file
+            sql = self._read_sql_file("queries/insert_network_stats.sql")
+            self.con.execute(sql, [
+                self.current_run_id,
+                unique_timestamp,
+                block_number,
+                stats[0],  # total_humans
+                stats[1],  # total_active_trusts
+                stats[2],  # total_supply
+                stats[3],  # average_balance
+                stats[4]   # trust_density
+            ])
             self.con.commit()
             
             logger.info(f"Recorded network statistics for block {block_number}")
             
         except Exception as e:
             logger.error(f"Failed to record network statistics: {e}")
-            self.con.rollback()
             raise
 
-    def get_analysis_queries(self) -> Dict[str, str]:
-        """Load analysis queries from files."""
-        analysis_queries = {
-            "human_growth": "analyze_human_growth.sql",
-            "trust_network_growth": "analyze_trust_growth.sql",
-            "token_velocity": "analyze_token_velocity.sql",
-            "top_trusted_accounts": "analyze_top_trusted.sql"
-        }
+    def get_simulation_results(self, run_id: int) -> Dict:
+        """
+        Retrieve comprehensive results for a specific simulation run.
         
-        return {
-            name: self._read_sql_file('analysis/' + filename)
-            for name, filename in analysis_queries.items()
-        }
+        Args:
+            run_id: The ID of the simulation run to analyze
+            
+        Returns:
+            Dict containing various metrics and statistics about the simulation run
+        """
+        try:
+            # Get basic simulation information
+            sql = self._read_sql_file("queries/get_simulation_results.sql")
+            results = self.con.execute(sql, [run_id]).fetchone()
+            
+            if not results:
+                raise ValueError(f"No simulation found with ID {run_id}")
+                
+            # Get agent details
+            agent_sql = self._read_sql_file("queries/get_agent_details.sql")
+            agents = self.con.execute(agent_sql, [run_id]).fetchall()
+            
+            # Get network evolution over time
+            network_stats_sql = self._read_sql_file("queries/get_network_stats_evolution.sql")
+            network_evolution = self.con.execute(network_stats_sql, [run_id]).fetchall()
+            
+            return {
+                "simulation_info": {
+                    "run_id": run_id,
+                    "start_time": results[1],
+                    "end_time": results[2],
+                    "parameters": json.loads(results[3]) if results[3] else None,
+                    "description": results[4]
+                },
+                "network_metrics": {
+                    "total_humans": results[5],
+                    "total_trusters": results[6],
+                    "total_trustees": results[7],
+                    "active_accounts": results[8]
+                },
+                "agents": [dict(zip(["agent_id", "personality", "addresses"], a)) for a in agents],
+                "network_evolution": network_evolution
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve simulation results: {e}")
+            raise
+
+    def compare_simulations(self, run_ids: List[int]) -> pd.DataFrame:
+        """
+        Compare multiple simulation runs side by side.
+        
+        Args:
+            run_ids: List of simulation run IDs to compare
+            
+        Returns:
+            DataFrame containing comparative metrics for each run
+        """
+        try:
+            results = []
+            for run_id in run_ids:
+                sql = self._read_sql_file("queries/get_simulation_summary.sql")
+                summary = self.con.execute(sql, [run_id]).fetchone()
+                if summary:
+                    results.append(summary)
+                    
+            return pd.DataFrame(results, columns=[
+                'run_id', 'duration_minutes', 'total_humans', 'total_trusts',
+                'active_accounts', 'total_supply', 'trust_density'
+            ])
+            
+        except Exception as e:
+            logger.error(f"Failed to compare simulations: {e}")
+            raise
+
+    def get_agent_history(self, agent_id: str, run_id: Optional[int] = None) -> Dict:
+        """
+        Get the complete history of an agent's activities in a simulation.
+        
+        Args:
+            agent_id: The unique identifier of the agent
+            run_id: Optional specific simulation run ID (defaults to current run)
+            
+        Returns:
+            Dict containing the agent's profile and activity history
+        """
+        try:
+            if not run_id and not self.current_run_id:
+                raise ValueError("No simulation run specified or currently active")
+                
+            run_id = run_id or self.current_run_id
+            
+            # Get agent profile
+            sql = self._read_sql_file("queries/get_agent_profile.sql")
+            profile = self.con.execute(sql, [agent_id, run_id]).fetchone()
+            
+            if not profile:
+                raise ValueError(f"No agent found with ID {agent_id} in run {run_id}")
+                
+            # Get balance changes
+            balance_sql = self._read_sql_file("queries/get_agent_balance_history.sql")
+            balance_history = self.con.execute(balance_sql, [agent_id, run_id]).fetchall()
+            
+            # Get trust relationships
+            trust_sql = self._read_sql_file("queries/get_agent_trust_history.sql")
+            trust_history = self.con.execute(trust_sql, [agent_id, run_id]).fetchall()
+            
+            return {
+                "profile": dict(zip([
+                    "agent_id", "personality", "economic_status", "trust_threshold",
+                    "max_connections", "activity_level", "risk_tolerance"
+                ], profile)),
+                "balance_history": balance_history,
+                "trust_history": trust_history
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get agent history: {e}")
+            raise
+
+    def get_network_graph(self, run_id: Optional[int] = None) -> Tuple[List, List]:
+        """
+        Get the trust network graph data for visualization.
+        
+        Args:
+            run_id: Optional specific simulation run ID (defaults to current run)
+            
+        Returns:
+            Tuple of (nodes, edges) where nodes are agents and edges are trust relationships
+        """
+        try:
+            run_id = run_id or self.current_run_id
+            if not run_id:
+                raise ValueError("No simulation run specified or currently active")
+                
+            # Get all nodes (agents)
+            node_sql = self._read_sql_file("queries/get_network_nodes.sql")
+            nodes = self.con.execute(node_sql, [run_id]).fetchall()
+            
+            # Get all edges (trust relationships)
+            edge_sql = self._read_sql_file("queries/get_network_edges.sql")
+            edges = self.con.execute(edge_sql, [run_id]).fetchall()
+            
+            return nodes, edges
+            
+        except Exception as e:
+            logger.error(f"Failed to get network graph: {e}")
+            raise
+
 
     def export_to_csv(self, output_dir: str = "analysis_results"):
         """Export all tables to CSV files with metadata."""

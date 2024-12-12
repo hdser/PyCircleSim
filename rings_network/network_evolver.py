@@ -27,6 +27,10 @@ class NetworkEvolver:
         self.contract = Contract(contract_address, abi=abi_path)
         self.agent_manager = agent_manager
         self.collector = collector
+
+        self.on_mint_performed = None
+        self.on_transfer_performed = None
+        self.on_group_created = None
         
     def advance_time(self, blocks: int, block_time: int = 12) -> bool:
         """Advance the chain by mining new blocks."""
@@ -104,22 +108,27 @@ class NetworkEvolver:
     def _handle_mint_action(self, agent: Agent) -> bool:
         """Handle personal minting using the proven approach from previous implementation"""
         try:
-            # Select random account owned by the agent
             address = random.choice(list(agent.accounts.keys()))
             private_key = agent.accounts[address]
             account = Account.from_key(private_key)
             
-            # Use the same direct minting approach that worked before
             previous_balance = self.contract.balanceOf(address, int(str(address), 16))
             receipt = self.contract.personalMint(sender=account.address)
             
-            # Process the mint event exactly as before
             for log in receipt.decode_logs():
                 if log.event_name == "PersonalMint":
                     minted_amount = log.amount
                     
-                    # Add check for collector existence
-                    if self.collector is not None:
+                    # Trigger mint event
+                    if self.on_mint_performed:
+                        self.on_mint_performed(
+                            address=address,
+                            amount=minted_amount,
+                            block=chain.blocks.head.number,
+                            timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                        )
+                    
+                    if self.collector:
                         self.collector.record_balance_change(
                             account=str(address),
                             token_id=str(address),
@@ -130,11 +139,7 @@ class NetworkEvolver:
                             tx_hash=receipt.txn_hash,
                             event_type="MINT"
                         )
-                    else:
-                        logger.warning("No collector available to record balance change")
-                    
                     return True
-                    
             return False
             
         except Exception as e:
@@ -200,7 +205,6 @@ class NetworkEvolver:
             source_address = random.choice(list(agent.accounts.keys()))
             recipient_address = random.choice(list(agent.trusted_agents))
             
-            # Get initial balance using the same direct approach
             token_id = int(str(source_address), 16)
             source_balance = self.contract.balanceOf(source_address, token_id)
             
@@ -212,11 +216,8 @@ class NetworkEvolver:
                 return False
                 
             account = Account.from_key(agent.accounts[source_address])
-            
-            # Record pre-transfer state
             previous_balance = source_balance
             
-            # Execute transfer
             receipt = self.contract.safeTransferFrom(
                 source_address,
                 recipient_address,
@@ -226,17 +227,27 @@ class NetworkEvolver:
                 sender=account.address
             )
             
-            # Record balance change using the same pattern as minting
-            self.collector.record_balance_change(
-                account=str(source_address),
-                token_id=str(source_address),
-                block_number=chain.blocks.head.number,
-                timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
-                previous_balance=previous_balance,
-                new_balance=previous_balance - transfer_amount,
-                tx_hash=receipt.txn_hash,
-                event_type="TRANSFER"
-            )
+            # Trigger transfer event
+            if self.on_transfer_performed:
+                self.on_transfer_performed(
+                    from_address=source_address,
+                    to_address=recipient_address,
+                    amount=transfer_amount,
+                    block=chain.blocks.head.number,
+                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                )
+            
+            if self.collector:
+                self.collector.record_balance_change(
+                    account=str(source_address),
+                    token_id=str(source_address),
+                    block_number=chain.blocks.head.number,
+                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
+                    previous_balance=previous_balance,
+                    new_balance=previous_balance - transfer_amount,
+                    tx_hash=receipt.txn_hash,
+                    event_type="TRANSFER"
+                )
             
             return True
             

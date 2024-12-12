@@ -81,7 +81,8 @@ class RingsSimulation:
             RINGS,
             RINGS_ABI,
             batch_size=config.batch_size,
-            agent_manager=self.agent_manager 
+            agent_manager=self.agent_manager,
+            data_collector=self.collector
         )
         
         # Pass the collector to NetworkEvolver
@@ -102,8 +103,9 @@ class RingsSimulation:
         self._register_event_handlers()
 
     def _register_event_handlers(self):
+        """Set up comprehensive event handling for all network actions"""
+        
         def on_human_registered(address: str, inviter: str = None, block: int = None, timestamp: datetime = None):
-            # Use provided block/timestamp or get current if not provided
             current_block = block if block is not None else chain.blocks.head.number
             current_time = timestamp if timestamp is not None else datetime.fromtimestamp(chain.blocks.head.timestamp)
             
@@ -116,16 +118,16 @@ class RingsSimulation:
             }
             self.event_logs.append(event)
             
-            self.collector.record_human_registration(
-                address=address,
-                block_number=current_block,
-                timestamp=current_time,
-                inviter_address=inviter,
-                welcome_bonus=200.0 if inviter else 0.0
-            )
+            if self.collector:
+                self.collector.record_human_registration(
+                    address=address,
+                    block_number=current_block,
+                    timestamp=current_time,
+                    inviter_address=inviter,
+                    welcome_bonus=200.0 if inviter else 0.0
+                )
 
         def on_trust_created(truster: str, trustee: str, limit: int, block: int = None, timestamp: datetime = None):
-            # Use provided block/timestamp or get current if not provided
             current_block = block if block is not None else chain.blocks.head.number
             current_time = timestamp if timestamp is not None else datetime.fromtimestamp(chain.blocks.head.timestamp)
             
@@ -138,18 +140,56 @@ class RingsSimulation:
                 'block': current_block
             }
             self.event_logs.append(event)
-            
-            self.collector.record_trust_relationship(
-                truster=truster,
-                trustee=trustee,
-                block_number=current_block,
-                timestamp=current_time,
-                trust_limit=float(limit),
-                expiry_time=current_time + timedelta(days=365)
-            )
 
+        def on_mint_performed(address: str, amount: int, block: int = None, timestamp: datetime = None):
+            current_block = block if block is not None else chain.blocks.head.number
+            current_time = timestamp if timestamp is not None else datetime.fromtimestamp(chain.blocks.head.timestamp)
+            
+            event = {
+                'event': 'mint',
+                'address': address,
+                'amount': amount,
+                'timestamp': current_time,
+                'block': current_block
+            }
+            self.event_logs.append(event)
+
+        def on_transfer_performed(from_address: str, to_address: str, amount: int, block: int = None, timestamp: datetime = None):
+            current_block = block if block is not None else chain.blocks.head.number
+            current_time = timestamp if timestamp is not None else datetime.fromtimestamp(chain.blocks.head.timestamp)
+            
+            event = {
+                'event': 'transfer',
+                'from_address': from_address,
+                'to_address': to_address,
+                'amount': amount,
+                'timestamp': current_time,
+                'block': current_block
+            }
+            self.event_logs.append(event)
+
+        def on_group_created(creator: str, group_address: str, name: str, block: int = None, timestamp: datetime = None):
+            current_block = block if block is not None else chain.blocks.head.number
+            current_time = timestamp if timestamp is not None else datetime.fromtimestamp(chain.blocks.head.timestamp)
+            
+            event = {
+                'event': 'group_created',
+                'creator': creator,
+                'group_address': group_address,
+                'name': name,
+                'timestamp': current_time,
+                'block': current_block
+            }
+            self.event_logs.append(event)
+
+        # Register all event handlers
         self.builder.on_human_registered = on_human_registered
         self.builder.on_trust_created = on_trust_created
+        self.evolver.on_mint_performed = on_mint_performed
+        self.evolver.on_transfer_performed = on_transfer_performed
+        self.evolver.on_group_created = on_group_created
+
+
 
     def run(self):
         """Run the complete simulation with clear phase separation"""
@@ -157,7 +197,15 @@ class RingsSimulation:
             logger.info("Starting Rings network simulation")
             simulation_metadata = self._create_simulation_metadata()
             
-            # Phase 1: Build Network
+            # Phase 1: Start Simulation Run FIRST
+            if self.collector:
+                self.current_simulation_id = self.collector.start_simulation_run(
+                    parameters=simulation_metadata['config'],
+                    description="Rings Network Simulation"
+                )
+                logger.info(f"Started simulation run {self.current_simulation_id}")
+            
+            # Build Network
             logger.info("Phase 1: Building Initial Network")
             if not self._build_initial_network():
                 return False
@@ -170,12 +218,18 @@ class RingsSimulation:
             if not self._run_iterations():
                 return False
                 
+            # End the simulation run after the entire evolution
+            if self.collector and self.current_simulation_id:
+                self.collector.end_simulation_run()
+                self.current_simulation_id = None
+            
             self._export_results(simulation_metadata)
             return True
             
         except Exception as e:
             logger.error(f"Simulation failed: {e}", exc_info=True)
             return False
+        
 
     def _build_initial_network(self) -> bool:
         """Build the initial network with agents"""

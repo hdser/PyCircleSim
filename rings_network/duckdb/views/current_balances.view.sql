@@ -1,9 +1,14 @@
 CREATE VIEW IF NOT EXISTS current_balances AS
 SELECT 
-    account_address,
-    token_id,
-    new_balance as current_balance,
-    max(block_number) as last_updated_block,
-    max(timestamp) as last_updated_time
-FROM balance_changes
-GROUP BY account_address, token_id, new_balance;
+    bc.account_address,
+    bc.token_id,
+    bc.new_balance as current_balance,
+    bc.simulation_run_id,
+    MAX(bc.block_number) as last_updated_block,
+    MAX(bc.timestamp) as last_updated_time
+FROM balance_changes bc
+GROUP BY 
+    bc.simulation_run_id,
+    bc.account_address, 
+    bc.token_id, 
+    bc.new_balance;

@@ -7,7 +7,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import queue
 from .agent import AgentManager, Agent, AgentPersonality, AgentProfile
-from datetime import datetime
+from .data_collector import CirclesDataCollector
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -16,59 +17,79 @@ class NetworkBuilder:
     Enhanced NetworkBuilder with agent-based behavior and parallel processing
     """
     
-    def __init__(self, contract_address: str, abi_path: str, batch_size: int = 1000, agent_manager: Optional[AgentManager] = None):
+    def __init__(self, contract_address: str, abi_path: str, batch_size: int = 1000, 
+                 agent_manager: Optional[AgentManager] = None,
+                 data_collector: Optional['CirclesDataCollector'] = None):
+        """Initialize NetworkBuilder with contract and optional data collection."""
         self.contract = Contract(contract_address, abi=abi_path)
         self.batch_size = batch_size
         self.registered_humans: Dict[str, bool] = {}
         
-        # Initialize agent manager
-        self.agent_manager = agent_manager or AgentManager()
+        # Data collection and agent management
+        self.data_collector = data_collector
+        self.agent_manager = agent_manager or AgentManager(data_collector)
         
-        # Thread-safe queue for address generation
         self.address_queue = queue.Queue(maxsize=batch_size * 2)
-        
-        # Thread pool for parallel processing
         self.executor = ThreadPoolExecutor(max_workers=min(32, batch_size))
-        
-        # Progress tracking
         self.generation_progress = 0
         self.progress_lock = threading.Lock()
-        
-        # Callbacks
+        self.current_simulation_id = None 
+
         self.on_human_registered = None
         self.on_trust_created = None
 
-    def build_large_network(self, target_size: int, personality_weights: Optional[Dict[AgentPersonality, float]] = None) -> bool:
-        """Build the complete network as a single operation"""
+
+    def build_large_network(self, target_size: int, 
+                            personality_weights: Optional[Dict[AgentPersonality, float]] = None,
+                            simulation_params: Optional[Dict] = None) -> bool:
+        """
+        Build the complete network as a single operation.
+        
+        Args:
+            target_size: Number of agents to create
+            personality_weights: Optional weights for different personality types
+            simulation_params: Optional parameters to record with the simulation run
+        """
         try:
             logger.info(f"Starting network build for {target_size:,} agents")
             
-            # Create all agents first
+
+            # Create and register agents
             agents_with_addresses = self.agent_manager.create_random_agents(
                 target_size,
                 personality_weights
             )
             
-            # Register all agents in a single batch
             self._register_agent_batch(agents_with_addresses)
-            
-            # Establish trust relationships
             self._establish_initial_trust_network(agents_with_addresses)
             
+            # Record final network statistics if we're collecting data
+            if self.data_collector:
+                self.data_collector.record_network_statistics(
+                    block_number=chain.blocks.head.number,
+                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                )
+                
             logger.info(f"Network build completed with {len(self.agent_manager.agents)} agents")
             return True
-            
+
         except Exception as e:
-            logger.error(f"Failed to build network: {e}")
+            logger.error(f"Failed to build network: {str(e)}")
             return False
 
-    def _register_agent_batch(self, agents_with_addresses: List[Tuple[Agent, str]]):
-        """Register all agents in a single batch operation"""
+
+    def _register_agent_batch(self, agents_data: List[Tuple[Agent, str, str]]):
+        """
+        Register all agents in a single batch operation.
+        
+        Args:
+            agents_data: List of tuples (Agent, agent_id, primary_address)
+        """
         # Record the current block for consistent event recording
         registration_block = chain.blocks.head.number
         registration_time = datetime.fromtimestamp(chain.blocks.head.timestamp)
         
-        for agent, address in agents_with_addresses:
+        for agent, agent_id, address in agents_data:
             try:
                 private_key = agent.accounts[address]
                 temp_account = Account.from_key(private_key)
@@ -81,62 +102,80 @@ class NetworkBuilder:
                 
                 self.registered_humans[address] = True
                 
+                # Trigger the registration event with correct parameter names
                 if self.on_human_registered:
-                    # Use consistent block/time for all registrations
                     self.on_human_registered(
                         address=address,
-                        inviter=None,
+                        inviter="0x0000000000000000000000000000000000000000",  # Changed from inviter_address to inviter
                         block=registration_block,
+                        timestamp=registration_time
+                    )
+                
+                # Record the registration if we have a collector
+                if self.data_collector and self.current_simulation_id:
+                    self.data_collector.record_human_registration(
+                        address=address,
+                        inviter_address="0x0000000000000000000000000000000000000000",
+                        block_number=registration_block,
                         timestamp=registration_time
                     )
                     
             except Exception as e:
-                logger.error(f"Failed to register agent {address}: {e}")
+                logger.error(f"Failed to register agent {agent_id} (address: {address}): {str(e)}")
 
-    def _establish_initial_trust_network(self, agents_with_addresses: List[Tuple[Agent, str]]):
-        """Establish initial trust relationships in a single batch"""
+
+
+
+    def _establish_initial_trust_network(self, agents_data: List[Tuple[Agent, str, str]]):
+        """
+        Establish initial trust relationships in a single batch.
+        
+        Args:
+            agents_data: List of tuples (Agent, agent_id, primary_address)
+        """
         try:
             trust_block = chain.blocks.head.number
             trust_time = datetime.fromtimestamp(chain.blocks.head.timestamp)
-            trust_pairs = []
             
-            # Collect all potential trust relationships
-            for i, (agent1, addr1) in enumerate(agents_with_addresses):
-                for j, (agent2, addr2) in enumerate(agents_with_addresses):
+            for i, (agent1, agent_id1, addr1) in enumerate(agents_data):
+                for j, (agent2, agent_id2, addr2) in enumerate(agents_data):
                     if i != j and agent1.should_trust(agent2):
-                        trust_pairs.append({
-                            'truster': (addr1, agent1.accounts[addr1]),
-                            'trustee': (addr2, agent2.accounts[addr2])
-                        })
-            
-            # Process all trust relationships
-            for pair in trust_pairs:
-                try:
-                    truster_addr, truster_key = pair['truster']
-                    trustee_addr = pair['trustee'][0]
-                    
-                    truster_account = Account.from_key(truster_key)
-                    receipt = self.contract.trust(
-                        trustee_addr,
-                        10000000,
-                        sender=truster_account.address
-                    )
-                    
-                    if self.on_trust_created:
-                        # Use consistent block/time for all trust relationships
-                        self.on_trust_created(
-                            truster=truster_addr,
-                            trustee=trustee_addr,
-                            limit=10000000,
-                            block=trust_block,
-                            timestamp=trust_time
-                        )
-                        
-                except Exception as e:
-                    logger.error(f"Failed to create trust from {truster_addr} to {trustee_addr}: {e}")
-                    
+                        try:
+                            truster_account = Account.from_key(agent1.accounts[addr1])
+                            trust_limit = 10000000
+
+                            receipt = self.contract.trust(
+                                addr2,
+                                trust_limit,
+                                sender=truster_account.address
+                            )
+
+                            # Trigger the trust creation event
+                            if self.on_trust_created:
+                                self.on_trust_created(
+                                    truster=addr1,
+                                    trustee=addr2,
+                                    limit=trust_limit,
+                                    block=trust_block,
+                                    timestamp=trust_time
+                                )
+                            
+                            # Record the trust relationship if we have a collector
+                            if self.data_collector:
+                                self.data_collector.record_trust_relationship(
+                                    truster=addr1,
+                                    trustee=addr2,
+                                    block_number=trust_block,
+                                    timestamp=trust_time,
+                                    trust_limit=trust_limit,
+                                    expiry_time=trust_time + timedelta(days=365)
+                                )
+                                
+                        except Exception as e:
+                            logger.error(f"Failed to create trust from {addr1} to {addr2}: {str(e)}")
+                            
         except Exception as e:
-            logger.error(f"Failed to establish trust network: {e}")
+            logger.error(f"Failed to establish trust network: {str(e)}")
             raise
 
     def _create_trust_batch(self, trust_pairs: List[Dict]) -> Dict[Tuple[str, str], bool]:

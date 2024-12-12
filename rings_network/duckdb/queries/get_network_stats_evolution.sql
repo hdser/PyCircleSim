@@ -1,10 +1,10 @@
-INSERT INTO network_stats (
-    simulation_run_id,
+SELECT 
     timestamp,
-    block_number,
     total_humans,
     total_active_trusts,
     total_supply,
     average_balance,
     trust_density
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+FROM network_stats
+WHERE simulation_run_id = ?
+ORDER BY timestamp;
