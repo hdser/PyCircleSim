@@ -3,19 +3,20 @@ from pathlib import Path
 import click
 from datetime import datetime, timedelta
 import os
+import yaml
 from dotenv import load_dotenv
 from ape import networks, accounts, chain
 import pandas as pd
 import json
+from typing import Optional, Dict
+
 from rings_network import (
     NetworkBuilder,
     NetworkEvolver,
     NetworkAnalyzer,
     CirclesDataCollector,
     AgentManager,
-    AgentPersonality,
-    AgentProfile,
-    AgentEconomicStatus
+    RingsClient
 )
 
 # Load environment variables
@@ -40,52 +41,193 @@ class SimulationConfig:
     """Configuration holder for simulation parameters"""
     def __init__(
         self,
-        network_size: int = 1_000_000,
-        trust_density: float = 0.1,
-        batch_size: int = 5000,
-        iterations: int = 5,
-        blocks_per_iteration: int = 100,
-        block_time: int = 12,
-        db_path: str = "rings_simulation.duckdb",
-        personality_weights: dict = None
+        rings_config_path: str = "config/rings_config.yaml",
+        agent_config_path: str = "config/agent_config.yaml",
+        cli_params: Optional[Dict] = None
     ):
-        self.network_size = network_size
-        self.trust_density = trust_density
-        self.batch_size = batch_size
-        self.iterations = iterations
-        self.blocks_per_iteration = blocks_per_iteration
-        self.block_time = block_time
-        self.db_path = db_path
+        """
+        Initialize simulation configuration with both network and agent parameters.
         
-        # Default personality distribution if none provided
-        self.personality_weights = personality_weights or {
-            AgentPersonality.CONSERVATIVE: 0.2,
-            AgentPersonality.SOCIAL: 0.3,
-            AgentPersonality.ENTREPRENEUR: 0.2,
-            AgentPersonality.OPPORTUNIST: 0.15,
-            AgentPersonality.COMMUNITY: 0.15
+        The configuration is loaded from two files:
+        - rings_config.yaml: Contains network-level parameters
+        - agent_config.yaml: Contains agent behavior definitions
+        
+        CLI parameters can override values from either configuration.
+        """
+        # Load base configurations
+        self.rings_config = self._load_config(rings_config_path)
+        self.agent_config = self._load_config(agent_config_path)
+        
+        # Set default values for essential parameters
+        self._set_default_values()
+        
+        # Apply CLI parameters if provided
+        if cli_params:
+            self._apply_cli_params(cli_params)
+            
+        # Validate the configuration
+        self._validate_config()
+
+
+    def _set_default_values(self):
+        """Set default values for essential configuration parameters"""
+        # Network parameters
+        if 'size' not in self.rings_config:
+            self.rings_config['size'] = 1_000_000
+        if 'trust_density' not in self.rings_config:
+            self.rings_config['trust_density'] = 0.1
+        if 'batch_size' not in self.rings_config:
+            self.rings_config['batch_size'] = 5000
+        if 'iterations' not in self.rings_config:
+            self.rings_config['iterations'] = 5
+        if 'blocks_per_iteration' not in self.rings_config:
+            self.rings_config['blocks_per_iteration'] = 100
+        if 'block_time' not in self.rings_config:
+            self.rings_config['block_time'] = 12
+
+    def _load_config(self, path: str) -> Dict:
+        """
+        Load and parse a YAML configuration file.
+        
+        Returns an empty dict if the file cannot be loaded, allowing the system
+        to fall back to default values.
+        """
+        try:
+            with open(path, 'r') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load config from {path}: {e}")
+            return {}
+            
+    def _apply_cli_params(self, params: Dict):
+        """
+        Apply CLI parameters, overriding configuration values.
+        
+        CLI parameters take precedence over file-based configuration.
+        """
+        # Override network parameters
+        for key in ['size', 'trust_density', 'batch_size', 'iterations', 
+                   'blocks_per_iteration', 'block_time']:
+            if params.get(key) is not None:
+                self.rings_config[key] = params[key]
+
+    def _validate_config(self):
+        """
+        Validate the configuration values for correctness.
+        
+        Raises ValueError if configuration is invalid.
+        """
+        required_network_params = ['size', 'trust_density', 'batch_size', 'iterations']
+        for param in required_network_params:
+            if param not in self.rings_config:
+                raise ValueError(f"Missing required network parameter: {param}")
+
+        if 'profiles' not in self.agent_config:
+            raise ValueError("Agent configuration must define agent profiles")
+
+
+    @property
+    def network_size(self) -> int:
+        """Get the configured network size"""
+        return self.rings_config['size']
+
+    @property
+    def trust_density(self) -> float:
+        """Get the configured trust density"""
+        return self.rings_config['trust_density']
+
+    @property
+    def batch_size(self) -> int:
+        """Get the configured batch size"""
+        return self.rings_config['batch_size']
+
+    @property
+    def iterations(self) -> int:
+        """Get the configured number of iterations"""
+        return self.rings_config['iterations']
+
+    @property
+    def blocks_per_iteration(self) -> int:
+        """Get the configured blocks per iteration"""
+        return self.rings_config['blocks_per_iteration']
+
+    @property
+    def block_time(self) -> int:
+        """Get the configured block time"""
+        return self.rings_config['block_time']
+    
+    @property
+    def agent_distribution(self) -> Dict[str, float]:
+        """
+        Get the normalized agent distribution from the configuration.
+        This converts the raw counts from agent_config into proportional weights.
+        """
+        # Get distribution from agent config
+        raw_distribution = self.agent_config.get('agent_distribution', {})
+        
+        if not raw_distribution:
+            # Provide default distribution if none specified
+            raw_distribution = {
+                'honest_user': 10,
+                'group_creator': 1,
+                'sybil_attacker': 2,
+                'trust_hub': 5
+            }
+            
+        # Calculate total for normalization
+        total = sum(raw_distribution.values())
+        
+        # Return normalized weights
+        return {
+            profile: count/total 
+            for profile, count in raw_distribution.items()
         }
+
+    def get_profile_config(self, profile_name: str) -> Dict:
+        """
+        Get configuration for a specific agent profile.
+        This provides a clean interface to access profile-specific settings.
+        """
+        profiles = self.agent_config.get('profiles', {})
+        if profile_name not in profiles:
+            raise ValueError(f"Unknown agent profile: {profile_name}")
+        return profiles[profile_name]
 
 class RingsSimulation:
     """Main simulation class that orchestrates the agent-based Rings network simulation"""
     
     def __init__(self, config: SimulationConfig):
+        """Initialize simulation components with configuration"""
         self.config = config
         self.simulation_start_time = datetime.now()
         
-        # Initialize components
-        self.collector = CirclesDataCollector(config.db_path)
-        self.agent_manager = AgentManager()
+        # Initialize Rings client with base parameters
+        self.rings_client = RingsClient(
+            RINGS,
+            RINGS_ABI,
+            gas_limits=config.rings_config.get('gas_limits', {}),
+            cache_config=config.rings_config.get('cache', {})
+        )
         
+        # Initialize data collector with configured path
+        db_path = config.rings_config.get('db_path', "rings_simulation.duckdb")
+        self.collector = CirclesDataCollector(db_path)
+        
+        # Initialize agent manager with proper configuration
+        self.agent_manager = AgentManager(
+            config=config.agent_config,  # Pass the agent configuration
+            data_collector=self.collector  # Pass the collector as a separate parameter
+        )
+        
+        # Initialize network components
         self.builder = NetworkBuilder(
             RINGS,
             RINGS_ABI,
-            batch_size=config.batch_size,
+            batch_size=config.rings_config.get('batch_size', 5000),
             agent_manager=self.agent_manager,
             data_collector=self.collector
         )
         
-        # Pass the collector to NetworkEvolver
         self.evolver = NetworkEvolver(
             RINGS,
             RINGS_ABI,
@@ -192,38 +334,32 @@ class RingsSimulation:
 
 
     def run(self):
-        """Run the complete simulation with clear phase separation"""
+        """Run the complete simulation"""
         try:
             logger.info("Starting Rings network simulation")
             simulation_metadata = self._create_simulation_metadata()
             
-            # Phase 1: Start Simulation Run FIRST
+            # Start simulation run
             if self.collector:
                 self.current_simulation_id = self.collector.start_simulation_run(
-                    parameters=simulation_metadata['config'],
+                    parameters=simulation_metadata,
                     description="Rings Network Simulation"
                 )
-                logger.info(f"Started simulation run {self.current_simulation_id}")
-            
-            # Build Network
-            logger.info("Phase 1: Building Initial Network")
+                
+            # Build initial network
             if not self._build_initial_network():
                 return False
                 
-            # Record initial state before evolution
-            self._record_network_snapshot("network_built")
-            
-            # Phase 2: Network Evolution
-            logger.info("Phase 2: Starting Network Evolution")
+            # Run network evolution
             if not self._run_iterations():
                 return False
                 
-            # End the simulation run after the entire evolution
-            if self.collector and self.current_simulation_id:
-                self.collector.end_simulation_run()
-                self.current_simulation_id = None
-            
+            # Export results
             self._export_results(simulation_metadata)
+            
+            if self.collector:
+                self.collector.end_simulation_run()
+                
             return True
             
         except Exception as e:
@@ -233,18 +369,38 @@ class RingsSimulation:
 
     def _build_initial_network(self) -> bool:
         """Build the initial network with agents"""
-        logger.info(f"Building initial network with {self.config.network_size:,} agents...")
-        success = self.builder.build_large_network(
-            target_size=self.config.network_size,
-            personality_weights=self.config.personality_weights
-        )
-        
-        if success:
-            self._record_network_snapshot("initial")
-            return True
+        try:
+            logger.info(f"Building initial network with {self.config.network_size:,} agents...")
             
-        logger.error("Failed to build initial network")
-        return False
+            # Calculate number of agents per profile
+            distribution = {
+                profile: int(weight * self.config.network_size)
+                for profile, weight in self.config.agent_distribution.items()
+            }
+            
+            # Ensure we don't lose agents to rounding
+            total_allocated = sum(distribution.values())
+            if total_allocated < self.config.network_size:
+                # Add remaining agents to the largest group
+                largest_profile = max(distribution.items(), key=lambda x: x[1])[0]
+                distribution[largest_profile] += self.config.network_size - total_allocated
+            
+            success = self.builder.build_large_network(
+                target_size=self.config.network_size,
+                profile_distribution=distribution
+            )
+            
+            if success:
+                self._record_network_snapshot("initial")
+                logger.info("Successfully built initial network")
+                return True
+                
+            logger.error("Failed to build initial network")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error building initial network: {e}")
+            return False
 
     def _run_iterations(self) -> bool:
         """Run all simulation iterations"""
@@ -284,7 +440,12 @@ class RingsSimulation:
             logger.error(f"Failed to record network snapshot '{label}': {e}")
 
     def _create_simulation_metadata(self) -> dict:
-        """Create metadata about the simulation run"""
+        """
+        Create metadata about the simulation run.
+        
+        This metadata includes all relevant configuration parameters and 
+        system information needed to reproduce the simulation.
+        """
         return {
             'start_time': self.simulation_start_time.isoformat(),
             'config': {
@@ -294,9 +455,7 @@ class RingsSimulation:
                 'iterations': self.config.iterations,
                 'blocks_per_iteration': self.config.blocks_per_iteration,
                 'block_time': self.config.block_time,
-                'personality_weights': {
-                    k.value: v for k, v in self.config.personality_weights.items()
-                }
+                'agent_profiles': list(self.config.agent_config.get('profiles', {}).keys())
             },
             'contract_address': RINGS,
             'chain_id': networks.provider.chain_id
@@ -335,19 +494,21 @@ class RingsSimulation:
             json.dump(metadata, f, indent=2)
 
     def _export_agent_statistics(self, output_dir: str):
-        """Export statistics about agents"""
+        """Export statistics about agents and their activities"""
         agent_stats = []
-        for address, agent in self.agent_manager.agents.items():
+        for agent_id, agent in self.agent_manager.agents.items():
             agent_stats.append({
-                'address': address,
-                'personality': agent.profile.personality.value,
-                'economic_status': agent.profile.economic_status.value,
+                'agent_id': agent_id,
+                'profile_name': agent.profile.name,
+                'description': agent.profile.description,
                 'accounts': len(agent.accounts),
-                'trusted_agents': len(agent.trusted_agents),
-                'groups': len(agent.groups),
-                'trust_threshold': agent.profile.trust_threshold,
-                'activity_level': agent.profile.activity_level,
-                'risk_tolerance': agent.profile.risk_tolerance
+                'trusted_addresses': len(agent.trusted_addresses),
+                'max_daily_actions': agent.profile.max_daily_actions,
+                'risk_tolerance': agent.profile.risk_tolerance,
+                'target_account_count': agent.profile.target_account_count,
+                # Add action configuration statistics
+                'action_types': len(agent.profile.action_configs),
+                'preferred_contracts': ','.join(agent.profile.preferred_contracts)
             })
             
         pd.DataFrame(agent_stats).to_csv(
@@ -375,60 +536,47 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--network-size', default=1_000_000, help='Number of agents')
-@click.option('--trust-density', default=0.1, help='Trust relationship density')
-@click.option('--batch-size', default=5000, help='Processing batch size')
-@click.option('--iterations', default=5, help='Simulation iterations')
-@click.option('--blocks-per-iteration', default=100, help='Blocks per iteration')
-@click.option('--block-time', default=12, help='Seconds per block')
-@click.option('--db-path', default="rings_simulation.duckdb", help='Database path')
-@click.option('--conservative-weight', default=0.2, help='Conservative personality weight')
-@click.option('--social-weight', default=0.3, help='Social personality weight')
-@click.option('--entrepreneur-weight', default=0.2, help='Entrepreneur personality weight')
-@click.option('--opportunist-weight', default=0.15, help='Opportunist personality weight')
-@click.option('--community-weight', default=0.15, help='Community personality weight')
-def simulate(
-    network_size, trust_density, batch_size, iterations,
-    blocks_per_iteration, block_time, db_path,
-    conservative_weight, social_weight, entrepreneur_weight,
-    opportunist_weight, community_weight
-):
+@click.option('--rings-config', default='config/rings_config.yaml', help='Rings configuration file')
+@click.option('--agent-config', default='config/agent_config.yaml', help='Agent configuration file')
+@click.option('--network-size', type=int, help='Override network size')
+@click.option('--trust-density', type=float, help='Override trust density')
+@click.option('--batch-size', type=int, help='Override batch size')
+@click.option('--iterations', type=int, help='Override iteration count')
+@click.option('--blocks-per-iteration', type=int, help='Override blocks per iteration')
+def simulate(rings_config, agent_config, network_size, trust_density, 
+            batch_size, iterations, blocks_per_iteration):
     """Run the Rings network simulation"""
-    personality_weights = {
-        AgentPersonality.CONSERVATIVE: conservative_weight,
-        AgentPersonality.SOCIAL: social_weight,
-        AgentPersonality.ENTREPRENEUR: entrepreneur_weight,
-        AgentPersonality.OPPORTUNIST: opportunist_weight,
-        AgentPersonality.COMMUNITY: community_weight
+    
+    # Collect CLI parameters
+    cli_params = {
+        'size': network_size,
+        'trust_density': trust_density,
+        'batch_size': batch_size,
+        'iterations': iterations,
+        'blocks_per_iteration': blocks_per_iteration
     }
     
-    # Normalize weights
-    total = sum(personality_weights.values())
-    personality_weights = {k: v/total for k, v in personality_weights.items()}
-    
+    # Initialize configuration
     config = SimulationConfig(
-        network_size=network_size,
-        trust_density=trust_density,
-        batch_size=batch_size,
-        iterations=iterations,
-        blocks_per_iteration=blocks_per_iteration,
-        block_time=block_time,
-        db_path=db_path,
-        personality_weights=personality_weights
+        rings_config_path=rings_config,
+        agent_config_path=agent_config,
+        cli_params={k: v for k, v in cli_params.items() if v is not None}
     )
     
+    # Log configuration using properties correctly
     click.echo("\nStarting simulation with configuration:")
-    click.echo(f"Network size: {network_size:,} agents")
-    click.echo(f"Personality distribution: {personality_weights}")
-    click.echo(f"Trust density target: {trust_density}")
-    click.echo(f"Iterations: {iterations}")
+    click.echo(f"Network size: {config.network_size:,} agents")
+    click.echo(f"Trust density: {config.trust_density}")
+    click.echo(f"Iterations: {config.iterations}")
     
+    # Run simulation
     with networks.gnosis.mainnet_fork.use_provider("foundry"):
         simulation = RingsSimulation(config)
         if not simulation.run():
             click.echo("Simulation failed. Check logs for details.")
             exit(1)
         click.echo("Simulation completed successfully!")
+
 
 @cli.command()
 @click.argument('db_path', default="rings_simulation.duckdb")

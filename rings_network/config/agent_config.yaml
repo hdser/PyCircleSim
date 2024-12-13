@@ -1,0 +1,160 @@
+simulation_params:
+  initial_balance: 100
+  welcome_bonus: 200
+  min_gas_price: 1000000000
+  max_gas_price: 50000000000
+
+# Agent distribution (total should be your target network size)
+agent_distribution:
+  honest_user: 10
+  group_creator: 1
+  sybil_attacker: 2
+  trust_hub: 5
+
+# Agent profiles
+profiles:
+  honest_user:
+    description: "Regular network participant with standard behavior"
+    target_account_count: 1
+    max_daily_actions: 20
+    risk_tolerance: 0.3
+    preferred_contracts: ["circles"]
+
+    actions:
+      MINT:
+        probability: 0.3
+        cooldown_blocks: 240
+        gas_limit: 300000
+        min_balance: 0
+        max_value: 0
+        constraints:
+          require_previous_mint: false
+          
+      TRANSFER:
+        probability: 1
+        cooldown_blocks: 20
+        gas_limit: 300000
+        min_balance: 0
+        max_value: 10.0
+        constraints:
+          preferred_targets: "trusted_accounts"
+          min_target_trust_age: 86400  # 1 day
+          
+      TRUST:
+        probability: 0.1
+        cooldown_blocks: 100
+        gas_limit: 200000
+        min_balance: 0
+        max_value: 0
+        constraints:
+          max_trust_connections: 50
+          trust_score_threshold: 0.7
+
+  sybil_attacker:
+    description: "Creates multiple accounts for network manipulation"
+    target_account_count: 50
+    max_daily_actions: 100
+    risk_tolerance: 0.8
+    preferred_contracts: ["circles"]
+    
+    actions:
+      REGISTER_HUMAN:
+        probability: 0.4
+        cooldown_blocks: 10
+        gas_limit: 500000
+        min_balance: 0
+        max_value: 0
+        constraints:
+          max_accounts_per_day: 5
+          
+      TRUST:
+        probability: 0.3
+        cooldown_blocks: 20
+        gas_limit: 300000
+        min_balance: 0
+        max_value: 0
+        constraints:
+          trust_targets: "controlled_accounts"
+          circular_trust: true
+          
+      TRANSFER:
+        probability: 1
+        cooldown_blocks: 15
+        gas_limit: 300000
+        min_balance: 0
+        max_value: 10.0
+        constraints:
+          preferred_targets: "trusted_accounts"
+
+  group_creator:
+    description: "Creates and manages groups"
+    target_account_count: 3
+    max_daily_actions: 30
+    risk_tolerance: 0.5
+    preferred_contracts: ["circles"]
+    
+    actions:
+      CREATE_GROUP:
+        probability: 0.2
+        cooldown_blocks: 1000
+        gas_limit: 1000000
+        min_balance: 0
+        max_value: 0
+        constraints:
+          max_groups: 5
+          min_trust_connections: 10
+          
+      MINT:
+        probability: 0.2
+        cooldown_blocks: 240
+        gas_limit: 300000
+        min_balance: 0
+        max_value: 0
+        constraints: {}
+        
+      TRUST:
+        probability: 0.3
+        cooldown_blocks: 50
+        gas_limit: 200000
+        min_balance: 0
+        max_value: 0
+        constraints:
+          trust_score_threshold: 0.5
+
+  trust_hub:
+    description: "Highly connected node that facilitates trust paths"
+    target_account_count: 1
+    max_daily_actions: 50
+    risk_tolerance: 0.4
+    preferred_contracts: ["circles"]
+    
+    actions:
+      TRUST:
+        probability: 0.5
+        cooldown_blocks: 10
+        gas_limit: 200000
+        min_balance: 0
+        max_value: 0
+        constraints:
+          max_trust_connections: 200
+          min_trustee_age: 604800  # 1 week
+          trust_score_threshold: 0.6
+          
+      TRANSFER:
+        probability: 1
+        cooldown_blocks: 30
+        gas_limit: 300000
+        min_balance: 0
+        max_value: 5.0
+        constraints:
+          preferred_targets: "trusted_accounts"
+          
+      OPERATE_MATRIX:
+        probability: 0.2
+        cooldown_blocks: 20
+        gas_limit: 1000000
+        min_balance: 5.0
+        max_value: 20.0
+        constraints:
+          max_path_length: 5
+          min_flow_amount: 1.0

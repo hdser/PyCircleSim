@@ -7,7 +7,6 @@ plugins:
 etherscan:
   gnosis:
     rate_limit: 5
-
     
 node:
   gnosis:

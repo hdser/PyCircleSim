@@ -1,4 +1,4 @@
-CREATE VIEW IF NOT EXISTS current_balances AS
+CREATE OR REPLACE VIEW current_balances AS
 SELECT 
     bc.account_address,
     bc.token_id,

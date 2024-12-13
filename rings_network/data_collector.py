@@ -1,12 +1,14 @@
 import duckdb
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Any, Tuple, Union
 import pandas as pd
 import logging
 import json
 import os
 from collections import defaultdict
+from .base_agent import BaseAgent
+from .uint256_handler import UINT256Handler
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ class CirclesDataCollector:
     def __init__(self, db_path: str = "circles_network.duckdb", sql_dir: Optional[str] = None):
         """Initialize the data collector with a DuckDB database connection."""
         self.db_path = db_path
+        self.uint256_handler = UINT256Handler()
         
         if sql_dir is None:
             module_dir = Path(__file__).parent
@@ -150,28 +153,59 @@ class CirclesDataCollector:
             logger.error(f"Failed to end simulation run: {e}")
             raise
             
-    def record_agent(self, agent_id: str, profile: 'AgentProfile'):
-        """Record agent details in the database."""
-        if not self.current_run_id:
-            raise ValueError("No active simulation run")
-            
+    def record_agent(self, agent: BaseAgent):
+        """
+        Record a comprehensive representation of a BaseAgent
+        
+        Args:
+            agent: The BaseAgent instance to record
+        """
         try:
             sql = self._read_sql_file("queries/insert_agent.sql")
+            
             self.con.execute(sql, [
-                agent_id,
+                agent.agent_id,
                 self.current_run_id,
-                profile.personality.value,
-                profile.economic_status.value,
-                profile.trust_threshold,
-                profile.max_connections,
-                profile.activity_level,
-                profile.risk_tolerance
+                agent.profile.name,
+                agent.profile.description,
+                len(agent.accounts),
+                agent.profile.max_daily_actions,
+                agent.profile.risk_tolerance,
+                agent.profile.preferred_contracts
             ])
+            
+            # Insert action configurations
+            sql = self._read_sql_file("queries/insert_agent_config.sql")
+            
+            for action_type, config in agent.profile.action_configs.items():
+                self.con.execute(sql, [
+                    agent.agent_id,
+                    action_type.name,
+                    config.probability,
+                    config.cooldown_blocks,
+                    config.gas_limit,
+                    config.min_balance,
+                    config.max_value,
+                    json.dumps(config.constraints)
+                ])
+            
+            # Insert agent addresses
+            sql = self._read_sql_file("queries/insert_agent_address.sql")
+            
+            for i, (address, private_key) in enumerate(agent.accounts.items()):
+                self.con.execute(sql, [
+                    agent.agent_id,
+                    address,
+                    private_key,  # Note: In production, encrypt this
+                    i == 0  
+                ])
+            
             self.con.commit()
-            logger.debug(f"Recorded agent {agent_id}")
+            logger.info(f"Recorded agent {agent.agent_id} with {len(agent.accounts)} addresses")
             
         except Exception as e:
-            logger.error(f"Failed to record agent: {e}")
+            logger.error(f"Failed to record agent {agent.agent_id}: {e}")
+            self.con.rollback()
             raise
             
     def record_agent_address(self, agent_id: str, address: str, is_primary: bool = False):
@@ -237,7 +271,7 @@ class CirclesDataCollector:
         trustee: str,
         block_number: int,
         timestamp: datetime,
-        trust_limit: float,
+        trust_limit: Union[int, str],
         expiry_time: datetime
     ):
         """Record a trust relationship."""
@@ -245,24 +279,42 @@ class CirclesDataCollector:
             raise ValueError("No active simulation run")
             
         try:
-           # if not self._validate_ethereum_address(truster):
-           #     raise ValueError(f"Invalid truster address: {truster}")
-                
-           # if not self._validate_ethereum_address(trustee):
-           #     raise ValueError(f"Invalid trustee address: {trustee}")
-                
             unique_timestamp = self._get_unique_timestamp(timestamp, 'trusts')
-
-            sql = self._read_sql_file("queries/insert_trust.sql")
-            self.con.execute(sql, [
+            trust_limit_str = self.uint256_handler.to_string(trust_limit)
+        
+            # Check existing trust using SQL file
+            check_sql = self._read_sql_file("queries/check_trust.sql")
+            count = self.con.execute(check_sql, [
                 truster,
                 trustee,
                 self.current_run_id,
-                unique_timestamp,
-                block_number,
-                trust_limit,
-                expiry_time
-            ])
+                unique_timestamp
+            ]).fetchone()[0]
+            
+            if count > 0:
+                # Update existing trust using SQL file
+                update_sql = self._read_sql_file("queries/update_trust.sql")
+                self.con.execute(update_sql, [
+                    trust_limit_str,
+                    expiry_time,
+                    truster,
+                    trustee,
+                    self.current_run_id,
+                    unique_timestamp
+                ])
+            else:
+                # Insert new trust using SQL file
+                insert_sql = self._read_sql_file("queries/insert_trust.sql")
+                self.con.execute(insert_sql, [
+                    truster,
+                    trustee,
+                    self.current_run_id,
+                    unique_timestamp,
+                    block_number,
+                    trust_limit_str,
+                    expiry_time
+                ])
+                
             self.con.commit()
             logger.info(f"Recorded trust relationship: {truster} -> {trustee}")
             
@@ -276,8 +328,8 @@ class CirclesDataCollector:
         token_id: str,
         block_number: int,
         timestamp: datetime,
-        previous_balance: int,
-        new_balance: int,
+        previous_balance: Union[int, str],
+        new_balance: Union[int, str],
         tx_hash: str,
         event_type: str
     ):
@@ -290,7 +342,13 @@ class CirclesDataCollector:
                 raise ValueError(f"Invalid account address: {account}")
                 
             unique_timestamp = self._get_unique_timestamp(timestamp, 'balance_changes')
-            change_amount = new_balance - previous_balance
+            # Convert balances to string representation
+            prev_bal_str = self.uint256_handler.to_string(previous_balance)
+            new_bal_str = self.uint256_handler.to_string(new_balance)
+            
+            # Calculate change amount
+            change = int(new_bal_str) - int(prev_bal_str)
+            change_str = str(change)
             
             sql = self._read_sql_file("queries/insert_balance_change.sql")
             self.con.execute(sql, [
@@ -299,14 +357,14 @@ class CirclesDataCollector:
                 self.current_run_id,
                 block_number,
                 unique_timestamp,
-                previous_balance,
-                new_balance,
-                change_amount,
+                prev_bal_str,
+                new_bal_str,
+                change_str,
                 tx_hash,
                 event_type
             ])
             self.con.commit()
-            logger.info(f"Recorded {event_type} balance change for {account}: {change_amount}")
+            logger.info(f"Recorded {event_type} balance change for {account}: {change_str}")
             
         except Exception as e:
             logger.error(f"Failed to record balance change: {e}")

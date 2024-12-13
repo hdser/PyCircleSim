@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS trusts (
     simulation_run_id INTEGER NOT NULL,      -- Reference to simulation run
     trust_timestamp TIMESTAMP NOT NULL,      -- When trust was established
     trust_block BIGINT NOT NULL,             -- Block number of trust creation
-    trust_limit DOUBLE NOT NULL,             -- Maximum trust amount (in tokens)
+    trust_limit VARCHAR NOT NULL,            -- Maximum trust amount as decimal string
     expiry_time TIMESTAMP NOT NULL,          -- When trust relationship expires
     PRIMARY KEY(truster_address, trustee_address, trust_timestamp, simulation_run_id),
     FOREIGN KEY(simulation_run_id) REFERENCES simulation_runs(run_id)

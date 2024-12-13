@@ -1,10 +1,10 @@
 INSERT INTO agents (
-    agent_id,
-    simulation_run_id,
-    personality,
-    economic_status,
-    trust_threshold,
-    max_connections,
-    activity_level,
-    risk_tolerance
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+    agent_id, 
+    simulation_run_id, 
+    name, 
+    description, 
+    total_accounts, 
+    max_daily_actions, 
+    risk_tolerance, 
+    preferred_contracts
+) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
