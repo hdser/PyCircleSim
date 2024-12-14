@@ -1,8 +1,6 @@
-# PyCircleSim: Circles Network Simulation Framework
+![Header](img/header-pycirclesim.png)
 
-<img src="img/pycirclesim.jpg" alt="pyCircleSim" style="height:400px;width:900px;">
-
-PyCircleSim is a Python framework for simulating and analyzing the Circles protocol. It provides tools for building test networks, evolving system state, and collecting data about token distributions and trust relationships within the Circles ecosystem.
+__PyCircleSim__ is a Python framework for simulating and analyzing the Circles protocol. It provides tools for building test networks, evolving system state, and collecting data about token distributions and trust relationships within the Circles ecosystem.
 
 ## Introduction
 
