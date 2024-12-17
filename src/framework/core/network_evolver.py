@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 import logging
 import random
 from eth_account import Account
-from .agent_manager import AgentManager
-from .base_agent import BaseAgent, ActionType
-from .data_collector import CirclesDataCollector
+from src.framework.agents.agent_manager import AgentManager
+from src.framework.agents.base_agent import BaseAgent, ActionType
+from src.framework.data.data_collector import CirclesDataCollector
 from eth_pydantic_types import HexBytes
-from .uint256_handler import UINT256Handler
+from src.protocols.common.uint256_handler import UINT256Handler
 
 logger = logging.getLogger(__name__)
 

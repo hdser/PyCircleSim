@@ -7,8 +7,8 @@ import logging
 import json
 import os
 from collections import defaultdict
-from .base_agent import BaseAgent
-from .uint256_handler import UINT256Handler
+from src.framework.agents.base_agent import BaseAgent
+from src.protocols.common.uint256_handler import UINT256Handler
 
 logger = logging.getLogger(__name__)
 

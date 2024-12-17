@@ -7,9 +7,9 @@ import threading
 import queue
 from datetime import datetime, timedelta
 
-from .data_collector import CirclesDataCollector
-from .agent_manager import AgentManager
-from .base_agent import BaseAgent
+from src.framework.data.data_collector import CirclesDataCollector
+from src.framework.agents.agent_manager import AgentManager
+from src.framework.agents.base_agent import BaseAgent
 from eth_account import Account
 from eth_pydantic_types import HexBytes
 

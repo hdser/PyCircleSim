@@ -10,13 +10,13 @@ import pandas as pd
 import json
 from typing import Optional, Dict
 
-from rings_network import (
+from src.protocols.rings import RingsClient
+from src.framework.data import CirclesDataCollector
+from src.framework.agents import AgentManager
+from src.framework.core import (
     NetworkBuilder,
     NetworkEvolver,
-    NetworkAnalyzer,
-    CirclesDataCollector,
-    AgentManager,
-    RingsClient
+    NetworkAnalyzer
 )
 
 # Load environment variables
@@ -34,8 +34,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Contract configuration
+
+PROJECT_ROOT = Path(__file__).parent.parent
+
+# Define contract addresses
 RINGS = "0x3D61f0A272eC69d65F5CFF097212079aaFDe8267"
-RINGS_ABI = str(Path(__file__).parent / "abi" / f"{RINGS}.json")
+FJORD_LBP = "0x1ddf1109f8cb373dbb66f3d30077571ab21bdd58"
+
+# Define ABI paths relative to project root
+RINGS_ABI = str(PROJECT_ROOT / "src" / "protocols" / "rings" / "abis" / f"{RINGS}.json")
+FJORD_ABI = str(PROJECT_ROOT / "src" / "protocols" / "fjord" / "abis" / f"{FJORD_LBP}.json")
+
 
 class SimulationConfig:
     """Configuration holder for simulation parameters"""

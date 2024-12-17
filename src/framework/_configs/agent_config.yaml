@@ -22,7 +22,7 @@ profiles:
 
     actions:
       MINT:
-        probability: 0.3
+        probability: 0.8
         cooldown_blocks: 240
         gas_limit: 300000
         min_balance: 0
@@ -31,7 +31,7 @@ profiles:
           require_previous_mint: false
           
       TRANSFER:
-        probability: 1
+        probability: 0.3
         cooldown_blocks: 20
         gas_limit: 300000
         min_balance: 0
@@ -78,7 +78,7 @@ profiles:
           circular_trust: true
           
       TRANSFER:
-        probability: 1
+        probability: 0.3
         cooldown_blocks: 15
         gas_limit: 300000
         min_balance: 0
@@ -141,7 +141,7 @@ profiles:
           trust_score_threshold: 0.6
           
       TRANSFER:
-        probability: 1
+        probability: 0.3
         cooldown_blocks: 30
         gas_limit: 300000
         min_balance: 0
