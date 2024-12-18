@@ -3,7 +3,7 @@ SELECT
     t.simulation_run_id,
     t.truster_address,
     t.trustee_address,
-    t.trust_limit,
+    --t.trust_limit,
     t.expiry_time
 FROM trusts t
 INNER JOIN (

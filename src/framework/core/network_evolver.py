@@ -23,7 +23,8 @@ class NetworkEvolver:
         contract_address: str, 
         abi_path: str, 
         agent_manager: AgentManager, 
-        collector: Optional[CirclesDataCollector] = None
+        collector: Optional[CirclesDataCollector] = None,
+        gas_limits: Optional[Dict[str, int]] = None
     ):
         """
         Initialize the NetworkEvolver with contract and agent management.
@@ -33,11 +34,19 @@ class NetworkEvolver:
             abi_path: Path to the contract ABI file
             agent_manager: AgentManager instance
             collector: Optional CirclesDataCollector
+            gas_limits: Optional dictionary of gas limits for different operations
         """
         self.contract = Contract(contract_address, abi=abi_path)
         self.agent_manager = agent_manager
         self.collector = collector
-        self.uint256_handler = UINT256Handler()
+
+        # Initialize default gas limits
+        self.gas_limits = gas_limits or {
+            'mint': 300000,
+            'trust': 200000,
+            'transfer': 200000,
+            'create_group': 1000000
+        }
 
         # Event callbacks
         self.on_mint_performed = None
@@ -47,87 +56,60 @@ class NetworkEvolver:
     def advance_time(self, blocks: int, block_time: int = 5) -> bool:
         """Advance the chain by mining new blocks."""
         try:
-            chain.mine(blocks)
-            chain.pending_timestamp = chain.pending_timestamp + (blocks * block_time)
+            # In fast mode, mine blocks in larger batches
+            batch_size = 10
+            for i in range(0, blocks, batch_size):
+                current_batch = min(batch_size, blocks - i)
+                chain.mine(current_batch)
+                chain.pending_timestamp = chain.pending_timestamp + (current_batch * block_time)
             return True
         except Exception as e:
             logger.error(f"Failed to advance time: {e}", exc_info=True)
             return False
 
     def evolve_network(self, iteration: int) -> Dict[str, int]:
-        """
-        Evolve the network by having agents perform actions based on their profiles.
-        
-        Args:
-            iteration: Current iteration number
-            
-        Returns:
-            Dict[str, int]: Stats about actions performed
-        """
+        """Evolve the network with minimal state tracking in fast mode."""
         stats = {
-            'mints': 0,
-            'trusts': 0,
-            'transfers': 0,
-            'groups_created': 0,
+            
             'total_actions': 0
         }
         
         try:
-            # Retrieve all agents
             all_agents = list(self.agent_manager.agents.values())
-            random.shuffle(all_agents)  # Randomize order
-            
-            logger.info(f"Processing actions for {len(all_agents)} agents in iteration {iteration}")
-            
-            # Optional chain state
+            random.shuffle(all_agents)
+
+            # Simplified state tracking
             chain_state = {
-                'current_block': chain.blocks.head.number,
-                'balances': {},
+                'current_block': chain.blocks.head.number
             }
-            # Populate balances if needed
-            # for agent in all_agents:
-            #     for addr in agent.accounts:
-            #         token_id = int(str(addr), 16)
-            #         bal = self.contract.balanceOf(addr, token_id)
-            #         chain_state['balances'][addr] = bal
 
             for agent in all_agents:
                 action_type, acting_address, params = agent.select_action(
-                    current_block=chain_state['current_block'], 
+                    current_block=chain_state['current_block'],
                     state=chain_state
                 )
                 
                 if action_type is None:
-                    # Agent chooses not to act
                     continue
-                
+                    
                 success = self._perform_agent_action(agent, action_type, params)
                 if success:
-                    if action_type == ActionType.MINT:
-                        stats['mints'] += 1
-                    elif action_type == ActionType.TRUST:
-                        stats['trusts'] += 1
-                    elif action_type == ActionType.TRANSFER:
-                        stats['transfers'] += 1
-                    elif action_type == ActionType.CREATE_GROUP:
-                        stats['groups_created'] += 1
+                    stats[action_type.name.lower()] = stats.get(action_type.name.lower(), 0) + 1
                     stats['total_actions'] += 1
-                
-                # Record the action outcome in the agent's log
-                agent.record_action(action_type, chain_state['current_block'], success)
-            
+
             logger.info(f"Iteration {iteration} stats: {stats}")
             return stats
             
         except Exception as e:
             logger.error(f"Failed to evolve network: {e}", exc_info=True)
-            return stats
-
+            return stats        
 
     def _perform_agent_action(self, agent: BaseAgent, action: ActionType, params: Dict) -> bool:
         """Execute a specific on-chain action for an agent."""
         try:
-            if action == ActionType.MINT:
+            if action == ActionType.REGISTER_HUMAN:
+                return self._handle_human_registration(agent)
+            elif action == ActionType.MINT:
                 return self._handle_mint_action(agent)
             elif action == ActionType.TRUST:
                 return self._handle_trust_action(agent)
@@ -143,48 +125,150 @@ class NetworkEvolver:
             logger.error(f"Failed to perform {action} for agent {agent.agent_id}: {e}", exc_info=True)
             return False
 
-
-    def _handle_mint_action(self, agent: BaseAgent) -> bool:
+    def _handle_human_registration(self, agent: BaseAgent) -> bool:
+        """
+        Execute human registration for an agent.
+        
+        Args:
+            agent: BaseAgent instance attempting registration
+            
+        Returns:
+            bool: True if registration was successful
+        """
         try:
+            # If the agent doesn't have enough accounts yet, create a new one
+            print('agent.profile.target_account_count ', agent.profile.target_account_count)
+            if len(agent.accounts) < agent.profile.target_account_count:
+                new_address, _ = agent.create_account()
+                logger.debug(f"Agent {agent.agent_id} created a new account {new_address}")
+                if self.collector and self.collector.current_run_id:
+                    self.collector.record_agent_address(agent.agent_id, new_address, is_primary=False)
+            
             if not agent.accounts:
+                logger.debug(f"Agent {agent.agent_id} has no accounts to register")
+                return False
+
+            # Select random unregistered account
+            unregistered_accounts = [
+                addr for addr in agent.accounts.keys()
+                if not self.contract.isHuman(addr)
+            ]
+            
+            if not unregistered_accounts:
+                logger.debug(f"Agent {agent.agent_id} has no unregistered accounts")
                 return False
             
-            address = random.choice(list(agent.accounts.keys()))
+            address = random.choice(unregistered_accounts)
             private_key = agent.accounts[address]
             account = Account.from_key(private_key)
             
-            prev_balance = self.contract.balanceOf(address, int(str(address), 16))
-            receipt = self.contract.personalMint(sender=account.address)
+            inviter = "0x0000000000000000000000000000000000000000"
+            metadata = HexBytes(0)
             
+            receipt = self.contract.registerHuman(
+                inviter,
+                metadata,
+                sender=account.address,
+                gas_limit=self.gas_limits.get('register_human', 500000)
+            )
+
+            
+            success = bool(receipt and receipt.status == 1)
+            if success and self.collector:
+                self.collector.record_human_registration(
+                    address=address,
+                    block_number=chain.blocks.head.number,
+                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
+                    inviter_address=inviter,
+                    welcome_bonus=200.0
+                )
+
+            if success:
+                logger.info(f"Successfully registered human account {address}")
+            else:
+                logger.warning(f"Failed to register human account {address}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Human registration failed for agent {agent.agent_id}: {e}", exc_info=True)
+            return False
+
+    def _handle_mint_action(self, agent: BaseAgent) -> bool:
+        """Execute a mint action for an agent."""
+        try:
+            if not agent.accounts:
+                logger.debug(f"Agent {agent.agent_id} has no accounts")
+                return False
+                
+            # Get mint configuration from agent profile
+            mint_config = agent.profile.action_configs.get(ActionType.MINT)
+            if not mint_config:
+                return False
+            
+            # Select random account
+            address = random.choice(list(agent.accounts.keys()))
+            
+            # Check if address is registered as human
+            if not self.contract.isHuman(address):
+                logger.debug(f"Address {address} is not registered as human")
+                return False
+                
+            # Record initial balance
+            token_id = int(str(address), 16)
+            prev_balance = self.contract.balanceOf(address, token_id)
+            
+            # Execute mint using configured parameters
+            private_key = agent.accounts[address]
+            account = Account.from_key(private_key)
+            
+            receipt = self.contract.personalMint(
+                sender=account.address,
+                gas_limit=mint_config.gas_limit
+            )
+            
+            if not receipt or receipt.status != 1:
+                logger.debug(f"Mint transaction failed for {address}")
+                return False
+                
+            # Get minted amount from events
             minted_amount = 0
             for log in receipt.decode_logs():
                 if log.event_name == "PersonalMint":
                     minted_amount = log.amount
-                    if self.on_mint_performed:
-                        self.on_mint_performed(
-                            address=address,
-                            amount=minted_amount,
-                            block=chain.blocks.head.number,
-                            timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
-                        )
-                    # We collect mint event data
-                    if self.collector:
-                        new_balance = prev_balance + minted_amount  # Calculate new balance
-                        self.collector.record_balance_change(
-                            account=address,
-                            token_id=address,
-                            block_number=chain.blocks.head.number,
-                            timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
-                            previous_balance=prev_balance,
-                            new_balance=new_balance, 
-                            tx_hash=receipt.txn_hash,
-                            event_type="MINT"
-                        )
-            return minted_amount > 0
+                    break
+                    
+            if minted_amount == 0:
+                return False
+                
+            # Record mint event if handler exists
+            if self.on_mint_performed:
+                self.on_mint_performed(
+                    address=address,
+                    amount=minted_amount,
+                    block=chain.blocks.head.number,
+                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                )
+                
+            # Record balance change if collector exists
+            if self.collector:
+                self.collector.record_balance_change(
+                    account=address,
+                    token_id=address,
+                    block_number=chain.blocks.head.number,
+                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
+                    previous_balance=prev_balance,
+                    new_balance=prev_balance + minted_amount,
+                    tx_hash=receipt.txn_hash,
+                    event_type="MINT"
+                )
+            
+            return True
             
         except Exception as e:
             logger.error(f"Mint action failed for agent {agent.agent_id}: {e}", exc_info=True)
             return False
+
 
     def _handle_trust_action(self, agent: BaseAgent) -> bool:
         try:
@@ -230,12 +314,9 @@ class NetworkEvolver:
             private_key = agent.accounts[truster_address]
             account = Account.from_key(private_key)
             
-            # Convert trust limit to proper wei string representation
-            trust_limit = self.uint256_handler.to_wei(1_000_000)  # 1M tokens as default limit
-            expiry_timestamp = int(
-                datetime.now().timestamp() + 
-                timedelta(days=365).total_seconds()
-            )
+            # Calculate expiry using block time (current + 1 year in seconds)
+            current_block_time = chain.blocks.head.timestamp
+            expiry_timestamp = current_block_time + (365 * 24 * 60 * 60)
             
             receipt = self.contract.trust(
                 trustee_address,
@@ -248,26 +329,13 @@ class NetworkEvolver:
                     truster=truster_address,
                     trustee=trustee_address,
                     block_number=chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
-                    trust_limit=trust_limit,  # Now using string representation
+                    timestamp=datetime.fromtimestamp(current_block_time),
                     expiry_time=datetime.fromtimestamp(expiry_timestamp)
                 )
             
             # Record trusted relationship
             agent.trusted_addresses = agent.trusted_addresses or set()
             agent.trusted_addresses.add(trustee_address)
-            
-            # We should add balance tracking here too
-            if self.collector:
-                # Record both the trust relationship and any balance changes
-                self.collector.record_trust_relationship(
-                    truster=truster_address,
-                    trustee=trustee_address,
-                    block_number=chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
-                    trust_limit=float(expiry_timestamp),
-                    expiry_time=datetime.fromtimestamp(expiry_timestamp)
-                )
             
             return True
             

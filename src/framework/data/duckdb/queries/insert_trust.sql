@@ -4,6 +4,6 @@ INSERT INTO trusts (
     simulation_run_id,
     trust_timestamp,
     trust_block,
-    trust_limit,
+   -- trust_limit,
     expiry_time
-) VALUES (?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?);

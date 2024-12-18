@@ -78,14 +78,14 @@ class BaseAgent:
 
     def select_action(self, current_block: int, state: Dict[str, Any]) -> Tuple[Optional[ActionType], str, Dict]:
         """
-        Decide what action to take based on profile configuration and current state
+        Decide what action to take based on profile configuration and current state.
         
         Args:
             current_block: Current blockchain block number
             state: Current network state information
             
         Returns:
-            Tuple of (action type, acting address, action parameters) or (None, None, {})
+            Tuple of (action type, acting address, action parameters) or (None, "", {})
         """
         # Check daily action limit
         today = datetime.now().date().isoformat()
@@ -115,34 +115,56 @@ class BaseAgent:
         acting_address, _ = account_tuple
 
         # Get basic parameters for the action
-        params = self._get_action_params(action_type, acting_address, state)
+        params = {
+            'acting_address': acting_address,
+            'max_value': self.profile.action_configs[action_type].max_value,
+            'gas_limit': self.profile.action_configs[action_type].gas_limit
+        }
 
         return action_type, acting_address, params
 
     def _can_perform_action(self, action_type: ActionType, current_block: int, state: Dict) -> bool:
-        """Check if an action can be performed based on constraints"""
-        config = self.profile.action_configs[action_type]
+        """Check if an action can be performed based on configured constraints."""
+        try:
+            config = self.profile.action_configs[action_type]
 
-        # Check cooldown
-        last_action = self.last_actions.get(action_type, 0)
-        if current_block - last_action < config.cooldown_blocks:
+            # Check cooldown
+            last_action = self.last_actions.get(action_type, 0)
+            if current_block - last_action < config.cooldown_blocks:
+                return False
+
+            # Check account limit for registration
+            if action_type == ActionType.REGISTER_HUMAN:
+                if len(self.controlled_addresses) >= self.profile.target_account_count:
+                    return False
+
+            # Check balance requirements if specified
+            if config.min_balance > 0:
+                account = self.get_random_account()
+                if not account:
+                    return False
+                balance = state.get('balances', {}).get(account[0], 0)
+                if balance < config.min_balance:
+                    return False
+
+            # Check any additional constraints from configuration
+            constraints = config.constraints
+            if constraints:
+                if action_type == ActionType.TRUST:
+                    max_connections = constraints.get('max_trust_connections')
+                    if max_connections and len(self.trusted_addresses or set()) >= max_connections:
+                        return False
+                        
+                elif action_type == ActionType.MINT:
+                    if constraints.get('require_previous_mint', False):
+                        if not self.last_actions.get(ActionType.MINT):
+                            return False
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Error checking action eligibility: {e}")
             return False
-
-        # Check account limit for registration
-        if action_type == ActionType.REGISTER_HUMAN:
-            if len(self.controlled_addresses) >= self.profile.target_account_count:
-                return False
-
-        # Check balance requirements if specified
-        if config.min_balance > 0:
-            account = self.get_random_account()
-            if not account:
-                return False
-            balance = state.get('balances', {}).get(account[0], 0)
-            if balance < config.min_balance:
-                return False
-
-        return True
 
     def _get_action_params(self, action_type: ActionType, acting_address: str, state: Dict) -> Dict:
         """Get basic parameters for an action"""

@@ -7,4 +7,4 @@ INSERT INTO agent_action_configs (
     min_balance,
     max_value, 
     constraints
-) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)

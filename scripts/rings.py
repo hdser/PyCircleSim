@@ -205,27 +205,28 @@ class SimulationConfig:
 class RingsSimulation:
     """Main simulation class that orchestrates the agent-based Rings network simulation"""
     
-    def __init__(self, config: SimulationConfig):
-        """Initialize simulation components with configuration"""
+    def __init__(self, config: SimulationConfig, fast_mode: bool = True):
+        self.fast_mode = fast_mode
         self.config = config
         self.simulation_start_time = datetime.now()
         
-        # Initialize Rings client with base parameters
+        # Initialize Rings client with minimal caching in fast mode
         self.rings_client = RingsClient(
             RINGS,
             RINGS_ABI,
             gas_limits=config.rings_config.get('gas_limits', {}),
-            cache_config=config.rings_config.get('cache', {})
+            cache_config={'enabled': not fast_mode, 'ttl': 60}
         )
         
-        # Initialize data collector with configured path
-        db_path = config.rings_config.get('db_path', "rings_simulation.duckdb")
-        self.collector = CirclesDataCollector(db_path)
-        
-        # Initialize agent manager with proper configuration
+        # Only initialize collector if not in fast mode
+        self.collector = None if fast_mode else CirclesDataCollector(
+            config.rings_config.get('db_path', "rings_simulation.duckdb")
+        )
+
+        # Initialize agent manager with optional collector
         self.agent_manager = AgentManager(
-            config=config.agent_config,  # Pass the agent configuration
-            data_collector=self.collector  # Pass the collector as a separate parameter
+            config=config.agent_config,
+            data_collector=self.collector
         )
         
         # Initialize network components
@@ -241,7 +242,8 @@ class RingsSimulation:
             RINGS,
             RINGS_ABI,
             agent_manager=self.agent_manager,
-            collector=self.collector 
+            collector=self.collector,
+            gas_limits=config.rings_config.get('gas_limits', None)
         )
         
         self.analyzer = NetworkAnalyzer(RINGS, RINGS_ABI)
@@ -430,23 +432,26 @@ class RingsSimulation:
             stats = self.evolver.evolve_network(i + 1)
             self.iteration_stats.append(stats)
             
-            # Record snapshot
-            self._record_network_snapshot(f"iteration_{i+1}")
-            
+            # Only record snapshot if not in fast mode
+            if not self.fast_mode:
+                self._record_network_snapshot(f"iteration_{i+1}")
+                
             # Log progress
             self._log_iteration_summary(i + 1, stats)
             
         return True
 
     def _record_network_snapshot(self, label: str):
-        """Record network state with label"""
-        try:
-            self.collector.record_network_statistics(
-                block_number=chain.blocks.head.number,
-                timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
-            )
-        except Exception as e:
-            logger.error(f"Failed to record network snapshot '{label}': {e}")
+        """Record network state with label, only if not in fast mode"""
+        if not self.fast_mode and self.collector:
+            try:
+                self.collector.record_network_statistics(
+                    block_number=chain.blocks.head.number,
+                    timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                )
+            except Exception as e:
+                logger.error(f"Failed to record network snapshot '{label}': {e}")
+
 
     def _create_simulation_metadata(self) -> dict:
         """
@@ -474,22 +479,27 @@ class RingsSimulation:
         """Log summary of iteration results"""
         logger.info(
             f"Iteration {iteration} complete:\n"
-            f"  - Total actions: {stats['total_actions']}\n"
-            f"  - Mints: {stats['mints']}\n"
-            f"  - Trusts: {stats['trusts']}\n"
-            f"  - Transfers: {stats['transfers']}\n"
-            f"  - Groups created: {stats['groups_created']}"
+            f"  - Total actions: {stats.get('total_actions', 0)}\n"
+            f"  - Humans registered: {stats.get('register_human', 0)}\n"
+            f"  - Mints: {stats.get('mint', 0)}\n"
+            f"  - Trusts: {stats.get('trust', 0)}\n"
+            f"  - Transfers: {stats.get('transfer', 0)}\n"
+            f"  - Groups created: {stats.get('create_group', 0)}"
         )
 
     def _export_results(self, metadata: dict):
-        """Export all simulation results"""
+        """Export simulation results if not in fast mode"""
+        if self.fast_mode:
+            logger.info("Skipping result export in fast mode")
+            return
+            
         output_dir = f"simulation_results/sim_{self.simulation_start_time:%Y%m%d_%H%M%S}"
         os.makedirs(output_dir, exist_ok=True)
         
         # Export database tables
         self.collector.export_to_csv(output_dir)
         
-        # Export agent statistics
+        # Export agent statistics 
         self._export_agent_statistics(output_dir)
         
         # Export iteration statistics
@@ -547,16 +557,16 @@ def cli():
 @cli.command()
 @click.option('--rings-config', default='config/rings_config.yaml', help='Rings configuration file')
 @click.option('--agent-config', default='config/agent_config.yaml', help='Agent configuration file')
+@click.option('--fast-mode/--no-fast-mode', default=True, help='Run in fast mode without data collection')
 @click.option('--network-size', type=int, help='Override network size')
 @click.option('--trust-density', type=float, help='Override trust density')
 @click.option('--batch-size', type=int, help='Override batch size')
 @click.option('--iterations', type=int, help='Override iteration count')
 @click.option('--blocks-per-iteration', type=int, help='Override blocks per iteration')
-def simulate(rings_config, agent_config, network_size, trust_density, 
+def simulate(rings_config, agent_config, fast_mode, network_size, trust_density, 
             batch_size, iterations, blocks_per_iteration):
     """Run the Rings network simulation"""
     
-    # Collect CLI parameters
     cli_params = {
         'size': network_size,
         'trust_density': trust_density,
@@ -565,22 +575,16 @@ def simulate(rings_config, agent_config, network_size, trust_density,
         'blocks_per_iteration': blocks_per_iteration
     }
     
-    # Initialize configuration
     config = SimulationConfig(
         rings_config_path=rings_config,
         agent_config_path=agent_config,
         cli_params={k: v for k, v in cli_params.items() if v is not None}
     )
     
-    # Log configuration using properties correctly
-    click.echo("\nStarting simulation with configuration:")
-    click.echo(f"Network size: {config.network_size:,} agents")
-    click.echo(f"Trust density: {config.trust_density}")
-    click.echo(f"Iterations: {config.iterations}")
+    click.echo(f"\nStarting simulation in {'fast' if fast_mode else 'normal'} mode")
     
-    # Run simulation
     with networks.gnosis.mainnet_fork.use_provider("foundry"):
-        simulation = RingsSimulation(config)
+        simulation = RingsSimulation(config, fast_mode=fast_mode)
         if not simulation.run():
             click.echo("Simulation failed. Check logs for details.")
             exit(1)

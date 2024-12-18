@@ -7,4 +7,4 @@ INSERT INTO agents (
     max_daily_actions, 
     risk_tolerance, 
     preferred_contracts
-) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)

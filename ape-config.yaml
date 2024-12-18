@@ -30,7 +30,10 @@ foundry:
     gnosis:
       mainnet_fork:
         upstream_provider: http://192.168.2.186:8545
-
+        no_storage_caching: true
+        compute_units_per_second: 100
+        memory_limit: 2048
+        ephemeral: true
 test:
   mnemonic: test test test test test test test test test test test junk
   number_of_accounts: 10

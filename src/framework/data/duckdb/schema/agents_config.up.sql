@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS agent_action_configs (
     min_balance FLOAT NOT NULL,              -- Minimum balance required
     max_value FLOAT NOT NULL,                -- Maximum value for the action
     
-    constraints JSONB,                       -- Flexible constraints storage
+    constraints JSON,                       -- Flexible constraints storage
     
     PRIMARY KEY(agent_id, action_type),
     FOREIGN KEY(agent_id) REFERENCES agents(agent_id)

@@ -75,16 +75,25 @@ class AgentManager:
 
     def create_agent(self, profile_name: str) -> BaseAgent:
         """Create a new agent given a profile name."""
-        profile = self._create_profile(profile_name)  # convert dict -> AgentProfile
+        profile = self._create_profile(profile_name)
         agent_id = str(uuid.uuid4())
-        
+
         agent = BaseAgent(agent_id, profile)
-        address, _ = agent.create_account()   # create an initial account
+        address, _ = agent.create_account()
         
         self.agents[agent_id] = agent
         self.address_to_agent[address] = agent_id
-        
+
+        # Record in database if collector is available and a simulation run is active
+        if self.data_collector and self.data_collector.current_run_id:
+            # Record the agent in the database
+            self.data_collector.record_agent(agent)
+            # Record the agent's primary address
+            #self.data_collector.record_agent_address(agent_id, address, is_primary=True)
+
         return agent
+
+
 
     def create_agent2(self, profile_name: str) -> BaseAgent:
         """Create a new agent with the specified profile"""

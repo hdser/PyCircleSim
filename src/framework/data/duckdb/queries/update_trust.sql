@@ -1,5 +1,5 @@
 UPDATE trusts 
-SET trust_limit = ?,
+SET --trust_limit = ?,
     expiry_time = ?
 WHERE truster_address = ?
 AND trustee_address = ?

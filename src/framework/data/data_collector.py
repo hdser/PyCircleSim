@@ -78,6 +78,7 @@ class CirclesDataCollector:
                 # First create base tables without foreign key dependencies
                 "simulation_runs.up.sql",  # Must come first as other tables reference it
                 "agents.up.sql",           # Depends on simulation_runs
+                "agents_config.up.sql",
                 "agent_addresses.up.sql",  # Depends on agents and simulation_runs
                 "humans.up.sql",           # Depends on simulation_runs
                 "trusts.up.sql",           # Depends on simulation_runs
@@ -162,7 +163,6 @@ class CirclesDataCollector:
         """
         try:
             sql = self._read_sql_file("queries/insert_agent.sql")
-            
             self.con.execute(sql, [
                 agent.agent_id,
                 self.current_run_id,
@@ -188,18 +188,16 @@ class CirclesDataCollector:
                     config.max_value,
                     json.dumps(config.constraints)
                 ])
-            
+                       
             # Insert agent addresses
             sql = self._read_sql_file("queries/insert_agent_address.sql")
-            
             for i, (address, private_key) in enumerate(agent.accounts.items()):
                 self.con.execute(sql, [
                     agent.agent_id,
                     address,
-                    private_key,  # Note: In production, encrypt this
-                    i == 0  
+                    i == 0,  
+                    self.current_run_id
                 ])
-            
             self.con.commit()
             logger.info(f"Recorded agent {agent.agent_id} with {len(agent.accounts)} addresses")
             
@@ -271,7 +269,7 @@ class CirclesDataCollector:
         trustee: str,
         block_number: int,
         timestamp: datetime,
-        trust_limit: Union[int, str],
+      #  trust_limit: Union[int, str],
         expiry_time: datetime
     ):
         """Record a trust relationship."""
@@ -280,7 +278,7 @@ class CirclesDataCollector:
             
         try:
             unique_timestamp = self._get_unique_timestamp(timestamp, 'trusts')
-            trust_limit_str = self.uint256_handler.to_string(trust_limit)
+           # trust_limit_str = self.uint256_handler.to_string(trust_limit)
         
             # Check existing trust using SQL file
             check_sql = self._read_sql_file("queries/check_trust.sql")
@@ -295,7 +293,7 @@ class CirclesDataCollector:
                 # Update existing trust using SQL file
                 update_sql = self._read_sql_file("queries/update_trust.sql")
                 self.con.execute(update_sql, [
-                    trust_limit_str,
+                 #   trust_limit_str,
                     expiry_time,
                     truster,
                     trustee,
@@ -311,7 +309,7 @@ class CirclesDataCollector:
                     self.current_run_id,
                     unique_timestamp,
                     block_number,
-                    trust_limit_str,
+                  #  trust_limit_str,
                     expiry_time
                 ])
                 

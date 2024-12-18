@@ -59,8 +59,8 @@ profiles:
     
     actions:
       REGISTER_HUMAN:
-        probability: 0.4
-        cooldown_blocks: 10
+        probability: 1
+        cooldown_blocks: 1
         gas_limit: 500000
         min_balance: 0
         max_value: 0
@@ -69,7 +69,7 @@ profiles:
           
       TRUST:
         probability: 0.3
-        cooldown_blocks: 20
+        cooldown_blocks: 1
         gas_limit: 300000
         min_balance: 0
         max_value: 0

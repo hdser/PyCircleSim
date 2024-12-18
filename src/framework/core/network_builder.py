@@ -149,47 +149,49 @@ class NetworkBuilder:
 
     def _establish_initial_trust_network(self, agents: List[BaseAgent]):
         """
-        Establish some initial trust relationships by actually calling self.contract.trust().
+        Establish some initial trust relationships by calling self.contract.trust() with expiry.
+        Uses blockchain time for expiry calculations.
         """
         try:
             trust_block = chain.blocks.head.number
-            trust_time = datetime.fromtimestamp(chain.blocks.head.timestamp)
+            current_block_time = chain.blocks.head.timestamp
+            trust_time = datetime.fromtimestamp(current_block_time)
+            
+            # Calculate expiry using block time (current + 1 year in seconds)
+            expiry_timestamp = current_block_time + (365 * 24 * 60 * 60)
             
             for agent in agents:
                 potential_trustees = [a for a in agents if a != agent]
                 random.shuffle(potential_trustees)
                 
-                # Suppose each agent tries to trust up to 2 random other agents
+                # Each agent tries to trust up to 2 random other agents
                 for trustee_agent in potential_trustees[:2]:
-                    if not agent.accounts:
+                    if not agent.accounts or not trustee_agent.accounts:
                         continue
+                        
                     truster_address = random.choice(list(agent.accounts.keys()))
-                    
-                    if not trustee_agent.accounts:
-                        continue
                     trustee_address = random.choice(list(trustee_agent.accounts.keys()))
                     
                     try:
-                        trust_limit = 10_000_000
                         private_key = agent.accounts[truster_address]
                         truster_account = Account.from_key(private_key)
                         
-                        # Actual contract call
+                        # Call trust with block time based expiry
                         receipt = self.contract.trust(
                             trustee_address,
-                            trust_limit,
+                            expiry_timestamp,
                             sender=truster_account.address
                         )
                         
                         # Update agent memory
                         agent.trusted_addresses.add(trustee_address)
 
-                        # Fire callback if provided
+                        # Fire callback if provided - passing limit instead of expiry to match signature
                         if self.on_trust_created:
                             self.on_trust_created(
                                 truster=truster_address,
                                 trustee=trustee_address,
-                                limit=trust_limit,
+                                limit=expiry_timestamp,  # Using expiry as limit to match existing signature
                                 block=trust_block,
                                 timestamp=trust_time
                             )
@@ -201,8 +203,7 @@ class NetworkBuilder:
                                 trustee=trustee_address,
                                 block_number=trust_block,
                                 timestamp=trust_time,
-                                trust_limit=trust_limit,
-                                expiry_time=trust_time + timedelta(days=365)
+                                expiry_time=datetime.fromtimestamp(expiry_timestamp)
                             )
 
                     except Exception as e:
@@ -212,22 +213,31 @@ class NetworkBuilder:
             logger.error(f"Failed to establish trust network: {e}", exc_info=True)
             raise
 
+
     def close(self):
         """Shutdown any resources if needed."""
         self.executor.shutdown(wait=True)
 
     def _create_trust_batch(self, trust_pairs: List[Dict]) -> Dict[Tuple[str, str], bool]:
-        """Create trust relationships between pairs of accounts in batch (optional)."""
+        """
+        Create trust relationships between pairs of accounts in batch with expiry.
+        Uses blockchain time for expiry calculations.
+        """
         results = {}
+        
+        # Calculate expiry using block time
+        current_block_time = chain.blocks.head.timestamp
+        expiry_timestamp = current_block_time + (365 * 24 * 60 * 60)
+        
         for pair in trust_pairs:
             truster_addr, truster_key = pair['truster']
             trustee_addr, trustee_key = pair['trustee']
             try:
                 truster_account = Account.from_key(truster_key)
-                trust_limit = 10_000_000
+                
                 receipt = self.contract.trust(
                     trustee_addr,
-                    trust_limit,
+                    expiry_timestamp,
                     sender=truster_account.address
                 )
                 
@@ -237,9 +247,9 @@ class NetworkBuilder:
                     self.on_trust_created(
                         truster=truster_addr,
                         trustee=trustee_addr,
-                        limit=trust_limit,
+                        limit=expiry_timestamp,  # Using expiry as limit to match existing signature
                         block=chain.blocks.head.number,
-                        timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                        timestamp=datetime.fromtimestamp(current_block_time)
                     )
                     
             except Exception as e:
