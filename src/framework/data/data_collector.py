@@ -81,6 +81,7 @@ class CirclesDataCollector:
                 "agents_config.up.sql",
                 "agent_addresses.up.sql",  # Depends on agents and simulation_runs
                 "humans.up.sql",           # Depends on simulation_runs
+                "groups.up.sql",           # Depends on simulation_runs
                 "trusts.up.sql",           # Depends on simulation_runs
                 "balance_changes.up.sql",  # Depends on simulation_runs
                 "network_stats.up.sql",    # Depends on simulation_runs
@@ -366,6 +367,65 @@ class CirclesDataCollector:
             
         except Exception as e:
             logger.error(f"Failed to record balance change: {e}")
+            raise
+
+    def record_group_registration(
+        self,
+        address: str,
+        creator: str,
+        block_number: int,
+        timestamp: datetime,
+        name: str,
+        symbol: str,
+        mint_policy: str
+    ) -> bool:
+        """
+        Record a new group registration.
+
+        Args:
+            address: Group address
+            creator: Address of group creator
+            block_number: Block number of registration
+            timestamp: Registration timestamp
+            name: Group name
+            symbol: Group symbol
+            mint_policy: Mint policy contract address
+
+        Returns:
+            bool: True if recording was successful
+        """
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+
+        try:
+            if not self._validate_ethereum_address(address):
+                raise ValueError(f"Invalid group address format: {address}")
+
+            #if not self._validate_ethereum_address(creator):
+            #    raise ValueError(f"Invalid creator address format: {creator}")
+
+            if not self._validate_ethereum_address(mint_policy):
+                raise ValueError(f"Invalid mint policy address format: {mint_policy}")
+
+            unique_timestamp = self._get_unique_timestamp(timestamp, 'groups')
+
+            sql = self._read_sql_file("queries/insert_group.sql")
+            self.con.execute(sql, [
+                address,
+                creator,
+                self.current_run_id,
+                unique_timestamp,
+                block_number,
+                name,
+                symbol,
+                mint_policy
+            ])
+            self.con.commit()
+            logger.info(f"Recorded new group registration: {address} by {creator}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to record group registration: {e}")
             raise
 
     def record_network_statistics(

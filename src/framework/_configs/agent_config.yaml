@@ -3,6 +3,7 @@ simulation_params:
   welcome_bonus: 200
   min_gas_price: 1000000000
   max_gas_price: 50000000000
+  mint_policy_address: "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60"
 
 # Agent distribution (total should be your target network size)
 agent_distribution:
@@ -95,7 +96,7 @@ profiles:
     
     actions:
       CREATE_GROUP:
-        probability: 0.2
+        probability: 0.9
         cooldown_blocks: 1000
         gas_limit: 1000000
         min_balance: 0

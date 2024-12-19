@@ -92,7 +92,7 @@ class SimulationConfig:
         if 'blocks_per_iteration' not in self.rings_config:
             self.rings_config['blocks_per_iteration'] = 100
         if 'block_time' not in self.rings_config:
-            self.rings_config['block_time'] = 12
+            self.rings_config['block_time'] = 5
 
     def _load_config(self, path: str) -> Dict:
         """

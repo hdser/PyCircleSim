@@ -34,6 +34,7 @@ foundry:
         compute_units_per_second: 100
         memory_limit: 2048
         ephemeral: true
+        prune_history: true
 test:
   mnemonic: test test test test test test test test test test test junk
   number_of_accounts: 10

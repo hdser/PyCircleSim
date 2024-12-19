@@ -70,7 +70,6 @@ class NetworkEvolver:
     def evolve_network(self, iteration: int) -> Dict[str, int]:
         """Evolve the network with minimal state tracking in fast mode."""
         stats = {
-            
             'total_actions': 0
         }
         
@@ -137,7 +136,6 @@ class NetworkEvolver:
         """
         try:
             # If the agent doesn't have enough accounts yet, create a new one
-            print('agent.profile.target_account_count ', agent.profile.target_account_count)
             if len(agent.accounts) < agent.profile.target_account_count:
                 new_address, _ = agent.create_account()
                 logger.debug(f"Agent {agent.agent_id} created a new account {new_address}")
@@ -451,45 +449,140 @@ class NetworkEvolver:
             if not agent.accounts:
                 return False
                 
-            address = random.choice(list(agent.accounts.keys()))
-            private_key = agent.accounts[address]
-            account = Account.from_key(private_key)
+            creator_address, _ = agent.create_account()
+            logger.debug(f"Agent {agent.agent_id} created a new account {creator_address}")
+            if self.collector and self.collector.current_run_id:
+                self.collector.record_agent_address(agent.agent_id, creator_address, is_primary=False)
             
-            # Generate unique group name and symbol
+            private_key = agent.accounts[creator_address]
+            creator_account = Account.from_key(private_key)
+            
+            # Generate valid alphanumeric name and symbol
             group_number = getattr(agent, 'group_count', 0) + 1
-            name = f"Group_{address[:6]}_{group_number}"
-            symbol = f"GRP{address[:4]}{group_number}"
-            
+            group_name = f"RingsGroup{creator_address[:4]}{group_number}"
+            group_symbol = f"RG{creator_address[:2]}{group_number}"
+
+            # Get mint policy from configuration
+            mint_policy = self.agent_manager.config.get('mint_policy_address', 
+                "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60")  # Default as fallback
+
             try:
                 receipt = self.contract.registerGroup(
-                    address,  # mint policy address
-                    name,
-                    symbol,
-                    b"",     # no metadata for now
-                    sender=account.address
+                    mint_policy,
+                    group_name,
+                    group_symbol,
+                    HexBytes(0),
+                    sender=creator_account.address
                 )
                 
                 # Update group count on successful creation
                 agent.group_count = group_number
-                
+
+                # Record in data collector if available
                 if self.collector:
                     self.collector.record_group_registration(
-                        address=address,
-                        creator=account.address,
+                        address=creator_address,
+                        creator=agent.agent_id,
                         block_number=chain.blocks.head.number,
                         timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
-                        name=name,
-                        symbol=symbol
+                        name=group_name,
+                        symbol=group_symbol,
+                        mint_policy=mint_policy
                     )
+
+                # Fire event callback if registered
+                if self.on_group_created:
+                    self.on_group_created(
+                        creator=creator_account.address,
+                        group_address=creator_address,
+                        name=group_name,
+                        block=chain.blocks.head.number,
+                        timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                    )
+
+                logger.info(f"Successfully created group {group_name} for agent {agent.agent_id}")
                 return True
-                
+
             except Exception as e:
-                # Handle specific contract errors gracefully
-                if 'CirclesErrorOneAddressArg' in str(e):
-                    logger.debug(f"Group registration failed - contract validation error for {address}")
+                error_msg = str(e)
+                if '0x80' in error_msg or 'CirclesHubAvatarAlreadyRegistered' in error_msg:
+                    logger.debug(f"Address {creator_address} is already registered")
                     return False
-                raise  # Re-raise other contract errors
-                
+                if '0x02' in error_msg:
+                    logger.debug(f"Invalid name or symbol format")
+                    return False
+                if '0x00' in error_msg:
+                    logger.debug(f"Invalid mint policy address")
+                    return False
+                raise
+
         except Exception as e:
-            logger.error(f"Group creation failed for agent {agent.agent_id}: {e}")
+            logger.error(f"Group creation failed for agent {agent.agent_id}: {str(e)}")
+            return False
+        
+    def _handle_group_creation2(self, agent: BaseAgent) -> bool:
+        """Execute group creation for an agent."""
+        try:
+            if not agent.accounts:
+                return False
+            
+            creator_address, _ = agent.create_account()
+            logger.debug(f"Agent {agent.agent_id} created a new account {creator_address}")
+            if self.collector and self.collector.current_run_id:
+                self.collector.record_agent_address(agent.agent_id, creator_address, is_primary=False)
+                
+            private_key = agent.accounts[creator_address]
+            creator_account = Account.from_key(private_key)
+            
+            # Generate unique group name and symbol
+            group_number = getattr(agent, 'group_count', 0) + 1
+            group_name = f"Group{group_number}"  
+            group_symbol = f"G{group_number}"   
+
+            StandardTreasury = '0x3545955Bc3900bda704261e4991f239BBd99ecE5'
+            BaseGroupMintPolicy = '0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60'
+            try:
+                # Match exact function signature:
+                # registerGroup(address _mint, string _name, string _symbol, bytes32 _metadataDigest)
+                receipt = self.contract.registerGroup(
+                    BaseGroupMintPolicy,
+                    group_name,
+                    group_symbol,
+                    HexBytes(0),  # 32 zero bytes
+                    sender=creator_account.address
+                )
+                
+                # Update group count on successful creation
+                agent.group_count = group_number
+
+                # Process receipt and emit events...
+                if self.collector and False:
+                    self.collector.record_group_registration(
+                        address=creator_address,
+                        creator=creator_account.address,
+                        block_number=chain.blocks.head.number,
+                        timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
+                        name=group_name,
+                        symbol=group_symbol
+                    )
+
+                if self.on_group_created:
+                    self.on_group_created(
+                        creator=creator_account.address,
+                        group_address=creator_address,
+                        name=group_name,
+                        block=chain.blocks.head.number,
+                        timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp)
+                    )
+
+                return True
+
+            except Exception as e:
+                if 'CirclesErrorOneAddressArg' in str(e):
+                    logger.debug(f"Group registration failed - validation error for {creator_address}")
+                    return False
+                raise
+
+        except Exception as e:
+            logger.error(f"Group creation failed for agent {agent.agent_id}: {str(e)}")
             return False
