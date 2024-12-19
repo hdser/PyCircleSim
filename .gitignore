@@ -3,6 +3,7 @@
 *.duckdb
 *.duckdb.wal
 *.log
+**/.DS_Store
 
 circles_ape/*
 rings_network.egg-info/*

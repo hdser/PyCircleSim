@@ -29,7 +29,9 @@ profiles:
         min_balance: 0
         max_value: 0
         constraints:
-          require_previous_mint: false
+          max_accounts: 50
+          max_actions_per_type: 100
+          required_previous_actions: ["REGISTER_HUMAN"]
           
       TRANSFER:
         probability: 0.3
@@ -48,8 +50,9 @@ profiles:
         min_balance: 0
         max_value: 0
         constraints:
-          max_trust_connections: 50
-          trust_score_threshold: 0.7
+          max_accounts: 50
+          max_actions_per_type: 100
+          required_previous_actions: ["REGISTER_HUMAN"]
 
   sybil_attacker:
     description: "Creates multiple accounts for network manipulation"
