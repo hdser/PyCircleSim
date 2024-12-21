@@ -6,9 +6,11 @@ import pandas as pd
 import logging
 import json
 import os
+from ape import Contract
 from collections import defaultdict
 from src.framework.agents.base_agent import BaseAgent
 from src.protocols.common.uint256_handler import UINT256Handler
+from .event_logging import EventLogger, ContractEventHandler
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,10 @@ class CirclesDataCollector:
         # Set up database schema
         self._initialize_database()
         logger.info(f"Initialized CirclesDataCollector with database at {db_path}")
+
+        # Initialize event logging components
+        self.event_logger = EventLogger(self.con)
+        self.event_handler = None  # Will be initialized when simulation run starts
 
     def _get_unique_timestamp(self, base_timestamp: datetime, table_name: str) -> datetime:
         """Generate a unique timestamp for database operations."""
@@ -85,6 +91,8 @@ class CirclesDataCollector:
                 "trusts.up.sql",           # Depends on simulation_runs
                 "balance_changes.up.sql",  # Depends on simulation_runs
                 "network_stats.up.sql",    # Depends on simulation_runs
+                "contract_events.up.sql",
+                "events_indexes.up.sql"
             ]
             
             for table_file in tables:
@@ -120,6 +128,67 @@ class CirclesDataCollector:
         )
 
     def start_simulation_run(self, parameters: Dict = None, description: str = None) -> int:
+        """Start a new simulation run and return its ID."""
+        try:
+            sql = self._read_sql_file("queries/insert_simulation_run.sql")
+            result = self.con.execute(sql, [
+                datetime.now(),
+                json.dumps(parameters) if parameters else None,
+                description
+            ]).fetchone()
+            
+            self.current_run_id = result[0]
+            
+            # Initialize event handler with current run ID
+            self.event_handler = ContractEventHandler(self.event_logger, self.current_run_id)
+            
+            self.con.commit()
+            logger.info(f"Started simulation run {self.current_run_id}")
+            return self.current_run_id
+            
+        except Exception as e:
+            logger.error(f"Failed to start simulation run: {e}")
+            raise
+
+    def setup_contract_listeners(self, contracts: Dict[str, Contract]):
+        """Set up event listeners for contracts"""
+        if not self.event_handler:
+            logger.error("Event handler not initialized - must start simulation first")
+            return
+            
+        for name, contract in contracts.items():
+            try:
+                self.event_handler.setup_event_listeners(contract)
+                logger.info(f"Set up event listeners for contract: {name}")
+            except Exception as e:
+                logger.error(f"Failed to set up listeners for {name}: {e}")
+
+    def get_events(self, event_name: Optional[str] = None, 
+                  start_time: Optional[datetime] = None,
+                  end_time: Optional[datetime] = None,
+                  limit: int = 1000) -> List[Dict]:
+        """Get events for current simulation run"""
+        if not self.current_run_id:
+            logger.warning("No active simulation run")
+            return []
+            
+        return self.event_logger.get_events(
+            simulation_run_id=self.current_run_id,
+            event_name=event_name,
+            start_time=start_time,
+            end_time=end_time,
+            limit=limit
+        )
+
+    def get_event_statistics(self) -> List[Dict]:
+        """Get event statistics for current simulation run"""
+        if not self.current_run_id:
+            logger.warning("No active simulation run")
+            return []
+            
+        return self.event_logger.get_event_stats(self.current_run_id)
+
+    def start_simulation_run2(self, parameters: Dict = None, description: str = None) -> int:
         """Start a new simulation run and return its ID."""
         try:
             sql = self._read_sql_file("queries/insert_simulation_run.sql")
@@ -466,6 +535,95 @@ class CirclesDataCollector:
         except Exception as e:
             logger.error(f"Failed to record network statistics: {e}")
             raise
+
+
+    def record_contract_event(
+        self,
+        event_name: str,
+        block_number: int,
+        block_timestamp: datetime,
+        transaction_hash: str,
+        tx_from: Optional[str],
+        tx_to: Optional[str],
+        tx_index: Optional[int],
+        log_index: Optional[int],
+        contract_address: str,
+        topics: Any,
+        event_data: Any,
+        raw_data: Optional[str],
+        indexed_values: Optional[Any] = None,
+        decoded_values: Optional[Any] = None
+    ):
+        """
+        Record a new contract (or simulation) event in the 'contract_events' table.
+
+        Args:
+            event_name (str): Name/type of event (e.g. "TRANSFER", "TRUST", etc.)
+            block_number (int): The block number at which this event was emitted
+            block_timestamp (datetime): The on-chain timestamp for that block
+            transaction_hash (str): The transaction hash for the event
+            tx_from (str): Sender/transaction 'from' address
+            tx_to (str): Recipient/transaction 'to' address
+            tx_index (int): Transaction index in the block
+            log_index (int): Log index for the event within the transaction
+            contract_address (str): The contract address that emitted the event
+            topics (Any): Topics array/list (will be stored as JSON)
+            event_data (Any): Full event data (will be stored as JSON)
+            raw_data (str): Hex string of the raw event data
+            indexed_values (Any): Indexed parameters if needed (JSON)
+            decoded_values (Any): Decoded event parameters if needed (JSON)
+        """
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+
+        try:
+            # Optional: Validate the contract address
+            if not self._validate_ethereum_address(contract_address):
+                raise ValueError(f"Invalid contract address: {contract_address}")
+
+            # Generate a unique timestamp, if you want consistency with your other tables.
+            # If you prefer to store the event's block_timestamp exactly, you can skip this.
+            unique_timestamp = self._get_unique_timestamp(block_timestamp, 'contract_events')
+
+            # Convert Python structures to JSON strings for storage in DuckDB's JSON columns
+            import json
+            topics_json = json.dumps(topics) if topics is not None else '[]'
+            event_data_json = json.dumps(event_data) if event_data is not None else '{}'
+            indexed_values_json = json.dumps(indexed_values) if indexed_values is not None else '{}'
+            decoded_values_json = json.dumps(decoded_values) if decoded_values is not None else '{}'
+
+            # Load the SQL from file
+            sql = self._read_sql_file("queries/insert_contract_event.sql")
+
+            # Execute the SQL INSERT
+            self.con.execute(sql, [
+                self.current_run_id,
+                event_name,
+                block_number,
+                unique_timestamp,       # or block_timestamp if you prefer exactly that
+                transaction_hash,
+                tx_from,
+                tx_to,
+                tx_index,
+                log_index,
+                contract_address,
+                topics_json,
+                event_data_json,
+                raw_data,
+                indexed_values_json,
+                decoded_values_json
+            ])
+
+            # Commit transaction
+            self.con.commit()
+
+            logger.info(f"Recorded contract event '{event_name}' at block {block_number}")
+
+        except Exception as e:
+            logger.error(f"Failed to record contract event '{event_name}': {e}")
+            raise
+
+
 
     def get_simulation_results(self, run_id: int) -> Dict:
         """

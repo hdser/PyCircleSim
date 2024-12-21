@@ -4,6 +4,7 @@ from enum import Enum, auto
 
 class ActionType(Enum):
     """All possible actions an agent can perform"""
+    # Rings protocol actions
     MINT = auto()
     TRANSFER = auto()
     TRUST = auto()
@@ -12,6 +13,8 @@ class ActionType(Enum):
     SET_FLAGS = auto()
     WRAP_TOKEN = auto()
     OPERATE_MATRIX = auto()
+    
+    # Fjord protocol actions
     CREATE_POOL = auto()
     EXIT_POOL = auto()
     UPDATE_WEIGHTS = auto()
