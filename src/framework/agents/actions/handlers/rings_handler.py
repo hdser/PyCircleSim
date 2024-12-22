@@ -37,15 +37,6 @@ class RingsHandler(ProtocolHandler):
                 
         return True
     
-    def validate_state2(self, agent: 'BaseAgent', action_name: str, **kwargs) -> bool:
-        if action_name == 'MINT':
-            address = kwargs.get('address')
-            return address and self.client.is_human(address)
-        elif action_name == 'TRUST':
-            truster = kwargs.get('truster')
-            trustee = kwargs.get('trustee')
-            return truster and trustee and truster != trustee
-        return True
         
     def execute(self, agent: 'BaseAgent', action_name: str, **kwargs) -> bool:
         try:

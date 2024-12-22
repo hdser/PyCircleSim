@@ -91,8 +91,8 @@ class CirclesDataCollector:
                 "trusts.up.sql",           # Depends on simulation_runs
                 "balance_changes.up.sql",  # Depends on simulation_runs
                 "network_stats.up.sql",    # Depends on simulation_runs
-                "contract_events.up.sql",
-                "events_indexes.up.sql"
+                "events.up.sql",
+             #   "events_indexes.up.sql"
             ]
             
             for table_file in tables:
@@ -544,8 +544,7 @@ class CirclesDataCollector:
         block_timestamp: datetime,
         transaction_hash: str,
         tx_from: Optional[str],
-        tx_to: Optional[str],
-        tx_index: Optional[int],
+        tx_to: Optional[str], 
         log_index: Optional[int],
         contract_address: str,
         topics: Any,
@@ -555,7 +554,87 @@ class CirclesDataCollector:
         decoded_values: Optional[Any] = None
     ):
         """
-        Record a new contract (or simulation) event in the 'contract_events' table.
+        Record a new contract event in the 'events' table.
+        All complex data types are stored as strings.
+        """
+        if not self.current_run_id:
+            raise ValueError("No active simulation run")
+
+        try:
+            # Optional: Validate the contract address
+            if not self._validate_ethereum_address(contract_address):
+                raise ValueError(f"Invalid contract address: {contract_address}")
+
+            # Generate unique timestamp
+            unique_timestamp = self._get_unique_timestamp(block_timestamp, 'events')
+
+            # Convert all complex data to strings
+            topics_str = str(topics) if topics is not None else ''
+            event_data_str = str(event_data) if event_data is not None else ''
+            raw_data_str = str(raw_data) if raw_data is not None else ''
+            indexed_values_str = str(indexed_values) if indexed_values is not None else ''
+            decoded_values_str = str(decoded_values) if decoded_values is not None else ''
+
+            # Load and execute SQL
+            sql = self._read_sql_file("queries/insert_event.sql")
+
+            print( self.current_run_id,
+                event_name,
+                block_number,
+                unique_timestamp,
+                transaction_hash,
+                tx_from,
+                tx_to,
+                log_index,
+                contract_address,
+                topics_str,
+                event_data_str,
+                raw_data_str,
+                indexed_values_str,
+                decoded_values_str)
+
+            self.con.execute(sql, [
+                self.current_run_id,
+                event_name,
+                block_number,
+                unique_timestamp,
+                transaction_hash,
+                tx_from,
+                tx_to,
+                log_index,
+                contract_address,
+                topics_str,
+                event_data_str,
+                raw_data_str,
+                indexed_values_str,
+                decoded_values_str
+            ])
+
+            self.con.commit()
+            logger.info(f"Recorded contract event '{event_name}' at block {block_number}")
+
+        except Exception as e:
+            logger.error(f"Failed to record contract event '{event_name}': {e}")
+            raise
+
+    def record_contract_event2(
+        self,
+        event_name: str,
+        block_number: int,
+        block_timestamp: datetime,
+        transaction_hash: str,
+        tx_from: Optional[str],
+        tx_to: Optional[str],
+        log_index: Optional[int],
+        contract_address: str,
+        topics: Any,
+        event_data: Any,
+        raw_data: Optional[str],
+        indexed_values: Optional[Any] = None,
+        decoded_values: Optional[Any] = None
+    ):
+        """
+        Record a new contract (or simulation) event in the 'events' table.
 
         Args:
             event_name (str): Name/type of event (e.g. "TRANSFER", "TRUST", etc.)
@@ -583,7 +662,7 @@ class CirclesDataCollector:
 
             # Generate a unique timestamp, if you want consistency with your other tables.
             # If you prefer to store the event's block_timestamp exactly, you can skip this.
-            unique_timestamp = self._get_unique_timestamp(block_timestamp, 'contract_events')
+            unique_timestamp = self._get_unique_timestamp(block_timestamp, 'events')
 
             # Convert Python structures to JSON strings for storage in DuckDB's JSON columns
             import json
@@ -593,8 +672,22 @@ class CirclesDataCollector:
             decoded_values_json = json.dumps(decoded_values) if decoded_values is not None else '{}'
 
             # Load the SQL from file
-            sql = self._read_sql_file("queries/insert_contract_event.sql")
+            sql = self._read_sql_file("queries/insert_event.sql")
 
+            print(self.current_run_id,
+                event_name,
+                block_number,
+                unique_timestamp,       # or block_timestamp if you prefer exactly that
+                transaction_hash,
+                tx_from,
+                tx_to,
+                log_index,
+                contract_address,
+                topics_json,
+                event_data_json,
+                raw_data,
+                indexed_values_json,
+                decoded_values_json)
             # Execute the SQL INSERT
             self.con.execute(sql, [
                 self.current_run_id,
@@ -604,7 +697,6 @@ class CirclesDataCollector:
                 transaction_hash,
                 tx_from,
                 tx_to,
-                tx_index,
                 log_index,
                 contract_address,
                 topics_json,

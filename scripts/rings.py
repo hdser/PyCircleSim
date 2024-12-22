@@ -155,6 +155,12 @@ class RingsSimulation:
                 f"Agent distribution total {agent_total} adjusted to match "
                 f"network size {config.network_size}"
             )
+       
+        # Initialize collector if not in fast mode
+        self.collector = None if fast_mode else CirclesDataCollector(
+            config.rings_config.get('db_path', "rings_simulation.duckdb")
+        )
+
 
         # Initialize clients
         rings_abi_path = validate_abi_path(RINGS_ABI, "Rings")
@@ -162,15 +168,11 @@ class RingsSimulation:
             RINGS,
             rings_abi_path,
             gas_limits=config.rings_config.get('gas_limits', {}),
-            cache_config={'enabled': not fast_mode, 'ttl': 60}
+            cache_config={'enabled': not fast_mode, 'ttl': 60},
+            data_collector=self.collector 
         )
         
         self.fjord_client = None  # Optional Fjord initialization here if needed
-
-        # Initialize collector if not in fast mode
-        self.collector = None if fast_mode else CirclesDataCollector(
-            config.rings_config.get('db_path', "rings_simulation.duckdb")
-        )
 
         # Initialize managers
         self.agent_manager = AgentManager(
@@ -178,6 +180,21 @@ class RingsSimulation:
             data_collector=self.collector
         )
 
+        self.builder = NetworkBuilder(
+            rings_client=self.rings_client,  # Pass the client instance
+            batch_size=config.batch_size,
+            agent_manager=self.agent_manager,
+            data_collector=self.collector
+        )
+
+        self.evolver = NetworkEvolver(
+            rings_client=self.rings_client,  # Pass the client instance
+            agent_manager=self.agent_manager,
+            collector=self.collector,
+            gas_limits=config.rings_config.get('gas_limits'),
+            fjord_client=self.fjord_client
+        )
+        """ 
         self.builder = NetworkBuilder(
             RINGS,
             rings_abi_path,
@@ -194,6 +211,7 @@ class RingsSimulation:
             gas_limits=config.rings_config.get('gas_limits'),
             fjord_client=self.fjord_client
         )
+        """ 
 
         # Initialize tracking
         self.iteration_stats = []

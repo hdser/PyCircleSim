@@ -27,8 +27,9 @@ class NetworkEvolver(NetworkComponent):
     
     def __init__(
         self,
-        contract_address: str,
-        abi_path: str,
+       # contract_address: str,
+       # abi_path: str,
+        rings_client: RingsClient,
         agent_manager: AgentManager,
         collector: Optional[CirclesDataCollector] = None,
         gas_limits: Optional[Dict] = None,
@@ -37,11 +38,12 @@ class NetworkEvolver(NetworkComponent):
         super().__init__()
         
         # Initialize clients
-        self.rings_client = RingsClient(
-            contract_address,
-            abi_path,
-            gas_limits=gas_limits
-        )
+        #self.rings_client = RingsClient(
+        #    contract_address,
+        #    abi_path,
+        #    gas_limits=gas_limits
+        #)
+        self.rings_client = rings_client
         self.fjord_client = fjord_client
         
         self.agent_manager = agent_manager

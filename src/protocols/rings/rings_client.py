@@ -8,6 +8,7 @@ from ape import Contract, chain
 import logging
 import yaml
 from dataclasses import dataclass
+from src.framework.data import CirclesDataCollector
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +24,15 @@ class RingsClient:
         contract_address: str,
         abi_path: str,
         gas_limits: Optional[Dict] = None,
-        cache_config: Optional[Dict] = None
+        cache_config: Optional[Dict] = None,
+        data_collector: Optional['CirclesDataCollector'] = None  # Add collector
     ):
-        """
-        Initialize the Rings client
-        
-        Args:
-            contract_address: Address of deployed Rings contract
-            abi_path: Path (str) to the contract ABI file or an actual ABI JSON
-            gas_limits: Optional gas limits for different operations
-            cache_config: Optional cache configuration
-        """
-        # Instantiate the contract
+        """Initialize Rings client with event logging"""
+        print(f"RingsClient init - collector received: {data_collector is not None}")  # Debug
         self.contract = Contract(contract_address, abi=abi_path)
+        self.collector = data_collector
+        print(f"RingsClient init - self.collector set: {self.collector is not None}")  # Debug
+
         
         # Default gas limits
         self.gas_limits = gas_limits or {
@@ -62,13 +59,12 @@ class RingsClient:
             'current_block': 0
         }
 
-        # Configuration dict (e.g. for trust_duration_days) can be updated externally
+        # Configuration dict
         self.config = {
             'trust_duration_days': 365
         }
 
-
-        # Event handler callbacks (set externally by simulation code)
+        # Event handler callbacks
         self.on_transfer = None
         self.on_trust = None
         self.on_mint = None
@@ -77,26 +73,43 @@ class RingsClient:
         self.on_human_registered = None
         self.on_advanced_flag_set = None
 
-    def update_config(self, cli_params: Dict):
-        """
-        Update config with external parameters, e.g. trust_duration_days
-        """
-        for k, v in cli_params.items():
-            if v is not None:
-                self.config[k] = v
+    def _record_transaction_events(self, tx) -> None:
+        """Record all events from a transaction"""
+        if not (self.collector and tx):
+            return
+            
+        try:
+            print('---------------------')
+            # Record each event in the transaction logs
+            for i in range(len(tx.decode_logs())):
+                decoded_log = tx.decode_logs()[i]
+                log = tx.logs[i]
+                print(decoded_log)
+                self.collector.record_contract_event(
+                    event_name=decoded_log.event_name,
+                    block_number=tx.block_number,
+                    block_timestamp=datetime.fromtimestamp(tx.timestamp),
+                    transaction_hash=str(tx.txn_hash),
+                    tx_from=str(tx.sender),
+                    tx_to=str(tx.receiver),
+                    log_index=log.get('logIndex'),
+                    contract_address=str(decoded_log.contract_address),
+                    topics=str(log.get('topics', [])),
+                    event_data=str(decoded_log.event_arguments),
+                    raw_data=str(log.get('data')),
+                    indexed_values=str(decoded_log.indexed_arguments if hasattr(decoded_log, 'indexed_arguments') else None),
+                    decoded_values=str(decoded_log.decoded_arguments if hasattr(decoded_log, 'decoded_arguments') else None)
+                )
+        except Exception as e:
+            logger.error(f"Failed to record transaction events: {e}")
 
-    # -------------------------------------------------------------------------
-    # Registration Functions
-    # -------------------------------------------------------------------------
     def register_human(
         self,
         address: str, 
         inviter: Optional[str] = None,
         metadata_digest: Optional[bytes] = None
     ) -> bool:
-        """
-        Register a new human account via the contract.
-        """
+        """Register a new human account"""
         try:
             inviter = inviter or "0x0000000000000000000000000000000000000000"
             metadata = metadata_digest or HexBytes(0)
@@ -110,47 +123,24 @@ class RingsClient:
             
             success = bool(tx and tx.status == 1)
             if success:
-                # Cache
+                # Cache update
                 if self.cache_enabled:
                     self._update_cache('humans', {address: True})
+                    
+                # Record events
+                print("About to record transaction events...")  # Debug
+                self._record_transaction_events(tx)
+                print("Finished recording transaction events") 
 
-       
-                #if self.collector:
-                for i in range(0, len(tx.decode_logs())):
-                    decodes_log = tx.decode_logs()[i]
-                    log = tx.logs[i]
-        
-                    topics_list = log['topics']
-                    event_data_dict = decodes_log.event_arguments
-                    event_name = decodes_log.event_name
-                    contract_address = decodes_log.contract_address
-                    print(topics_list, event_data_dict, event_name, contract_address)
-                """
-                    self.collector.record_contract_event(
-                        event_name=event_name,
-                        block_number=tx.block_number,
-                        block_timestamp=tx.block_timestamp,
-                        transaction_hash=tx.txn_hash,
-                        tx_from=tx.sender,
-                        tx_to=tx.receiver,
-                        tx_index=tx.txn_index,
-                        log_index=tx.log_index,
-                        contract_address=contract_address,
-                        topics=topics_list,          
-                        event_data=event_data_dict,   
-                        raw_data=None,              
-                        indexed_values=None,         
-                        decoded_values=None          
-                    )
-                """
-                # Fire event callback
+                # Callback
                 if self.on_human_registered:
                     self.on_human_registered(
-                        address=address, 
+                        address=address,
                         inviter=inviter,
                         tx_hash=tx.txn_hash
                     )
             return success
+
         except Exception as e:
             logger.error(f"Failed to register human {address}: {e}")
             return False
@@ -161,9 +151,7 @@ class RingsClient:
         name: str,
         metadata_digest: Optional[bytes] = None
     ) -> bool:
-        """
-        Register an organization address with a name.
-        """
+        """Register an organization"""
         try:
             metadata = metadata_digest or HexBytes(0)
             tx = self.contract.registerOrganization(
@@ -176,11 +164,11 @@ class RingsClient:
             if success:
                 if self.cache_enabled:
                     self._update_cache('organizations', {address: True})
+                    
+                self._record_transaction_events(tx)
+
                 if self.on_organization_registered:
-                    self.on_organization_registered(
-                        address=address,
-                        name=name
-                    )
+                    self.on_organization_registered(address=address, name=name)
             return success
         except Exception as e:
             logger.error(f"Failed to register organization {address}: {e}")
@@ -194,9 +182,7 @@ class RingsClient:
         symbol: str,
         metadata_digest: Optional[bytes] = None
     ) -> bool:
-        """
-        Register a new group
-        """
+        """Register a new group"""
         try:
             metadata = metadata_digest or HexBytes(0)
             tx = self.contract.registerGroup(
@@ -211,6 +197,9 @@ class RingsClient:
             if success:
                 if self.cache_enabled:
                     self._update_cache('groups', {address: True})
+                    
+                self._record_transaction_events(tx)
+
                 if self.on_group_created:
                     self.on_group_created(
                         creator=address,
@@ -223,18 +212,13 @@ class RingsClient:
             logger.error(f"Failed to register group {address}: {e}")
             return False
 
-    # -------------------------------------------------------------------------
-    # Trust & Flow
-    # -------------------------------------------------------------------------
     def trust(
         self,
         truster: str,
         trustee: str,
         expiry: Optional[int] = None
     ) -> bool:
-        """
-        Establish a trust relationship from `truster` to `trustee`.
-        """
+        """Establish trust relationship"""
         try:
             if not expiry:
                 days = self.config.get('trust_duration_days', 365)
@@ -250,6 +234,9 @@ class RingsClient:
             if success:
                 if self.cache_enabled:
                     self._update_trust_cache(truster, trustee, expiry)
+                    
+                self._record_transaction_events(tx)
+
                 if self.on_trust:
                     self.on_trust(
                         truster=truster,
@@ -259,97 +246,42 @@ class RingsClient:
                     )
             return success
         except Exception as e:
-            logger.error(f"Failed to establish trust {truster} -> {trustee}: {e}", exc_info=True)
+            logger.error(f"Trust establishment failed: {e}")
             return False
 
-    def operate_flow_matrix(
-        self,
-        vertices: List[str],
-        flow_edges: List[Dict],
-        streams: List[Dict],
-        coordinates: bytes
-    ) -> bool:
-        """
-        Execute a flow matrix operation in the contract.
-        """
-        try:
-            tx = self.contract.operateFlowMatrix(
-                vertices,
-                flow_edges,
-                streams,
-                coordinates,
-                sender=vertices[0],
-                gas_limit=self.gas_limits['operate_flow']
-            )
-            return bool(tx and tx.status == 1)
-        except Exception as e:
-            logger.error(f"Failed to operate flow matrix: {e}")
-            return False
-
-    # -------------------------------------------------------------------------
-    # Minting
-    # -------------------------------------------------------------------------
     def personal_mint(self, address: str) -> bool:
-        """
-        Attempt personalMint() for a human address.
-        Verifies success by checking issuance amount matches.
-        """
+        """Mint tokens"""
         try:
-            # Get expected issuance first
             issuance, start_period, end_period = self.calculate_issuance(address)
             if issuance == 0:
-                logger.debug(f"No issuance available for {address}")
                 return False
 
-            # Check eligibility
             can_mint, reason = self._check_mint_eligibility(address)
             if not can_mint:
-                logger.error(f"Mint eligibility check failed for {address}: {reason}")
                 return False
 
-            # Execute mint
             tx = self.contract.personalMint(
                 sender=address,
                 gas_limit=self.gas_limits['mint']
             )
             
             if not tx or tx.status != 1:
-                logger.error(f"Mint transaction failed for {address}")
                 return False
 
-            # Check transaction logs for PersonalMint event to verify amount
-            for log in tx.decode_logs():
-                print(log)
-                if log.event_name == 'PersonalMint':
-                    minted_amount = log.amount
-                    if minted_amount == issuance:
-                        # Fire callback with verified amount
-                        if self.on_mint:
-                            self.on_mint(
-                                address=address,
-                                amount=minted_amount,
-                                tx_hash=tx.txn_hash
-                            )
-                        return True
-                    else:
-                        logger.error(
-                            f"Mint amount mismatch for {address}\n"
-                            f"Expected issuance: {issuance}\n"
-                            f"Actual mint amount: {minted_amount}"
-                        )
-                        return False
+            self._record_transaction_events(tx)
 
-            # If we get here, we didn't find the PersonalMint event
-            logger.error(f"No PersonalMint event found in transaction logs for {address}")
-            return False
+            if self.on_mint:
+                self.on_mint(
+                    address=address,
+                    amount=issuance,
+                    tx_hash=tx.txn_hash
+                )
+            return True
 
         except Exception as e:
-            logger.error(f"Mint failed for {address}: {e}")
+            logger.error(f"Mint failed: {e}")
             return False
 
-    # -------------------------------------------------------------------------
-    # Transfer
-    # -------------------------------------------------------------------------
     def transfer(
         self,
         from_address: str,
@@ -357,9 +289,7 @@ class RingsClient:
         amount: int,
         data: bytes = b""
     ) -> bool:
-        """
-        Transfer tokens from `from_address` to `to_address`.
-        """
+        """Transfer tokens"""
         try:
             token_id = int(from_address, 16)
             tx = self.contract.safeTransferFrom(
@@ -373,15 +303,12 @@ class RingsClient:
             )
             success = bool(tx and tx.status == 1)
             if success:
-                # Update local cache
                 if self.cache_enabled:
-                    from_balance = self.get_balance(from_address)
-                    to_balance = self.get_balance(to_address)
-                    self._update_cache('balances', {
-                        from_address: from_balance,
-                        to_address: to_balance
-                    })
-                # Fire callback
+                    self._invalidate_balance_cache(from_address)
+                    self._invalidate_balance_cache(to_address)
+                    
+                self._record_transaction_events(tx)
+
                 if self.on_transfer:
                     self.on_transfer(
                         from_address,
@@ -391,12 +318,9 @@ class RingsClient:
                     )
             return success
         except Exception as e:
-            logger.error(f"Failed transfer {from_address} -> {to_address}: {e}")
+            logger.error(f"Transfer failed: {e}")
             return False
 
-    # -------------------------------------------------------------------------
-    # Additional Functions (batch_transfer, group_mint, wrap_token, etc.)
-    # -------------------------------------------------------------------------
     def batch_transfer(
         self,
         from_address: str,
@@ -405,9 +329,7 @@ class RingsClient:
         amounts: List[int],
         data: bytes = b""
     ) -> bool:
-        """
-        Perform a batch token transfer from one address to another.
-        """
+        """Batch token transfer"""
         try:
             tx = self.contract.safeBatchTransferFrom(
                 from_address,
@@ -419,12 +341,16 @@ class RingsClient:
                 gas_limit=self.gas_limits['transfer']
             )
             success = bool(tx and tx.status == 1)
-            if success and self.cache_enabled:
-                self._invalidate_balance_cache(from_address)
-                self._invalidate_balance_cache(to_address)
+            if success:
+                if self.cache_enabled:
+                    self._invalidate_balance_cache(from_address)
+                    self._invalidate_balance_cache(to_address)
+                    
+                self._record_transaction_events(tx)
+                
             return success
         except Exception as e:
-            logger.error(f"Failed batch transfer {from_address} -> {to_address}: {e}")
+            logger.error(f"Batch transfer failed: {e}")
             return False
 
     def group_mint(
@@ -434,9 +360,7 @@ class RingsClient:
         amounts: List[int],
         data: bytes = b""
     ) -> bool:
-        """
-        Mint group tokens using collateral from multiple avatars.
-        """
+        """Mint group tokens"""
         try:
             tx = self.contract.groupMint(
                 group,
@@ -446,40 +370,57 @@ class RingsClient:
                 sender=group,
                 gas_limit=self.gas_limits['mint']
             )
-            return bool(tx and tx.status == 1)
+            success = bool(tx and tx.status == 1)
+            if success:
+                self._record_transaction_events(tx)
+            return success
         except Exception as e:
-            logger.error(f"Failed group mint for {group}: {e}")
+            logger.error(f"Group mint failed: {e}")
             return False
 
-    # -------------------------------------------------------------------------
-    # Status Checking
-    # -------------------------------------------------------------------------
+    def operate_flow_matrix(
+        self,
+        vertices: List[str],
+        flow_edges: List[Dict],
+        streams: List[Dict],
+        coordinates: bytes
+    ) -> bool:
+        """Execute flow matrix operation"""
+        try:
+            tx = self.contract.operateFlowMatrix(
+                vertices,
+                flow_edges,
+                streams,
+                coordinates,
+                sender=vertices[0],
+                gas_limit=self.gas_limits['operate_flow']
+            )
+            success = bool(tx and tx.status == 1)
+            if success:
+                self._record_transaction_events(tx)
+            return success
+        except Exception as e:
+            logger.error(f"Flow matrix operation failed: {e}")
+            return False
+
+    # Status checking methods
     def is_human(self, address: str) -> bool:
-        """
-        Check if address is a registered human
-        """
         try:
             if self.cache_enabled and address in self.cache['humans']:
                 return True
             return self.contract.isHuman(address)
         except Exception as e:
-            logger.error(f"Failed to check human status for {address}: {e}")
+            logger.error(f"Failed to check human status: {e}")
             return False
 
     def is_trusted(self, truster: str, trustee: str) -> bool:
-        """
-        Check if `truster` has an active trust relationship toward `trustee`.
-        """
         try:
-            # First check local cache
             cached_trust_expiry = self.cache['trust_network'].get(truster, {}).get(trustee)
             if cached_trust_expiry is not None:
-                # If cached expiry is still in future, consider it trusted
                 return cached_trust_expiry >= int(chain.blocks.head.timestamp)
-            # Otherwise, call the contract
             return self.contract.isTrusted(truster, trustee)
         except Exception as e:
-            logger.error(f"Failed to check trust status {truster} -> {trustee}: {e}")
+            logger.error(f"Failed to check trust status: {e}")
             return False
 
     def is_group(self, address: str) -> bool:
@@ -488,7 +429,7 @@ class RingsClient:
                 return True
             return self.contract.isGroup(address)
         except Exception as e:
-            logger.error(f"Failed to check group status for {address}: {e}")
+            logger.error(f"Failed to check group status: {e}")
             return False
 
     def is_organization(self, address: str) -> bool:
@@ -497,28 +438,19 @@ class RingsClient:
                 return True
             return self.contract.isOrganization(address)
         except Exception as e:
-            logger.error(f"Failed to check org status for {address}: {e}")
+            logger.error(f"Failed to check organization status: {e}")
             return False
 
     def is_stopped(self, address: str) -> bool:
-        """
-        Check if address is "stopped" from future minting.
-        """
         try:
             return self.contract.stopped(address)
         except Exception as e:
-            logger.error(f"Failed to check stopped status for {address}: {e}")
+            logger.error(f"Failed to check stopped status: {e}")
             return False
 
-    # -------------------------------------------------------------------------
-    # Balances & Issuance
-    # -------------------------------------------------------------------------
+    # Balance and issuance methods
     def get_balance(self, address: str) -> int:
-        """
-        Return the user’s Circles balance in an ERC1155 sense (tokenId = address).
-        """
         try:
-            # Check cache
             if self.cache_enabled:
                 cached_balance = self.cache['balances'].get(address)
                 if cached_balance is not None:
@@ -532,40 +464,34 @@ class RingsClient:
             
             return balance
         except Exception as e:
-            logger.error(f"Failed to get balance for {address}: {e}")
+            logger.error(f"Failed to get balance: {e}")
             return 0
 
     def calculate_issuance(self, address: str) -> Tuple[int, int, int]:
-        """
-        get issuance, start_period, end_period from the contract
-        """
         try:
             return self.contract.calculateIssuance(address)
         except Exception as e:
-            logger.error(f"Failed to calculate issuance for {address}: {e}")
+            logger.error(f"Failed to calculate issuance: {e}")
             return (0, 0, 0)
 
-    # -------------------------------------------------------------------------
-    # Advanced Features
-    # -------------------------------------------------------------------------
+    # Advanced features
     def stop(self, address: str) -> bool:
-        """
-        Prevent future minting from address
-        """
+        """Stop future minting from address"""
         try:
             tx = self.contract.stop(
                 sender=address,
                 gas_limit=self.gas_limits['transfer']
             )
-            return bool(tx and tx.status == 1)
+            success = bool(tx and tx.status == 1)
+            if success:
+                self._record_transaction_events(tx)
+            return success
         except Exception as e:
-            logger.error(f"Failed to stop minting for {address}: {e}")
+            logger.error(f"Failed to stop minting: {e}")
             return False
 
     def set_advanced_usage_flag(self, address: str, flag: bytes) -> bool:
-        """
-        Set advanced usage flags for an address
-        """
+        """Set advanced usage flags"""
         try:
             tx = self.contract.setAdvancedUsageFlag(
                 flag,
@@ -573,20 +499,18 @@ class RingsClient:
                 gas_limit=self.gas_limits['transfer']
             )
             success = bool(tx and tx.status == 1)
-            if success and self.on_advanced_flag_set:
-                self.on_advanced_flag_set(address, flag)
+            if success:
+                self._record_transaction_events(tx)
+                if self.on_advanced_flag_set:
+                    self.on_advanced_flag_set(address, flag)
             return success
         except Exception as e:
-            logger.error(f"Failed to set advanced flag for {address}: {e}")
+            logger.error(f"Failed to set advanced flag: {e}")
             return False
 
-    # -------------------------------------------------------------------------
-    # Helper: Check Mint Eligibility
-    # -------------------------------------------------------------------------
+    # Helper methods
     def _check_mint_eligibility(self, address: str) -> Tuple[bool, str]:
-        """
-        Basic check that user is human, not stopped, and issuance is nonzero.
-        """
+        """Check if address can mint"""
         try:
             if not self.is_human(address):
                 return False, "Address not registered as human"
@@ -595,20 +519,18 @@ class RingsClient:
 
             issuance, start_period, end_period = self.calculate_issuance(address)
             if issuance == 0:
-                return False, "No issuance available at this time"
+                return False, "No issuance available"
             
             current_time = chain.blocks.head.timestamp
             if current_time < start_period:
                 return False, "Not yet eligible to mint"
-            # Optionally check end_period if your contract uses that logic
             return True, ""
         except Exception as e:
             return False, str(e)
 
-    # -------------------------------------------------------------------------
-    # Cache Management
-    # -------------------------------------------------------------------------
+    # Cache management methods
     def _update_cache(self, cache_type: str, data: Dict):
+        """Update cache entries"""
         if not self.cache_enabled:
             return
         if cache_type == 'balances':
@@ -619,10 +541,12 @@ class RingsClient:
             self.cache['organizations'] = self.cache['organizations'] | set(data.keys())
         elif cache_type == 'groups':
             self.cache['groups'] = self.cache['groups'] | set(data.keys())
+        
         self.cache['last_update'] = chain.blocks.head.timestamp
         self.cache['current_block'] = chain.blocks.head.number
 
     def _update_trust_cache(self, truster: str, trustee: str, expiry: int):
+        """Update trust relationship cache"""
         if not self.cache_enabled:
             return
         if truster not in self.cache['trust_network']:
@@ -630,16 +554,79 @@ class RingsClient:
         self.cache['trust_network'][truster][trustee] = expiry
 
     def _invalidate_balance_cache(self, address: str):
+        """Remove cached balance"""
         if self.cache_enabled:
             self.cache['balances'].pop(address, None)
 
     def _should_refresh_cache(self) -> bool:
-        """
-        If implementing advanced caching refresh logic, return True if we
-        should re-pull data from the chain. 
-        """
+        """Check if cache needs refresh"""
         if not self.cache_enabled:
             return False
         age = chain.blocks.head.timestamp - self.cache['last_update']
-        # If more than self.cache_ttl seconds have passed, refresh
         return age.total_seconds() > self.cache_ttl
+
+    def refresh_cache(self):
+        """Force refresh all cached data"""
+        if not self.cache_enabled:
+            return
+            
+        try:
+            # Reset cache
+            self.cache = {
+                'trust_network': {},
+                'groups': set(),
+                'balances': {},
+                'humans': set(),
+                'organizations': set(),
+                'last_update': chain.blocks.head.timestamp,
+                'current_block': chain.blocks.head.number
+            }
+        except Exception as e:
+            logger.error(f"Failed to refresh cache: {e}")
+
+    def wrap_token(
+        self, 
+        avatar: str, 
+        amount: int, 
+        token_type: int,
+        data: bytes = b""
+    ) -> Optional[str]:
+        """Wrap tokens as ERC20"""
+        try:
+            tx = self.contract.wrap(
+                avatar,
+                amount,
+                token_type,
+                sender=avatar,
+                gas_limit=self.gas_limits['wrap_token']
+            )
+            
+            success = bool(tx and tx.status == 1)
+            if success:
+                self._record_transaction_events(tx)
+                if tx.return_value:
+                    return tx.return_value  # Returns wrapped token address
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to wrap tokens: {e}")
+            return None
+
+    # Utility methods
+    def estimate_gas(self, method: str, **kwargs) -> int:
+        """Estimate gas for operation"""
+        try:
+            if method in self.gas_limits:
+                return self.gas_limits[method]
+            return max(self.gas_limits.values())
+        except Exception as e:
+            logger.error(f"Failed to estimate gas: {e}")
+            return 500000  # Safe default
+
+    def update_gas_limits(self, new_limits: Dict[str, int]):
+        """Update gas limits"""
+        self.gas_limits.update(new_limits)
+
+    def update_config(self, new_config: Dict):
+        """Update configuration"""
+        self.config.update(new_config)

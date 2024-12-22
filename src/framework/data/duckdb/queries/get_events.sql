@@ -1,5 +1,5 @@
 SELECT * 
-FROM contract_events 
+FROM events 
 WHERE simulation_run_id = ?
     AND event_name = ?
     AND block_timestamp >= ?

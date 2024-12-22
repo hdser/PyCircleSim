@@ -38,7 +38,7 @@ class EventLogger:
         
     def _initialize_table(self):
         """Ensure events table exists"""
-        schema_file = self.sql_dir / "schema" / "contract_events.up.sql"
+        schema_file = self.sql_dir / "schema" / "events.up.sql"
         with open(schema_file, 'r') as f:
             self.con.execute(f.read())
             self.con.commit()

@@ -18,8 +18,9 @@ class NetworkBuilder(NetworkComponent):
     
     def __init__(
         self,
-        contract_address: str,
-        abi_path: str,
+       # contract_address: str,
+        #abi_path: str,
+        rings_client: RingsClient,
         batch_size: int = 1000,
         agent_manager: Optional[AgentManager] = None,
         data_collector: Optional[CirclesDataCollector] = None
@@ -27,7 +28,8 @@ class NetworkBuilder(NetworkComponent):
         super().__init__()
         
         # Initialize clients
-        self.rings_client = RingsClient(contract_address, abi_path)
+        #self.rings_client = RingsClient(contract_address, abi_path)
+        self.rings_client = rings_client
         self.fjord_client=None #self.fjord_client = FjordClient(...)  # Initialize with appropriate params
         
         self.batch_size = batch_size
