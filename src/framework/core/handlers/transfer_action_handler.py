@@ -5,7 +5,7 @@ from typing import Optional
 
 from ape import chain
 from src.framework.agents import BaseAgent
-from src.framework.data import CirclesDataCollector
+#from src.framework.data import CirclesDataCollector
 from src.protocols.rings import RingsClient
 
 class TransferActionHandler:
@@ -16,13 +16,13 @@ class TransferActionHandler:
         rings_client: RingsClient,
         chain,
         logger: logging.Logger,
-        collector: Optional[CirclesDataCollector],
+       # collector: Optional[CirclesDataCollector],
         on_transfer_performed=None
     ):
         self.rings_client = rings_client
         self.chain = chain
         self.logger = logger
-        self.collector = collector
+       # self.collector = collector
         self.on_transfer_performed = on_transfer_performed
 
     def execute(self, agent: BaseAgent) -> bool:
@@ -53,31 +53,31 @@ class TransferActionHandler:
                 current_time = datetime.fromtimestamp(self.chain.blocks.head.timestamp)
 
                 # Record in collector
-                if self.collector:
-                    # Sender
-                    self.collector.record_balance_change(
-                        account=sender,
-                        token_id=str(int(sender, 16)),
-                        block_number=self.chain.blocks.head.number,
-                        timestamp=current_time,
-                        previous_balance=balance,
-                        new_balance=balance - amount,
-                        tx_hash="0x0",
-                        event_type="TRANSFER_SEND"
-                    )
+            #    if self.collector:
+            #        # Sender
+            #        self.collector.record_balance_change(
+            #            account=sender,
+            #            token_id=str(int(sender, 16)),
+            #            block_number=self.chain.blocks.head.number,
+            #            timestamp=current_time,
+            #            previous_balance=balance,
+            #            new_balance=balance - amount,
+            #            tx_hash="0x0",
+            #            event_type="TRANSFER_SEND"
+            #        )
 
                     # Receiver
-                    receiver_prev_balance = self.rings_client.get_balance(receiver)
-                    self.collector.record_balance_change(
-                        account=receiver,
-                        token_id=str(int(receiver, 16)),  # or referencing the same token?
-                        block_number=self.chain.blocks.head.number,
-                        timestamp=current_time,
-                        previous_balance=receiver_prev_balance,
-                        new_balance=receiver_prev_balance + amount,
-                        tx_hash="0x0",
-                        event_type="TRANSFER_RECEIVE"
-                    )
+            #        receiver_prev_balance = self.rings_client.get_balance(receiver)
+            #        self.collector.record_balance_change(
+            #            account=receiver,
+            #            token_id=str(int(receiver, 16)),  # or referencing the same token?
+            #            block_number=self.chain.blocks.head.number,
+            #            timestamp=current_time,
+            #            previous_balance=receiver_prev_balance,
+            #            new_balance=receiver_prev_balance + amount,
+            #            tx_hash="0x0",
+            #            event_type="TRANSFER_RECEIVE"
+            #        )
 
                 # Optional callback
                 if self.on_transfer_performed:

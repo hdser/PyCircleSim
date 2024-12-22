@@ -5,7 +5,7 @@ from typing import Optional
 from eth_pydantic_types import HexBytes
 from ape import chain
 from src.framework.agents import BaseAgent, AgentManager
-from src.framework.data import CirclesDataCollector
+#from src.framework.data import CirclesDataCollector
 from src.protocols.rings import RingsClient
 
 
@@ -17,14 +17,14 @@ class GroupCreationActionHandler:
         rings_client: RingsClient,
         chain,
         logger: logging.Logger,
-        collector: Optional[CirclesDataCollector],
+      #  collector: Optional[CirclesDataCollector],
         agent_manager: AgentManager,
         on_group_created=None
     ):
         self.rings_client = rings_client
         self.chain = chain
         self.logger = logger
-        self.collector = collector
+       # self.collector = collector
         self.agent_manager = agent_manager
         self.on_group_created = on_group_created
 
@@ -57,16 +57,16 @@ class GroupCreationActionHandler:
                 agent.group_count = group_number
 
                 # Record in collector
-                if self.collector:
-                    self.collector.record_group_registration(
-                        address=creator_address,
-                        creator=agent.agent_id,
-                        block_number=self.chain.blocks.head.number,
-                        timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                        name=group_name,
-                        symbol=group_symbol,
-                        mint_policy=mint_policy
-                    )
+            #    if self.collector:
+            #        self.collector.record_group_registration(
+            #            address=creator_address,
+            #            creator=agent.agent_id,
+            #            block_number=self.chain.blocks.head.number,
+            #            timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
+            #            name=group_name,
+            #            symbol=group_symbol,
+            #            mint_policy=mint_policy
+            #        )
 
                 # Optional callback
                 if self.on_group_created:

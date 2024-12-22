@@ -72,7 +72,7 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-            collector=self.collector,
+          #  collector=self.collector,
             on_mint_performed=self.on_mint_performed
         )
 
@@ -80,7 +80,7 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-            collector=self.collector,
+           # collector=self.collector,
             agent_manager=self.agent_manager
         )
 
@@ -88,7 +88,7 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-            collector=self.collector,
+            #collector=self.collector,
             on_transfer_performed=self.on_transfer_performed
         )
 
@@ -96,7 +96,7 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-            collector=self.collector,
+            #collector=self.collector,
             agent_manager=self.agent_manager,
             on_group_created=self.on_group_created
         )

@@ -415,8 +415,8 @@ class CirclesDataCollector:
             new_bal_str = self.uint256_handler.to_string(new_balance)
             
             # Calculate change amount
-            change = int(new_bal_str) - int(prev_bal_str)
-            change_str = str(change)
+            change = new_balance - previous_balance
+            change_str = self.uint256_handler.to_string(change)
             
             sql = self._read_sql_file("queries/insert_balance_change.sql")
             self.con.execute(sql, [
@@ -578,21 +578,6 @@ class CirclesDataCollector:
             # Load and execute SQL
             sql = self._read_sql_file("queries/insert_event.sql")
 
-            print( self.current_run_id,
-                event_name,
-                block_number,
-                unique_timestamp,
-                transaction_hash,
-                tx_from,
-                tx_to,
-                log_index,
-                contract_address,
-                topics_str,
-                event_data_str,
-                raw_data_str,
-                indexed_values_str,
-                decoded_values_str)
-
             self.con.execute(sql, [
                 self.current_run_id,
                 event_name,
@@ -674,20 +659,6 @@ class CirclesDataCollector:
             # Load the SQL from file
             sql = self._read_sql_file("queries/insert_event.sql")
 
-            print(self.current_run_id,
-                event_name,
-                block_number,
-                unique_timestamp,       # or block_timestamp if you prefer exactly that
-                transaction_hash,
-                tx_from,
-                tx_to,
-                log_index,
-                contract_address,
-                topics_json,
-                event_data_json,
-                raw_data,
-                indexed_values_json,
-                decoded_values_json)
             # Execute the SQL INSERT
             self.con.execute(sql, [
                 self.current_run_id,

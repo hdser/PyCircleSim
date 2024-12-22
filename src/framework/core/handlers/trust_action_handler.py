@@ -5,7 +5,7 @@ from typing import Optional
 
 from ape import chain
 from src.framework.agents import BaseAgent, AgentManager
-from src.framework.data import CirclesDataCollector
+#from src.framework.data import CirclesDataCollector
 from src.protocols.rings import RingsClient
 
 class TrustActionHandler:
@@ -16,13 +16,13 @@ class TrustActionHandler:
         rings_client: RingsClient,
         chain,
         logger: logging.Logger,
-        collector: Optional[CirclesDataCollector],
+    #    collector: Optional[CirclesDataCollector],
         agent_manager: AgentManager
     ):
         self.rings_client = rings_client
         self.chain = chain
         self.logger = logger
-        self.collector = collector
+    #    self.collector = collector
         self.agent_manager = agent_manager
 
     def execute(self, agent: BaseAgent) -> bool:
@@ -52,16 +52,16 @@ class TrustActionHandler:
             expiry = int((datetime.now() + timedelta(days=365)).timestamp())
 
             success = self.rings_client.trust(truster, trustee, expiry)
-            if success:
-                agent.trusted_addresses.add(trustee)
-                if self.collector:
-                    self.collector.record_trust_relationship(
-                        truster=truster,
-                        trustee=trustee,
-                        block_number=self.chain.blocks.head.number,
-                        timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                        expiry_time=datetime.fromtimestamp(expiry)
-                    )
+            #if success:
+            #    agent.trusted_addresses.add(trustee)
+            #    if self.collector:
+            #        self.collector.record_trust_relationship(
+            #            truster=truster,
+            #            trustee=trustee,
+            #            block_number=self.chain.blocks.head.number,
+            #            timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
+            #            expiry_time=datetime.fromtimestamp(expiry)
+            #        )
             return success
 
         except Exception as e:

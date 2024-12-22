@@ -60,15 +60,15 @@ class HumanRegistrationActionHandler:
                 metadata
             )
 
-            if success and self.collector:
-                self.collector.record_human_registration(
-                    address=address,
-                    block_number=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                    inviter_address=inviter,
-                    welcome_bonus=200.0
-                )
-                self.logger.info(f"Successfully registered human account {address}")
+        #    if success and self.collector:
+        #        self.collector.record_human_registration(
+        #            address=address,
+        #            block_number=self.chain.blocks.head.number,
+        #            timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
+        #            inviter_address=inviter,
+        #            welcome_bonus=200.0
+        #        )
+        #        self.logger.info(f"Successfully registered human account {address}")
 
             return success
 

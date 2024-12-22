@@ -28,10 +28,8 @@ class RingsClient:
         data_collector: Optional['CirclesDataCollector'] = None  # Add collector
     ):
         """Initialize Rings client with event logging"""
-        print(f"RingsClient init - collector received: {data_collector is not None}")  # Debug
         self.contract = Contract(contract_address, abi=abi_path)
         self.collector = data_collector
-        print(f"RingsClient init - self.collector set: {self.collector is not None}")  # Debug
 
         
         # Default gas limits
@@ -79,12 +77,11 @@ class RingsClient:
             return
             
         try:
-            print('---------------------')
             # Record each event in the transaction logs
             for i in range(len(tx.decode_logs())):
                 decoded_log = tx.decode_logs()[i]
                 log = tx.logs[i]
-                print(decoded_log)
+
                 self.collector.record_contract_event(
                     event_name=decoded_log.event_name,
                     block_number=tx.block_number,
@@ -128,9 +125,7 @@ class RingsClient:
                     self._update_cache('humans', {address: True})
                     
                 # Record events
-                print("About to record transaction events...")  # Debug
                 self._record_transaction_events(tx)
-                print("Finished recording transaction events") 
 
                 # Callback
                 if self.on_human_registered:
@@ -451,10 +446,10 @@ class RingsClient:
     # Balance and issuance methods
     def get_balance(self, address: str) -> int:
         try:
-            if self.cache_enabled:
-                cached_balance = self.cache['balances'].get(address)
-                if cached_balance is not None:
-                    return cached_balance
+            #if self.cache_enabled:
+            #    cached_balance = self.cache['balances'].get(address)
+            #    if cached_balance is not None:
+            #        return cached_balance
             
             token_id = int(address, 16)
             balance = self.contract.balanceOf(address, token_id)
