@@ -187,25 +187,6 @@ class CirclesDataCollector:
             return []
             
         return self.event_logger.get_event_stats(self.current_run_id)
-
-    def start_simulation_run2(self, parameters: Dict = None, description: str = None) -> int:
-        """Start a new simulation run and return its ID."""
-        try:
-            sql = self._read_sql_file("queries/insert_simulation_run.sql")
-            result = self.con.execute(sql, [
-                datetime.now(),
-                json.dumps(parameters) if parameters else None,
-                description
-            ]).fetchone()
-            
-            self.current_run_id = result[0]
-            self.con.commit()
-            logger.info(f"Started simulation run {self.current_run_id}")
-            return self.current_run_id
-            
-        except Exception as e:
-            logger.error(f"Failed to start simulation run: {e}")
-            raise
             
     def end_simulation_run(self):
         """Mark the current simulation run as completed."""
@@ -536,6 +517,10 @@ class CirclesDataCollector:
             logger.error(f"Failed to record network statistics: {e}")
             raise
 
+    def record_transaction_events(self, tx) -> None:
+        """Forward transaction events to event handler"""
+        if self.event_handler:
+            self.event_handler.handle_transaction_events(tx)
 
     def record_contract_event(
         self,
@@ -601,92 +586,6 @@ class CirclesDataCollector:
         except Exception as e:
             logger.error(f"Failed to record contract event '{event_name}': {e}")
             raise
-
-    def record_contract_event2(
-        self,
-        event_name: str,
-        block_number: int,
-        block_timestamp: datetime,
-        transaction_hash: str,
-        tx_from: Optional[str],
-        tx_to: Optional[str],
-        log_index: Optional[int],
-        contract_address: str,
-        topics: Any,
-        event_data: Any,
-        raw_data: Optional[str],
-        indexed_values: Optional[Any] = None,
-        decoded_values: Optional[Any] = None
-    ):
-        """
-        Record a new contract (or simulation) event in the 'events' table.
-
-        Args:
-            event_name (str): Name/type of event (e.g. "TRANSFER", "TRUST", etc.)
-            block_number (int): The block number at which this event was emitted
-            block_timestamp (datetime): The on-chain timestamp for that block
-            transaction_hash (str): The transaction hash for the event
-            tx_from (str): Sender/transaction 'from' address
-            tx_to (str): Recipient/transaction 'to' address
-            tx_index (int): Transaction index in the block
-            log_index (int): Log index for the event within the transaction
-            contract_address (str): The contract address that emitted the event
-            topics (Any): Topics array/list (will be stored as JSON)
-            event_data (Any): Full event data (will be stored as JSON)
-            raw_data (str): Hex string of the raw event data
-            indexed_values (Any): Indexed parameters if needed (JSON)
-            decoded_values (Any): Decoded event parameters if needed (JSON)
-        """
-        if not self.current_run_id:
-            raise ValueError("No active simulation run")
-
-        try:
-            # Optional: Validate the contract address
-            if not self._validate_ethereum_address(contract_address):
-                raise ValueError(f"Invalid contract address: {contract_address}")
-
-            # Generate a unique timestamp, if you want consistency with your other tables.
-            # If you prefer to store the event's block_timestamp exactly, you can skip this.
-            unique_timestamp = self._get_unique_timestamp(block_timestamp, 'events')
-
-            # Convert Python structures to JSON strings for storage in DuckDB's JSON columns
-            import json
-            topics_json = json.dumps(topics) if topics is not None else '[]'
-            event_data_json = json.dumps(event_data) if event_data is not None else '{}'
-            indexed_values_json = json.dumps(indexed_values) if indexed_values is not None else '{}'
-            decoded_values_json = json.dumps(decoded_values) if decoded_values is not None else '{}'
-
-            # Load the SQL from file
-            sql = self._read_sql_file("queries/insert_event.sql")
-
-            # Execute the SQL INSERT
-            self.con.execute(sql, [
-                self.current_run_id,
-                event_name,
-                block_number,
-                unique_timestamp,       # or block_timestamp if you prefer exactly that
-                transaction_hash,
-                tx_from,
-                tx_to,
-                log_index,
-                contract_address,
-                topics_json,
-                event_data_json,
-                raw_data,
-                indexed_values_json,
-                decoded_values_json
-            ])
-
-            # Commit transaction
-            self.con.commit()
-
-            logger.info(f"Recorded contract event '{event_name}' at block {block_number}")
-
-        except Exception as e:
-            logger.error(f"Failed to record contract event '{event_name}': {e}")
-            raise
-
-
 
     def get_simulation_results(self, run_id: int) -> Dict:
         """

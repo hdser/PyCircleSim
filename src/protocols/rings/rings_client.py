@@ -71,34 +71,6 @@ class RingsClient:
         self.on_human_registered = None
         self.on_advanced_flag_set = None
 
-    def _record_transaction_events(self, tx) -> None:
-        """Record all events from a transaction"""
-        if not (self.collector and tx):
-            return
-            
-        try:
-            # Record each event in the transaction logs
-            for i in range(len(tx.decode_logs())):
-                decoded_log = tx.decode_logs()[i]
-                log = tx.logs[i]
-
-                self.collector.record_contract_event(
-                    event_name=decoded_log.event_name,
-                    block_number=tx.block_number,
-                    block_timestamp=datetime.fromtimestamp(tx.timestamp),
-                    transaction_hash=str(tx.txn_hash),
-                    tx_from=str(tx.sender),
-                    tx_to=str(tx.receiver),
-                    log_index=log.get('logIndex'),
-                    contract_address=str(decoded_log.contract_address),
-                    topics=str(log.get('topics', [])),
-                    event_data=str(decoded_log.event_arguments),
-                    raw_data=str(log.get('data')),
-                    indexed_values=str(decoded_log.indexed_arguments if hasattr(decoded_log, 'indexed_arguments') else None),
-                    decoded_values=str(decoded_log.decoded_arguments if hasattr(decoded_log, 'decoded_arguments') else None)
-                )
-        except Exception as e:
-            logger.error(f"Failed to record transaction events: {e}")
 
     def register_human(
         self,
@@ -125,7 +97,8 @@ class RingsClient:
                     self._update_cache('humans', {address: True})
                     
                 # Record events
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
 
                 # Callback
                 if self.on_human_registered:
@@ -160,7 +133,8 @@ class RingsClient:
                 if self.cache_enabled:
                     self._update_cache('organizations', {address: True})
                     
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
 
                 if self.on_organization_registered:
                     self.on_organization_registered(address=address, name=name)
@@ -193,7 +167,8 @@ class RingsClient:
                 if self.cache_enabled:
                     self._update_cache('groups', {address: True})
                     
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
 
                 if self.on_group_created:
                     self.on_group_created(
@@ -230,7 +205,8 @@ class RingsClient:
                 if self.cache_enabled:
                     self._update_trust_cache(truster, trustee, expiry)
                     
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
 
                 if self.on_trust:
                     self.on_trust(
@@ -259,11 +235,12 @@ class RingsClient:
                 sender=address,
                 gas_limit=self.gas_limits['mint']
             )
-            
+            print(tx.show_trace())
             if not tx or tx.status != 1:
                 return False
 
-            self._record_transaction_events(tx)
+            if self.collector:
+                    self.collector.record_transaction_events(tx)
 
             if self.on_mint:
                 self.on_mint(
@@ -302,7 +279,8 @@ class RingsClient:
                     self._invalidate_balance_cache(from_address)
                     self._invalidate_balance_cache(to_address)
                     
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
 
                 if self.on_transfer:
                     self.on_transfer(
@@ -341,7 +319,8 @@ class RingsClient:
                     self._invalidate_balance_cache(from_address)
                     self._invalidate_balance_cache(to_address)
                     
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
                 
             return success
         except Exception as e:
@@ -367,7 +346,8 @@ class RingsClient:
             )
             success = bool(tx and tx.status == 1)
             if success:
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
             return success
         except Exception as e:
             logger.error(f"Group mint failed: {e}")
@@ -392,7 +372,8 @@ class RingsClient:
             )
             success = bool(tx and tx.status == 1)
             if success:
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
             return success
         except Exception as e:
             logger.error(f"Flow matrix operation failed: {e}")
@@ -479,7 +460,8 @@ class RingsClient:
             )
             success = bool(tx and tx.status == 1)
             if success:
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
             return success
         except Exception as e:
             logger.error(f"Failed to stop minting: {e}")
@@ -495,7 +477,8 @@ class RingsClient:
             )
             success = bool(tx and tx.status == 1)
             if success:
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
                 if self.on_advanced_flag_set:
                     self.on_advanced_flag_set(address, flag)
             return success
@@ -598,7 +581,8 @@ class RingsClient:
             
             success = bool(tx and tx.status == 1)
             if success:
-                self._record_transaction_events(tx)
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
                 if tx.return_value:
                     return tx.return_value  # Returns wrapped token address
             return None

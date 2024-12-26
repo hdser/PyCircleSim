@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS events (
     transaction_hash VARCHAR NOT NULL,
     tx_from VARCHAR,
     tx_to VARCHAR,
+    tx_index INTEGER,
     log_index INTEGER,
     contract_address VARCHAR NOT NULL,
     topics VARCHAR,           -- Store topics as plain text/hex string
