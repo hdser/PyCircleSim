@@ -5,21 +5,23 @@ import secrets
 import logging
 from eth_account import Account
 from .types import ActionType, AgentProfile, ActionConfig
+from src.framework.data import BaseDataCollector
 
 logger = logging.getLogger(__name__)
 
 class BaseAgent:
     """Base agent with simplified action selection and execution"""
     
-    def __init__(self, agent_id: str, profile: AgentProfile):
+    def __init__(self, agent_id: str, profile: AgentProfile, data_collector: Optional['BaseDataCollector'] = None):
         self.agent_id = agent_id
         self.profile = profile
         self.accounts: Dict[str, bytes] = {}
         self.controlled_addresses: Set[str] = set()
         self.trusted_addresses: Set[str] = set()
-        self.last_actions: Dict[str, int] = {}  # Keyed by action name for flexibility
+        self.last_actions: Dict[str, int] = {}
         self.daily_action_counts = {}
         self.creation_time = datetime.now()
+        self.collector = data_collector
 
     def create_account(self) -> Tuple[str, bytes]:
         """Create a new blockchain account controlled by this agent"""
@@ -27,7 +29,17 @@ class BaseAgent:
         account = Account.from_key(private_key)
         self.accounts[account.address] = private_key
         self.controlled_addresses.add(account.address)
+        
+        # Record new address if collector exists
+        if self.collector and self.collector.current_run_id:
+            self.collector.record_agent_address(
+                self.agent_id,
+                account.address,
+                is_primary=(len(self.accounts) == 1)
+            )
+            
         return account.address, private_key
+    
 
     def get_accounts(self) -> List[str]:
         """Get all addresses controlled by this agent"""

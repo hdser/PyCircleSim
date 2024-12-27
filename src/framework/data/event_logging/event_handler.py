@@ -90,6 +90,7 @@ class ContractEventHandler:
         except Exception as e:
             logger.error(f"Failed to handle transaction events: {e}")
 
+        
     def setup_event_listeners(self, contract: Contract) -> None:
         """Set up listeners for all contract events"""
         for event in contract.events:

@@ -21,7 +21,16 @@ class NetworkComponent:
             'transfer_performed': None,
             'group_created': None,
             'error_occurred': None,
-            'state_changed': None
+            'state_changed': None,
+
+            'transfer': None,
+            'trust': None,
+            'mint': None,
+            'agent_action': None,
+            'agent_created': None,
+            'stop_minting': None, 
+            'wrap_token': None,
+            'error': None
         }
         
         # Event statistics tracking

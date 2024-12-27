@@ -1,6 +1,7 @@
 import yaml
 from typing import Dict, List, Optional
 from .base_agent import BaseAgent, AgentProfile, ActionType, ActionConfig
+from src.framework.data import BaseDataCollector
 import logging
 import uuid
 
@@ -10,7 +11,7 @@ class AgentManager:
     """
     Manages the creation and tracking of agents in the simulation
     """
-    def __init__(self, config: Dict, data_collector: Optional['CirclesDataCollector'] = None):
+    def __init__(self, config: Dict, data_collector: Optional['BaseDataCollector'] = None):
         """
         Initialize the agent manager
         
@@ -78,53 +79,20 @@ class AgentManager:
         profile = self._create_profile(profile_name)
         agent_id = str(uuid.uuid4())
 
-        agent = BaseAgent(agent_id, profile)
+        agent = BaseAgent(agent_id, profile, self.data_collector)
+        
+        # Record agent BEFORE creating any addresses
+        if self.data_collector and self.data_collector.current_run_id:
+            self.data_collector.record_agent(agent)
+            
+        # Now create address
         address, _ = agent.create_account()
         
         self.agents[agent_id] = agent
         self.address_to_agent[address] = agent_id
 
-        # Record in database if collector is available and a simulation run is active
-        if self.data_collector and self.data_collector.current_run_id:
-            # Record the agent in the database
-            self.data_collector.record_agent(agent)
-            # Record the agent's primary address
-            #self.data_collector.record_agent_address(agent_id, address, is_primary=True)
-
         return agent
 
-
-
-    def create_agent2(self, profile_name: str) -> BaseAgent:
-        """Create a new agent with the specified profile"""
-        if profile_name not in self.config['profiles']:
-            raise ValueError(f"Unknown agent profile: {profile_name}")
-            
-        profile_config = self.config['profiles'][profile_name]
-       # agent = BaseAgent(str(uuid.uuid4()), profile_name, profile_config)
-        agent = BaseAgent(str(uuid.uuid4()), profile_config)
-        
-        # Create initial account
-        address, _ = agent.create_account()
-        
-        # Register agent
-        self.agents[agent.agent_id] = agent
-        self.address_to_agent[address] = agent.agent_id
-        
-        # Record in database if collector is available
-        if self.data_collector and False:
-            self.data_collector.record_agent(
-                agent.agent_id,
-               # profile_name,
-                profile_config
-            )
-            self.data_collector.record_agent_address(
-                agent.agent_id,
-                address,
-                is_primary=True
-            )
-            
-        return agent
 
     def create_agents(self, distribution: Optional[Dict[str, int]] = None) -> List[BaseAgent]:
         """

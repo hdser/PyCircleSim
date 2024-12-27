@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 
 from src.protocols.rings import RingsClient
 from src.protocols.fjord import FjordClient, PoolConfig
-from src.framework.data import CirclesDataCollector
+from src.framework.data import BaseDataCollector, CirclesDataCollector
 from src.framework.agents import AgentManager
 from src.framework.core import (
     NetworkBuilder, 
@@ -194,24 +194,7 @@ class RingsSimulation:
             gas_limits=config.rings_config.get('gas_limits'),
             fjord_client=self.fjord_client
         )
-        """ 
-        self.builder = NetworkBuilder(
-            RINGS,
-            rings_abi_path,
-            batch_size=config.batch_size,
-            agent_manager=self.agent_manager,
-            data_collector=self.collector
-        )
 
-        self.evolver = NetworkEvolver(
-            RINGS,
-            rings_abi_path,
-            agent_manager=self.agent_manager,
-            collector=self.collector,
-            gas_limits=config.rings_config.get('gas_limits'),
-            fjord_client=self.fjord_client
-        )
-        """ 
 
         # Initialize tracking
         self.iteration_stats = []
@@ -220,15 +203,7 @@ class RingsSimulation:
         # Register event handlers
         self._register_event_handlers()
 
-        # Set up event logging if not in fast mode
-        if not fast_mode and self.collector:
-            contracts = {
-                'rings': self.rings_client.contract
-            }
-            if self.fjord_client:
-                contracts['fjord'] = self.fjord_client.contract
-            
-            self.collector.setup_contract_listeners(contracts)
+        
 
     def _log_event(self, event_name: str, **data):
         """Log an event with comprehensive details"""
@@ -402,6 +377,15 @@ class RingsSimulation:
                     parameters=metadata,
                     description="Rings Network Simulation"
                 )
+
+                # Set up event logging if not in fast mode
+            #    contracts = {
+            #        'rings': self.rings_client.contract
+            #    }
+            #    if self.fjord_client:
+            #        contracts['fjord'] = self.fjord_client.contract
+            #    
+            #    self.collector.setup_contract_listeners(contracts)
 
             if not self._build_initial_network():
                 return False

@@ -38,11 +38,6 @@ class NetworkEvolver(NetworkComponent):
         super().__init__()
         
         # Initialize clients
-        #self.rings_client = RingsClient(
-        #    contract_address,
-        #    abi_path,
-        #    gas_limits=gas_limits
-        #)
         self.rings_client = rings_client
         self.fjord_client = fjord_client
         
@@ -72,7 +67,6 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-          #  collector=self.collector,
             on_mint_performed=self.on_mint_performed
         )
 
@@ -80,7 +74,6 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-           # collector=self.collector,
             agent_manager=self.agent_manager
         )
 
@@ -88,7 +81,6 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-            #collector=self.collector,
             on_transfer_performed=self.on_transfer_performed
         )
 
@@ -96,7 +88,6 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-            #collector=self.collector,
             agent_manager=self.agent_manager,
             on_group_created=self.on_group_created
         )
@@ -105,7 +96,6 @@ class NetworkEvolver(NetworkComponent):
             rings_client=self.rings_client,
             chain=chain,
             logger=logger,
-            collector=self.collector,
             agent_manager=self.agent_manager
         )
 

@@ -11,10 +11,11 @@ from collections import defaultdict
 from src.framework.agents.base_agent import BaseAgent
 from src.protocols.common.uint256_handler import UINT256Handler
 from .event_logging import EventLogger, ContractEventHandler
+from .base_collector import BaseDataCollector
 
 logger = logging.getLogger(__name__)
 
-class CirclesDataCollector:
+class CirclesDataCollector(BaseDataCollector):
     """
     Enhanced data collection system for the Circles network that maintains SQL queries
     in external files while providing improved data handling and validation.
@@ -38,7 +39,7 @@ class CirclesDataCollector:
         self.con = duckdb.connect(db_path)
         self._last_timestamp = defaultdict(lambda: datetime.min)
         self.sequence_number = defaultdict(int)
-        self.current_run_id = None
+        self._current_run_id = None
         
         # Set up database schema
         self._initialize_database()
@@ -137,14 +138,14 @@ class CirclesDataCollector:
                 description
             ]).fetchone()
             
-            self.current_run_id = result[0]
+            self._current_run_id = result[0]
             
             # Initialize event handler with current run ID
-            self.event_handler = ContractEventHandler(self.event_logger, self.current_run_id)
+            self.event_handler = ContractEventHandler(self.event_logger, self._current_run_id)
             
             self.con.commit()
-            logger.info(f"Started simulation run {self.current_run_id}")
-            return self.current_run_id
+            logger.info(f"Started simulation run {self._current_run_id}")
+            return self._current_run_id
             
         except Exception as e:
             logger.error(f"Failed to start simulation run: {e}")
@@ -168,12 +169,12 @@ class CirclesDataCollector:
                   end_time: Optional[datetime] = None,
                   limit: int = 1000) -> List[Dict]:
         """Get events for current simulation run"""
-        if not self.current_run_id:
+        if not self._current_run_id:
             logger.warning("No active simulation run")
             return []
             
         return self.event_logger.get_events(
-            simulation_run_id=self.current_run_id,
+            simulation_run_id=self._current_run_id,
             event_name=event_name,
             start_time=start_time,
             end_time=end_time,
@@ -182,24 +183,24 @@ class CirclesDataCollector:
 
     def get_event_statistics(self) -> List[Dict]:
         """Get event statistics for current simulation run"""
-        if not self.current_run_id:
+        if not self._current_run_id:
             logger.warning("No active simulation run")
             return []
             
-        return self.event_logger.get_event_stats(self.current_run_id)
+        return self.event_logger.get_event_stats(self._current_run_id)
             
     def end_simulation_run(self):
         """Mark the current simulation run as completed."""
-        if not self.current_run_id:
+        if not self._current_run_id:
             logger.warning("No active simulation run to end")
             return
             
         try:
             sql = self._read_sql_file("queries/update_simulation_run.sql")
-            self.con.execute(sql, [datetime.now(), self.current_run_id])
+            self.con.execute(sql, [datetime.now(), self._current_run_id])
             self.con.commit()
-            logger.info(f"Ended simulation run {self.current_run_id}")
-            self.current_run_id = None
+            logger.info(f"Ended simulation run {self._current_run_id}")
+            self._current_run_id = None
             
         except Exception as e:
             logger.error(f"Failed to end simulation run: {e}")
@@ -216,7 +217,7 @@ class CirclesDataCollector:
             sql = self._read_sql_file("queries/insert_agent.sql")
             self.con.execute(sql, [
                 agent.agent_id,
-                self.current_run_id,
+                self._current_run_id,
                 agent.profile.name,
                 agent.profile.description,
                 len(agent.accounts),
@@ -247,7 +248,7 @@ class CirclesDataCollector:
                     agent.agent_id,
                     address,
                     i == 0,  
-                    self.current_run_id
+                    self._current_run_id
                 ])
             self.con.commit()
             logger.info(f"Recorded agent {agent.agent_id} with {len(agent.accounts)} addresses")
@@ -259,7 +260,7 @@ class CirclesDataCollector:
             
     def record_agent_address(self, agent_id: str, address: str, is_primary: bool = False):
         """Record an address associated with an agent."""
-        if not self.current_run_id:
+        if not self._current_run_id:
             raise ValueError("No active simulation run")
             
         try:
@@ -268,7 +269,7 @@ class CirclesDataCollector:
                 agent_id,
                 address,
                 is_primary,
-                self.current_run_id
+                self._current_run_id
             ])
             self.con.commit()
             logger.debug(f"Recorded address {address} for agent {agent_id}")
@@ -286,7 +287,7 @@ class CirclesDataCollector:
         welcome_bonus: Optional[float] = None
     ):
         """Record a new human registration."""
-        if not self.current_run_id:
+        if not self._current_run_id:
             raise ValueError("No active simulation run")
             
         try:
@@ -301,7 +302,7 @@ class CirclesDataCollector:
             sql = self._read_sql_file("queries/insert_humans.sql")
             self.con.execute(sql, [
                 address,
-                self.current_run_id,
+                self._current_run_id,
                 unique_timestamp,
                 block_number,
                 inviter_address,
@@ -324,7 +325,7 @@ class CirclesDataCollector:
         expiry_time: datetime
     ):
         """Record a trust relationship."""
-        if not self.current_run_id:
+        if not self._current_run_id:
             raise ValueError("No active simulation run")
             
         try:
@@ -336,7 +337,7 @@ class CirclesDataCollector:
             count = self.con.execute(check_sql, [
                 truster,
                 trustee,
-                self.current_run_id,
+                self._current_run_id,
                 unique_timestamp
             ]).fetchone()[0]
             
@@ -348,7 +349,7 @@ class CirclesDataCollector:
                     expiry_time,
                     truster,
                     trustee,
-                    self.current_run_id,
+                    self._current_run_id,
                     unique_timestamp
                 ])
             else:
@@ -357,7 +358,7 @@ class CirclesDataCollector:
                 self.con.execute(insert_sql, [
                     truster,
                     trustee,
-                    self.current_run_id,
+                    self._current_run_id,
                     unique_timestamp,
                     block_number,
                   #  trust_limit_str,
@@ -383,7 +384,7 @@ class CirclesDataCollector:
         event_type: str
     ):
         """Record a balance change."""
-        if not self.current_run_id:
+        if not self._current_run_id:
             raise ValueError("No active simulation run")
             
         try:
@@ -403,7 +404,7 @@ class CirclesDataCollector:
             self.con.execute(sql, [
                 account,
                 token_id,
-                self.current_run_id,
+                self._current_run_id,
                 block_number,
                 unique_timestamp,
                 prev_bal_str,
@@ -444,7 +445,7 @@ class CirclesDataCollector:
         Returns:
             bool: True if recording was successful
         """
-        if not self.current_run_id:
+        if not self._current_run_id:
             raise ValueError("No active simulation run")
 
         try:
@@ -463,7 +464,7 @@ class CirclesDataCollector:
             self.con.execute(sql, [
                 address,
                 creator,
-                self.current_run_id,
+                self._current_run_id,
                 unique_timestamp,
                 block_number,
                 name,
@@ -484,7 +485,7 @@ class CirclesDataCollector:
         timestamp: datetime
     ):
         """Record network-wide statistics for the current simulation run."""
-        if not self.current_run_id:
+        if not self._current_run_id:
             raise ValueError("No active simulation run")
             
         try:
@@ -500,7 +501,7 @@ class CirclesDataCollector:
             # Insert using the SQL file
             sql = self._read_sql_file("queries/insert_network_stats.sql")
             self.con.execute(sql, [
-                self.current_run_id,
+                self._current_run_id,
                 unique_timestamp,
                 block_number,
                 stats[0],  # total_humans
@@ -542,7 +543,7 @@ class CirclesDataCollector:
         Record a new contract event in the 'events' table.
         All complex data types are stored as strings.
         """
-        if not self.current_run_id:
+        if not self._current_run_id:
             raise ValueError("No active simulation run")
 
         try:
@@ -564,7 +565,7 @@ class CirclesDataCollector:
             sql = self._read_sql_file("queries/insert_event.sql")
 
             self.con.execute(sql, [
-                self.current_run_id,
+                self._current_run_id,
                 event_name,
                 block_number,
                 unique_timestamp,
@@ -674,10 +675,10 @@ class CirclesDataCollector:
             Dict containing the agent's profile and activity history
         """
         try:
-            if not run_id and not self.current_run_id:
+            if not run_id and not self._current_run_id:
                 raise ValueError("No simulation run specified or currently active")
                 
-            run_id = run_id or self.current_run_id
+            run_id = run_id or self._current_run_id
             
             # Get agent profile
             sql = self._read_sql_file("queries/get_agent_profile.sql")
@@ -718,7 +719,7 @@ class CirclesDataCollector:
             Tuple of (nodes, edges) where nodes are agents and edges are trust relationships
         """
         try:
-            run_id = run_id or self.current_run_id
+            run_id = run_id or self._current_run_id
             if not run_id:
                 raise ValueError("No simulation run specified or currently active")
                 
@@ -780,3 +781,9 @@ class CirclesDataCollector:
         except Exception as e:
             logger.error(f"Error closing database connection: {e}")
             raise
+
+
+    @property 
+    def current_run_id(self) -> Optional[int]:
+        """Get current simulation run ID"""
+        return self._current_run_id

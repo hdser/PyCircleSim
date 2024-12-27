@@ -5,7 +5,6 @@ from typing import Optional
 
 from ape import chain
 from src.framework.agents import BaseAgent
-#from src.framework.data import CirclesDataCollector
 from src.protocols.rings import RingsClient
 
 class MintActionHandler:
@@ -16,13 +15,11 @@ class MintActionHandler:
         rings_client: RingsClient,
         chain,
         logger: logging.Logger,
-       # collector: Optional[CirclesDataCollector] = None,
         on_mint_performed=None
     ):
         self.rings_client = rings_client
         self.chain = chain
         self.logger = logger
-       # self.collector = collector
         self.on_mint_performed = on_mint_performed
 
     def execute(self, agent: BaseAgent) -> bool:
@@ -57,24 +54,6 @@ class MintActionHandler:
 
             # Check the new balance
             new_balance = self.rings_client.get_balance(address)
-
-          #  minted_amount = new_balance - prev_balance
-          #  if minted_amount <= 0:
-          #      self.logger.error(f"No balance increase after mint for {address}")
-          #      return False
-
-            # Record in collector
-            #if self.collector:
-            #    self.collector.record_balance_change(
-            #        account=address,
-            #        token_id=str(int(address, 16)),
-            #        block_number=self.chain.blocks.head.number,
-            #        timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-            #        previous_balance=prev_balance,
-            #        new_balance=new_balance,
-            #        tx_hash="0x0",
-            #        event_type="MINT"
-            #    )
 
             # Trigger callback
             if self.on_mint_performed:
