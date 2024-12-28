@@ -3,8 +3,9 @@ import logging
 from ..base import ProtocolHandler, BaseAgent
 from ..types import ActionType
 from src.protocols.rings import RingsClient
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class RingsHandler(ProtocolHandler):
     """Handler for Rings protocol actions"""

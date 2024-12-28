@@ -2,8 +2,9 @@ from typing import Dict, Optional, Callable, Any
 from datetime import datetime
 import logging
 from ape import chain
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class NetworkComponent:
     """

@@ -9,8 +9,9 @@ import logging
 import yaml
 from dataclasses import dataclass
 from src.framework.data import CirclesDataCollector
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class RingsClient:
     """
@@ -235,7 +236,7 @@ class RingsClient:
                 sender=address,
                 gas_limit=self.gas_limits['mint']
             )
-            print(tx.show_trace())
+            
             if not tx or tx.status != 1:
                 return False
 

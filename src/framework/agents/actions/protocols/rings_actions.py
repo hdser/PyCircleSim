@@ -2,8 +2,9 @@ from typing import Dict, Any
 import logging
 from ..base import BaseProtocolAction, BaseAgent
 from ..registry import ActionConfig
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class RingsAction(BaseProtocolAction):
     """Base class for all Rings protocol actions"""

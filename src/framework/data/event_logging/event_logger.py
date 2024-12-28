@@ -6,8 +6,9 @@ from dataclasses import dataclass, asdict
 from eth_utils import encode_hex
 from pathlib import Path
 import duckdb
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 @dataclass
 class ContractEvent:
@@ -79,6 +80,7 @@ class EventLogger:
                 data['decoded_values']
             ])
             self.con.commit()
+            logger.info(f"Recorded contract event '{data['event_name']}' at block {data['block_number']}")
             return True
             
         except Exception as e:

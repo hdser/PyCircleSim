@@ -8,8 +8,9 @@ import yaml
 from dataclasses import dataclass
 from pathlib import Path
 import os, json
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 @dataclass
 class PoolConfig:

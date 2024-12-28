@@ -3,8 +3,9 @@ import logging
 from ..base import BaseProtocolAction, BaseAgent
 from ..registry import ActionConfig
 from src.protocols.fjord import PoolConfig, WeightedPoolConfig
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class FjordAction(BaseProtocolAction):
     """Base class for all Fjord protocol actions"""

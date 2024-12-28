@@ -27,36 +27,6 @@ class BaseDataCollector(ABC):
         """Record agent address"""
         pass
 
-    @abstractmethod
-    def record_human_registration(self, address: str, block_number: int,
-                                timestamp: datetime,
-                                inviter_address: Optional[str] = None,
-                                welcome_bonus: Optional[float] = None):
-        """Record human registration"""
-        pass
-
-    @abstractmethod
-    def record_trust_relationship(self, truster: str, trustee: str,
-                                block_number: int, timestamp: datetime,
-                                expiry_time: datetime):
-        """Record trust relationship"""
-        pass
-
-    @abstractmethod
-    def record_balance_change(self, account: str, token_id: str,
-                            block_number: int, timestamp: datetime,
-                            previous_balance: Any, new_balance: Any,
-                            tx_hash: str, event_type: str):
-        """Record balance change"""
-        pass
-
-    @abstractmethod
-    def record_group_registration(self, address: str, creator: str,
-                                block_number: int, timestamp: datetime,
-                                name: str, symbol: str, mint_policy: str) -> bool:
-        """Record group registration"""
-        pass
-
     @property
     @abstractmethod
     def current_run_id(self) -> Optional[int]:
@@ -74,14 +44,8 @@ class BaseDataCollector(ABC):
         pass
 
     @abstractmethod
-    def record_contract_event(self, event_name: str, block_number: int,
-                            block_timestamp: datetime, transaction_hash: str,
-                            tx_from: Optional[str], tx_to: Optional[str], 
-                            log_index: Optional[int], contract_address: str,
-                            topics: Any, event_data: Any, raw_data: Optional[str],
-                            indexed_values: Optional[Any] = None,
-                            decoded_values: Optional[Any] = None):
-        """Record contract event"""
+    def record_transaction_events(self, tx):
+        """Record transaction events"""
         pass
 
     @abstractmethod
@@ -102,10 +66,6 @@ class BaseDataCollector(ABC):
         """Get simulation results"""
         pass
 
-    @abstractmethod
-    def compare_simulations(self, run_ids: List[int]) -> Any:
-        """Compare simulations"""
-        pass
 
     @abstractmethod
     def get_agent_history(self, agent_id: str, run_id: Optional[int] = None) -> Dict:

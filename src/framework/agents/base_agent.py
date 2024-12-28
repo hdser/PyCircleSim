@@ -2,12 +2,12 @@ from typing import Dict, List, Optional, Set, Tuple, Any
 from datetime import datetime
 import random
 import secrets
-import logging
 from eth_account import Account
 from .types import ActionType, AgentProfile, ActionConfig
 from src.framework.data import BaseDataCollector
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class BaseAgent:
     """Base agent with simplified action selection and execution"""

@@ -70,6 +70,7 @@ class HumanRegistrationAction(NetworkAction):
                 metadata_digest=metadata
             )
 
+            """ 
             if success and self.collector:
                 state = self._get_current_state()
                 self.collector.record_human_registration(
@@ -79,6 +80,7 @@ class HumanRegistrationAction(NetworkAction):
                     inviter_address=inviter,
                     welcome_bonus=200.0 if inviter else 0.0
                 )
+            """
 
             return ActionResult(
                 success=success,
@@ -123,6 +125,7 @@ class TrustCreationAction(NetworkAction):
                 expiry=expiry
             )
 
+            """
             if success and self.collector:
                 state = self._get_current_state()
                 self.collector.record_trust_relationship(
@@ -132,6 +135,7 @@ class TrustCreationAction(NetworkAction):
                     timestamp=state['current_time'],
                     expiry_time=datetime.fromtimestamp(expiry)
                 )
+            """
 
             return ActionResult(
                 success=success,
@@ -170,6 +174,8 @@ class TokenMintAction(NetworkAction):
 
             success = self.rings.personal_mint(address)
 
+
+            """
             if success and self.collector:
                 state = self._get_current_state()
                 new_balance = self.rings.get_balance(address)
@@ -185,6 +191,7 @@ class TokenMintAction(NetworkAction):
                     tx_hash='0x0',  # Would need actual tx hash
                     event_type="MINT"
                 )
+            """
 
             return ActionResult(
                 success=success,
@@ -241,6 +248,7 @@ class GroupCreationAction(NetworkAction):
                 metadata_digest=metadata
             )
 
+            """
             if success and self.collector:
                 state = self._get_current_state()
                 self.collector.record_group_registration(
@@ -252,6 +260,7 @@ class GroupCreationAction(NetworkAction):
                     symbol=symbol,
                     mint_policy=mint_policy
                 )
+            """
 
             return ActionResult(
                 success=success,
@@ -290,6 +299,7 @@ class LiquidityPoolCreationAction(NetworkAction):
             config = kwargs.get('config')
             pool_address = self.fjord.create_lbp(config)
 
+            """
             if pool_address and self.collector:
                 state = self._get_current_state()
                 self.collector.record_pool_creation(
@@ -299,6 +309,7 @@ class LiquidityPoolCreationAction(NetworkAction):
                     timestamp=state['current_time'],
                     config=config
                 )
+            """
 
             return ActionResult(
                 success=bool(pool_address),
@@ -355,6 +366,7 @@ class FlowMatrixAction(NetworkAction):
                 coordinates=coordinates
             )
 
+            """
             if success and self.collector:
                 state = self._get_current_state()
                 # Record flow matrix operation details
@@ -366,6 +378,7 @@ class FlowMatrixAction(NetworkAction):
                     flow_edges=flow_edges,
                     streams=streams
                 )
+            """
 
             return ActionResult(
                 success=success,

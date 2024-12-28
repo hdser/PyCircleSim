@@ -2,10 +2,10 @@ import yaml
 from typing import Dict, List, Optional
 from .base_agent import BaseAgent, AgentProfile, ActionType, ActionConfig
 from src.framework.data import BaseDataCollector
-import logging
 import uuid
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class AgentManager:
     """

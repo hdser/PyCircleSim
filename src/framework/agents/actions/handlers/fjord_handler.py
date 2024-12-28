@@ -2,8 +2,9 @@ from typing import Dict, Any
 import logging
 from ..base import ProtocolHandler, BaseAgent
 from src.protocols.fjord import FjordClient, PoolConfig, WeightedPoolConfig
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class FjordHandler(ProtocolHandler):
     """Handler for Fjord protocol actions"""

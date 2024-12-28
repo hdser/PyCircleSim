@@ -12,8 +12,9 @@ from src.framework.agents.base_agent import BaseAgent
 from src.protocols.common.uint256_handler import UINT256Handler
 from .event_logging import EventLogger, ContractEventHandler
 from .base_collector import BaseDataCollector
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class CirclesDataCollector(BaseDataCollector):
     """
@@ -87,10 +88,6 @@ class CirclesDataCollector(BaseDataCollector):
                 "agents.up.sql",           # Depends on simulation_runs
                 "agents_config.up.sql",
                 "agent_addresses.up.sql",  # Depends on agents and simulation_runs
-                "humans.up.sql",           # Depends on simulation_runs
-                "groups.up.sql",           # Depends on simulation_runs
-                "trusts.up.sql",           # Depends on simulation_runs
-                "balance_changes.up.sql",  # Depends on simulation_runs
                 "network_stats.up.sql",    # Depends on simulation_runs
                 "events.up.sql",
              #   "events_indexes.up.sql"
@@ -103,8 +100,8 @@ class CirclesDataCollector(BaseDataCollector):
                 
             # Execute view creation scripts after all tables exist   
             views = [
-                "current_balances.view.sql",
-                "active_trusts.view.sql"
+              #  "current_balances.view.sql",
+              #  "active_trusts.view.sql"
             ]
             
             for view_file in views:
@@ -277,208 +274,8 @@ class CirclesDataCollector(BaseDataCollector):
         except Exception as e:
             logger.error(f"Failed to record agent address: {e}")
             raise
-            
-    def record_human_registration(
-        self,
-        address: str,
-        block_number: int,
-        timestamp: datetime,
-        inviter_address: Optional[str] = None,
-        welcome_bonus: Optional[float] = None
-    ):
-        """Record a new human registration."""
-        if not self._current_run_id:
-            raise ValueError("No active simulation run")
-            
-        try:
-            if not self._validate_ethereum_address(address):
-                raise ValueError(f"Invalid address format: {address}")
-                
-            if inviter_address and not self._validate_ethereum_address(inviter_address):
-                raise ValueError(f"Invalid inviter address format: {inviter_address}")
-                
-            unique_timestamp = self._get_unique_timestamp(timestamp, 'humans')
-            
-            sql = self._read_sql_file("queries/insert_humans.sql")
-            self.con.execute(sql, [
-                address,
-                self._current_run_id,
-                unique_timestamp,
-                block_number,
-                inviter_address,
-                welcome_bonus
-            ])
-            self.con.commit()
-            logger.info(f"Recorded new human registration: {address}")
-            
-        except Exception as e:
-            logger.error(f"Failed to record human registration: {e}")
-            raise
-            
-    def record_trust_relationship(
-        self,
-        truster: str,
-        trustee: str,
-        block_number: int,
-        timestamp: datetime,
-      #  trust_limit: Union[int, str],
-        expiry_time: datetime
-    ):
-        """Record a trust relationship."""
-        if not self._current_run_id:
-            raise ValueError("No active simulation run")
-            
-        try:
-            unique_timestamp = self._get_unique_timestamp(timestamp, 'trusts')
-           # trust_limit_str = self.uint256_handler.to_string(trust_limit)
-        
-            # Check existing trust using SQL file
-            check_sql = self._read_sql_file("queries/check_trust.sql")
-            count = self.con.execute(check_sql, [
-                truster,
-                trustee,
-                self._current_run_id,
-                unique_timestamp
-            ]).fetchone()[0]
-            
-            if count > 0:
-                # Update existing trust using SQL file
-                update_sql = self._read_sql_file("queries/update_trust.sql")
-                self.con.execute(update_sql, [
-                 #   trust_limit_str,
-                    expiry_time,
-                    truster,
-                    trustee,
-                    self._current_run_id,
-                    unique_timestamp
-                ])
-            else:
-                # Insert new trust using SQL file
-                insert_sql = self._read_sql_file("queries/insert_trust.sql")
-                self.con.execute(insert_sql, [
-                    truster,
-                    trustee,
-                    self._current_run_id,
-                    unique_timestamp,
-                    block_number,
-                  #  trust_limit_str,
-                    expiry_time
-                ])
-                
-            self.con.commit()
-            logger.info(f"Recorded trust relationship: {truster} -> {trustee}")
-            
-        except Exception as e:
-            logger.error(f"Failed to record trust relationship: {e}")
-            raise
-            
-    def record_balance_change(
-        self,
-        account: str,
-        token_id: str,
-        block_number: int,
-        timestamp: datetime,
-        previous_balance: Union[int, str],
-        new_balance: Union[int, str],
-        tx_hash: str,
-        event_type: str
-    ):
-        """Record a balance change."""
-        if not self._current_run_id:
-            raise ValueError("No active simulation run")
-            
-        try:
-            if not self._validate_ethereum_address(account):
-                raise ValueError(f"Invalid account address: {account}")
-                
-            unique_timestamp = self._get_unique_timestamp(timestamp, 'balance_changes')
-            # Convert balances to string representation
-            prev_bal_str = self.uint256_handler.to_string(previous_balance)
-            new_bal_str = self.uint256_handler.to_string(new_balance)
-            
-            # Calculate change amount
-            change = new_balance - previous_balance
-            change_str = self.uint256_handler.to_string(change)
-            
-            sql = self._read_sql_file("queries/insert_balance_change.sql")
-            self.con.execute(sql, [
-                account,
-                token_id,
-                self._current_run_id,
-                block_number,
-                unique_timestamp,
-                prev_bal_str,
-                new_bal_str,
-                change_str,
-                tx_hash,
-                event_type
-            ])
-            self.con.commit()
-            logger.info(f"Recorded {event_type} balance change for {account}: {change_str}")
-            
-        except Exception as e:
-            logger.error(f"Failed to record balance change: {e}")
-            raise
 
-    def record_group_registration(
-        self,
-        address: str,
-        creator: str,
-        block_number: int,
-        timestamp: datetime,
-        name: str,
-        symbol: str,
-        mint_policy: str
-    ) -> bool:
-        """
-        Record a new group registration.
-
-        Args:
-            address: Group address
-            creator: Address of group creator
-            block_number: Block number of registration
-            timestamp: Registration timestamp
-            name: Group name
-            symbol: Group symbol
-            mint_policy: Mint policy contract address
-
-        Returns:
-            bool: True if recording was successful
-        """
-        if not self._current_run_id:
-            raise ValueError("No active simulation run")
-
-        try:
-            if not self._validate_ethereum_address(address):
-                raise ValueError(f"Invalid group address format: {address}")
-
-            #if not self._validate_ethereum_address(creator):
-            #    raise ValueError(f"Invalid creator address format: {creator}")
-
-            if not self._validate_ethereum_address(mint_policy):
-                raise ValueError(f"Invalid mint policy address format: {mint_policy}")
-
-            unique_timestamp = self._get_unique_timestamp(timestamp, 'groups')
-
-            sql = self._read_sql_file("queries/insert_group.sql")
-            self.con.execute(sql, [
-                address,
-                creator,
-                self._current_run_id,
-                unique_timestamp,
-                block_number,
-                name,
-                symbol,
-                mint_policy
-            ])
-            self.con.commit()
-            logger.info(f"Recorded new group registration: {address} by {creator}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to record group registration: {e}")
-            raise
-
+   
     def record_network_statistics(
         self,
         block_number: int,
@@ -523,70 +320,6 @@ class CirclesDataCollector(BaseDataCollector):
         if self.event_handler:
             self.event_handler.handle_transaction_events(tx)
 
-    def record_contract_event(
-        self,
-        event_name: str,
-        block_number: int,
-        block_timestamp: datetime,
-        transaction_hash: str,
-        tx_from: Optional[str],
-        tx_to: Optional[str], 
-        log_index: Optional[int],
-        contract_address: str,
-        topics: Any,
-        event_data: Any,
-        raw_data: Optional[str],
-        indexed_values: Optional[Any] = None,
-        decoded_values: Optional[Any] = None
-    ):
-        """
-        Record a new contract event in the 'events' table.
-        All complex data types are stored as strings.
-        """
-        if not self._current_run_id:
-            raise ValueError("No active simulation run")
-
-        try:
-            # Optional: Validate the contract address
-            if not self._validate_ethereum_address(contract_address):
-                raise ValueError(f"Invalid contract address: {contract_address}")
-
-            # Generate unique timestamp
-            unique_timestamp = self._get_unique_timestamp(block_timestamp, 'events')
-
-            # Convert all complex data to strings
-            topics_str = str(topics) if topics is not None else ''
-            event_data_str = str(event_data) if event_data is not None else ''
-            raw_data_str = str(raw_data) if raw_data is not None else ''
-            indexed_values_str = str(indexed_values) if indexed_values is not None else ''
-            decoded_values_str = str(decoded_values) if decoded_values is not None else ''
-
-            # Load and execute SQL
-            sql = self._read_sql_file("queries/insert_event.sql")
-
-            self.con.execute(sql, [
-                self._current_run_id,
-                event_name,
-                block_number,
-                unique_timestamp,
-                transaction_hash,
-                tx_from,
-                tx_to,
-                log_index,
-                contract_address,
-                topics_str,
-                event_data_str,
-                raw_data_str,
-                indexed_values_str,
-                decoded_values_str
-            ])
-
-            self.con.commit()
-            logger.info(f"Recorded contract event '{event_name}' at block {block_number}")
-
-        except Exception as e:
-            logger.error(f"Failed to record contract event '{event_name}': {e}")
-            raise
 
     def get_simulation_results(self, run_id: int) -> Dict:
         """
@@ -636,32 +369,6 @@ class CirclesDataCollector(BaseDataCollector):
             logger.error(f"Failed to retrieve simulation results: {e}")
             raise
 
-    def compare_simulations(self, run_ids: List[int]) -> pd.DataFrame:
-        """
-        Compare multiple simulation runs side by side.
-        
-        Args:
-            run_ids: List of simulation run IDs to compare
-            
-        Returns:
-            DataFrame containing comparative metrics for each run
-        """
-        try:
-            results = []
-            for run_id in run_ids:
-                sql = self._read_sql_file("queries/get_simulation_summary.sql")
-                summary = self.con.execute(sql, [run_id]).fetchone()
-                if summary:
-                    results.append(summary)
-                    
-            return pd.DataFrame(results, columns=[
-                'run_id', 'duration_minutes', 'total_humans', 'total_trusts',
-                'active_accounts', 'total_supply', 'trust_density'
-            ])
-            
-        except Exception as e:
-            logger.error(f"Failed to compare simulations: {e}")
-            raise
 
     def get_agent_history(self, agent_id: str, run_id: Optional[int] = None) -> Dict:
         """

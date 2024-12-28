@@ -3,8 +3,9 @@ from typing import Dict, Any, Optional, Protocol
 import logging
 from ..types import ActionConfig
 from .registry import action_registry, ActionProtocol, HandlerProtocol
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class Action(ABC):
     """Base class for all protocol actions"""

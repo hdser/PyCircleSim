@@ -10,8 +10,9 @@ from src.framework.data import CirclesDataCollector
 from src.framework.agents import AgentManager, BaseAgent
 from .network_component import NetworkComponent
 from .network_actions import NetworkActionExecutor, ActionRegistry, HumanRegistrationAction, TrustCreationAction, TokenMintAction
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class NetworkBuilder(NetworkComponent):
     """Enhanced NetworkBuilder using modular action system"""

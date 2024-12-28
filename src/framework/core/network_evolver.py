@@ -18,8 +18,9 @@ from .handlers.trust_action_handler import TrustActionHandler
 from .handlers.transfer_action_handler import TransferActionHandler
 from .handlers.group_creation_action_handler import GroupCreationActionHandler
 from .handlers.human_registration_action_handler import HumanRegistrationActionHandler
+from src.framework.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class NetworkEvolver(NetworkComponent):
