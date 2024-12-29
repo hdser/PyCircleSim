@@ -1,10 +1,13 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Union
 import logging
 from datetime import datetime
 from eth_utils import encode_hex
 from ape import Contract, chain
+from ethpm_types.abi import EventABI
 from .event_logger import ContractEvent, EventLogger
 from src.framework.logging import get_logger
+import json
+from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -15,6 +18,48 @@ class ContractEventHandler:
         self.logger = event_logger
         self.simulation_run_id = simulation_run_id
         self._event_processors = {}
+        self.abis = self._load_all_abis()
+
+    def _load_all_abis(self) -> List[EventABI]:
+        """Load all ABI files from the ABI directory"""
+        try:
+            # Use resolve() to simplify the path resolution
+            project_root = Path(__file__).resolve().parents[4]
+            abis_dir = project_root / "src" / "protocols" / "abis"
+            
+            all_abis = []
+            excluded_dirs = {'__pycache__'}
+            
+            # Walk through all subdirectories except excluded ones
+            for subdir in abis_dir.iterdir():
+                if not subdir.is_dir() or subdir.name in excluded_dirs:
+                    continue
+                    
+                # Load each .json file in the directory
+                for file_path in subdir.glob('*.json'):
+                    try:
+                        with open(file_path) as f:
+                            abi_content = json.load(f)
+                            event_abis = [
+                                EventABI(
+                                    name=item['name'],
+                                    inputs=item.get('inputs', []),
+                                    anonymous=item.get('anonymous', False)
+                                )
+                                for item in abi_content 
+                                if item.get('type') == 'event'
+                            ]
+                            all_abis.extend(event_abis)
+                    except Exception as e:
+                        logger.warning(f"Failed to load ABI from {file_path}: {e}")
+                        continue
+                        
+            logger.info(f"Loaded {len(all_abis)} event ABIs from {abis_dir}")
+            return all_abis
+            
+        except Exception as e:
+            logger.error(f"Failed to load ABIs: {e}")
+            return []
 
 
     def handle_transaction_events(self, tx) -> None:
@@ -23,8 +68,9 @@ class ContractEventHandler:
             return
             
         try:
-            for i in range(len(tx.decode_logs())):
-                decoded_log = tx.decode_logs()[i]
+            decoded_logs = tx.decode_logs(abi=self.abis)
+
+            for i, decoded_log in enumerate(decoded_logs):
                 log = tx.logs[i]
 
                 # Convert HexBytes and complex types to strings

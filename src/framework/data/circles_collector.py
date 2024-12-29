@@ -99,15 +99,15 @@ class CirclesDataCollector(BaseDataCollector):
                 logger.info(f"Created table from {table_file}")
                 
             # Execute view creation scripts after all tables exist   
-            views = [
+           # views = [
               #  "current_balances.view.sql",
               #  "active_trusts.view.sql"
-            ]
+           # ]
             
-            for view_file in views:
-                sql = self._read_sql_file('views/' + view_file)
-                self.con.execute(sql)
-                logger.info(f"Created view from {view_file}")
+           # for view_file in views:
+           #     sql = self._read_sql_file('views/' + view_file)
+           #     self.con.execute(sql)
+           #     logger.info(f"Created view from {view_file}")
                 
             self.con.commit()
             
