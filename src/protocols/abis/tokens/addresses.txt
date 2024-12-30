@@ -1,0 +1,2 @@
+"WXDAI": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+"PermittableToken": 0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9

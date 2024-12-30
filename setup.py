@@ -10,6 +10,7 @@ setup(
         "duckdb>=0.9.0",
         "click>=8.0.0",
         "python-dotenv>=0.19.0",
+        "requests>=2.32.3",
     ],
     entry_points={
         'console_scripts': [
