@@ -73,11 +73,11 @@ PyCircleSim enables researchers and developers to explore these questions throug
   - Group token creation
   - Token velocity tracking
 
-- **Data Collection**: Comprehensive event and state tracking:
-  - Registration events
-  - Trust relationship changes
-  - Token movements
-  - Network statistics
+- **Data Collection**: Enhanced event tracking system with:
+  - Unified event logging
+  - Full transaction decoding
+  - Comprehensive state tracking
+  - Efficient DuckDB storage
 
 - **Analysis Tools**: Built-in capabilities for analyzing:
   - Network growth patterns
@@ -95,6 +95,7 @@ Before installation, ensure you have:
 - pip package manager
 - DuckDB for data storage
 - Foundry for blockchain simulation
+- GnosisScan API key for contract ABIs
 
 ### Installation Steps
 
@@ -119,6 +120,12 @@ python -m venv circles_ape
 source circles_ape/bin/activate  # On Windows use: circles_ape\Scripts\activate
 
 pip install -e .
+```
+
+4. Create environment configuration:
+```bash
+cp .env.example .env
+# Edit .env to add your GNOSISSCAN_API_KEY
 ```
 
 ### Plugin Configuration
@@ -146,17 +153,43 @@ gnosis:
 
 ## Project Structure
 
-The project is organized to separate different concerns:
+The project uses a modular architecture organized as follows:
+
 ```
 pyCircleSim/
-├── rings_network/
-│   ├── network_builder.py     # Network creation
-│   ├── network_evolver.py     # Time evolution
-│   ├── network_analyzer.py    # Analysis tools
-│   ├── data_collector.py      # Data management
-│   └── config/               
-│       ├── rings_config.yaml  # Network settings
-│       └── agent_config.yaml  # Agent behaviors
+├── scripts/
+│   └── rings.py               # Main simulation script
+└── src/
+    ├── framework/
+    │   ├── config/
+    │   │   ├── rings_config.yaml      # Network configuration
+    │   │   └── agent_config.yaml      # Agent configuration
+    │   ├── agents/             # Agent system components
+    │   │   ├── __init__.py
+    │   │   ├── agent_manager.py
+    │   │   ├── base_agent.py
+    │   │   └── types.py
+    │   ├── core/              # Core simulation components
+    │   │   ├── handlers/
+    │   │   ├── network_actions.py
+    │   │   ├── network_builder.py
+    │   │   ├── network_component.py
+    │   │   └── network_evolver.py
+    │   ├── data/              # Data collection system
+    │   │   ├── duckdb/
+    │   │   ├── event_logging/
+    │   │   ├── base_collector.py
+    │   │   └── circles_collector.py
+    │   └── logging/           # Logging configuration
+    └── protocols/
+        ├── abis/              # Contract ABIs
+        │   ├── rings/
+        │   ├── fjord/
+        │   └── fetch_abis.py
+        ├── common/            # Shared utilities
+        ├── rings/             # Rings protocol
+        ├── fjord/             # Fjord protocol
+        └── __init__.py
 ```
 
 ## Configuration System
@@ -165,12 +198,12 @@ pyCircleSim/
 
 The network configuration controls simulation-wide parameters:
 ```yaml
-size: 20                # Network size
-trust_density: 0.1      # Target trust density
-batch_size: 10         # Processing batch size
-iterations: 3          # Number of iterations
+size: 20                 # Network size
+trust_density: 0.1       # Target trust density
+batch_size: 10          # Processing batch size
+iterations: 3           # Number of iterations
 blocks_per_iteration: 100  # Blocks per iteration
-block_time: 5          # Seconds per block
+block_time: 5           # Seconds per block
 
 gas_limits:
   register_human: 500000
@@ -181,7 +214,7 @@ gas_limits:
 
 ### Agent Configuration (agent_config.yaml)
 
-The agent configuration defines different participant behaviors:
+The agent configuration defines participant behaviors:
 ```yaml
 simulation_params:
   initial_balance: 100
@@ -202,95 +235,140 @@ profiles:
     risk_tolerance: 0.3
 ```
 
+## Agent System
+
+### Agent Profiles
+
+Custom agents can be created by extending the base agent:
+
+```python
+from src.framework.agents import BaseAgent, ActionType, AgentProfile
+
+class CustomAgent(BaseAgent):
+    def __init__(self, agent_id: str, profile: AgentProfile):
+        super().__init__(agent_id, profile)
+        # Custom initialization
+```
+
+### Actions and Behaviors
+
+Actions use dedicated handlers for clean separation of concerns:
+
+```python
+class CustomActionHandler:
+    def __init__(self, client, chain, logger):
+        self.client = client
+        self.chain = chain
+        self.logger = logger
+
+    def execute(self, agent: BaseAgent) -> bool:
+        try:
+            # Implementation
+            return True
+        except Exception as e:
+            self.logger.error(f"Action failed: {e}")
+            return False
+```
+
+## Data Collection System
+
+### Database Schema
+
+The new unified event logging system uses a simplified schema:
+
+```sql
+CREATE TABLE events (
+    simulation_run_id INTEGER NOT NULL,
+    event_name VARCHAR NOT NULL,
+    block_number BIGINT NOT NULL,
+    block_timestamp TIMESTAMP NOT NULL,
+    transaction_hash VARCHAR NOT NULL,
+    contract_address VARCHAR NOT NULL,
+    topics VARCHAR,
+    event_data VARCHAR,
+    decoded_values VARCHAR,
+    FOREIGN KEY(simulation_run_id) REFERENCES simulation_runs(run_id)
+);
+```
+
+### Using the Data Collector
+
+The data collector provides a straightforward interface:
+
+```python
+from src.framework.data import CirclesDataCollector
+
+collector = CirclesDataCollector()
+
+# Start a simulation run
+run_id = collector.start_simulation_run(
+    parameters={"network_size": 1000},
+    description="Test simulation"
+)
+
+# Record events
+collector.record_transaction_events(tx)
+
+# End simulation
+collector.end_simulation_run()
+```
+
 ## Running Simulations
 
-Since PyCircleSim is built as an Ape plugin, use the following command to run simulations:
+### Setting Up Contracts
+
+First, fetch the required contract ABIs:
+
+```bash
+# Set up your GnosisScan API key in .env
+python src/protocols/abis/fetch_abis.py
+```
+
+### Basic Usage
+
+Run a simulation with default settings:
 
 ```bash
 ape run rings simulate \
-  --rings-config rings_network/config/rings_config.yaml \
-  --agent-config rings_network/config/agent_config.yaml
+  --rings-config config/rings_config.yaml \
+  --agent-config config/agent_config.yaml
 ```
 
 ### Advanced Options
 
-You can override configuration parameters via command line:
+Override configuration via command line:
 ```bash
 ape run rings simulate \
-  --rings-config rings_network/config/rings_config.yaml \
-  --agent-config rings_network/config/agent_config.yaml \
+  --rings-config config/rings_config.yaml \
+  --agent-config config/agent_config.yaml \
   --network-size 1000 \
-  --trust-density 0.2
+  --trust-density 0.2 \
+  --fast-mode
 ```
 
-Available options include:
+Available options:
 - `--network-size`: Number of agents to create
 - `--trust-density`: Target trust network density
 - `--batch-size`: Number of operations per batch
 - `--iterations`: Number of simulation cycles
 - `--blocks-per-iteration`: Blockchain blocks per cycle
-
-### Monitoring Progress
-
-The simulation provides detailed progress information:
-```
-Starting simulation with configuration:
-Network size: 1,000 agents
-Trust density: 0.1
-Iterations: 3
-
-Building initial network...
-Processing iteration 1/3...
-[Statistics follow...]
-```
+- `--fast-mode/--no-fast-mode`: Toggle database storage
 
 ## Analyzing Results
 
-After simulation completion, analyze results using:
-```bash
-ape run rings analyze
+Results are stored in the DuckDB database and can be analyzed using SQL or exported to CSV:
+
+```python
+# Export results
+collector.export_to_csv("analysis_results")
+
+# Query events
+events = collector.get_events(
+    event_name="Transfer",
+    start_time=datetime(2024, 1, 1),
+    limit=1000
+)
 ```
-
-Results are stored in timestamped directories:
-```
-simulation_results/
-└── sim_20241216_143022/
-    ├── agent_statistics.csv    # Agent behavior data
-    ├── iteration_statistics.csv   # Per-iteration metrics
-    ├── event_logs.csv         # Chronological events
-    ├── network_snapshots.csv  # Network state captures
-    └── simulation_metadata.json  # Configuration data
-```
-
-## Troubleshooting
-
-Common issues and solutions:
-
-1. **Foundry Connection Errors**:
-   - Ensure Foundry is running: `anvil`
-   - Verify network settings in ape-config.yaml
-   - Check Foundry's sync status
-
-2. **Configuration File Issues**:
-   - Use absolute paths if relative paths fail
-   - Validate YAML syntax
-   - Check file permissions
-
-3. **Out of Gas Errors**:
-   - Increase gas limits in configuration
-   - Reduce batch sizes
-   - Check transaction complexity
-
-4. **Database Errors**:
-   - Verify DuckDB write permissions
-   - Check available disk space
-   - Validate database schema
-
-For additional help:
-- Check logs in `rings_simulation.log`
-- Review error messages in console output
-- Create an issue on GitHub with details
-
 
 ## License
 
