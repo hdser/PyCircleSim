@@ -96,18 +96,7 @@ class CirclesDataCollector(BaseDataCollector):
             for table_file in tables:
                 sql = self._read_sql_file('schema/' + table_file)
                 self.con.execute(sql)
-                logger.info(f"Created table from {table_file}")
-                
-            # Execute view creation scripts after all tables exist   
-           # views = [
-              #  "current_balances.view.sql",
-              #  "active_trusts.view.sql"
-           # ]
-            
-           # for view_file in views:
-           #     sql = self._read_sql_file('views/' + view_file)
-           #     self.con.execute(sql)
-           #     logger.info(f"Created view from {view_file}")
+                logger.info(f"Created table from {table_file}")   
                 
             self.con.commit()
             
