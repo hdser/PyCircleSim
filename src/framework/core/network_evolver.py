@@ -6,7 +6,6 @@ import random
 from ape import chain
 from eth_pydantic_types import HexBytes
 
-from src.framework.core.network_component import NetworkComponent
 from src.framework.agents import AgentManager, BaseAgent, ActionType
 from src.framework.data import CirclesDataCollector
 from src.protocols.ringshub import RingsHubClient
@@ -25,7 +24,7 @@ from src.framework.logging import get_logger
 logger = get_logger(__name__)
 
 
-class NetworkEvolver(NetworkComponent):
+class NetworkEvolver():
     """Enhanced NetworkEvolver with proper action timing control"""
     
     def __init__(
@@ -38,7 +37,7 @@ class NetworkEvolver(NetworkComponent):
         gas_limits: Optional[Dict] = None,
         fjord_client: Optional[FjordClient] = None
     ):
-        super().__init__()
+        #super().__init__()
         
         # Initialize clients
         self.client = client

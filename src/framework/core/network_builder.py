@@ -6,7 +6,6 @@ import logging
 from ape import chain
 from eth_pydantic_types import HexBytes
 
-from src.framework.core.network_component import NetworkComponent
 from src.framework.agents import AgentManager, BaseAgent
 from src.framework.data import CirclesDataCollector
 from src.protocols.ringshub import RingsHubClient
@@ -30,7 +29,7 @@ class BatchExecutionResult:
         self.failed = 0
         self.errors = []
 
-class NetworkBuilder(NetworkComponent):
+class NetworkBuilder():
     """Enhanced NetworkBuilder using handler-based architecture"""
     
     def __init__(
@@ -40,7 +39,7 @@ class NetworkBuilder(NetworkComponent):
         agent_manager: Optional[AgentManager] = None,
         collector: Optional[CirclesDataCollector] = None
     ):
-        super().__init__()
+       # super().__init__()
         
         self.client = client
         self.batch_size = batch_size
