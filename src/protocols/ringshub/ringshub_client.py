@@ -144,6 +144,8 @@ class RingsHubClient:
 
         self.on_wrap = None
 
+    # Define input type structs
+
     def advancedUsageFlags(self, param0: str) -> bytes:
         """advancedUsageFlags implementation"""
         try:
@@ -201,7 +203,8 @@ class RingsHubClient:
     def burn(self, sender: str, _id: int, _amount: int, _data: bytes) -> bool:
         """burn implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.burn(_id, _amount, _data, sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -232,7 +235,8 @@ class RingsHubClient:
     def calculateIssuanceWithCheck(self, sender: str, _human: str) -> bool:
         """calculateIssuanceWithCheck implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.calculateIssuanceWithCheck(_human, sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -296,7 +300,8 @@ class RingsHubClient:
     ) -> bool:
         """groupMint implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.groupMint(
                 _group, _collateralAvatars, _amounts, _data, sender=sender
             )
@@ -409,7 +414,8 @@ class RingsHubClient:
     ) -> bool:
         """migrate implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.migrate(_owner, _avatars, _amounts, sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -460,7 +466,8 @@ class RingsHubClient:
     ) -> bool:
         """operateFlowMatrix implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.operateFlowMatrix(
                 _flowVertices, _flow, _streams, _packedCoordinates, sender=sender
             )
@@ -490,7 +497,8 @@ class RingsHubClient:
     ) -> bool:
         """personalMint implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.personalMint(sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -517,7 +525,8 @@ class RingsHubClient:
     ) -> bool:
         """registerCustomGroup implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.registerCustomGroup(
                 _mint, _treasury, _name, _symbol, _metadataDigest, sender=sender
             )
@@ -547,7 +556,8 @@ class RingsHubClient:
     ) -> bool:
         """registerGroup implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.registerGroup(
                 _mint, _name, _symbol, _metadataDigest, sender=sender
             )
@@ -574,7 +584,8 @@ class RingsHubClient:
     def registerHuman(self, sender: str, _inviter: str, _metadataDigest: bytes) -> bool:
         """registerHuman implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.registerHuman(_inviter, _metadataDigest, sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -599,7 +610,8 @@ class RingsHubClient:
     ) -> bool:
         """registerOrganization implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.registerOrganization(
                 _name, _metadataDigest, sender=sender
             )
@@ -632,7 +644,8 @@ class RingsHubClient:
     ) -> bool:
         """safeBatchTransferFrom implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.safeBatchTransferFrom(
                 _from, _to, _ids, _values, _data, sender=sender
             )
@@ -662,7 +675,8 @@ class RingsHubClient:
     ) -> bool:
         """safeTransferFrom implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.safeTransferFrom(
                 _from, _to, _id, _value, _data, sender=sender
             )
@@ -690,7 +704,8 @@ class RingsHubClient:
     def setAdvancedUsageFlag(self, sender: str, _flag: bytes) -> bool:
         """setAdvancedUsageFlag implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.setAdvancedUsageFlag(_flag, sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -709,7 +724,8 @@ class RingsHubClient:
     def setApprovalForAll(self, sender: str, _operator: str, _approved: bool) -> bool:
         """setApprovalForAll implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.setApprovalForAll(_operator, _approved, sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -733,7 +749,8 @@ class RingsHubClient:
     ) -> bool:
         """stop implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.stop(sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -812,7 +829,8 @@ class RingsHubClient:
     def trust(self, sender: str, _trustReceiver: str, _expiry: int) -> bool:
         """trust implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.trust(_trustReceiver, _expiry, sender=sender)
 
             success = bool(tx and tx.status == 1)
@@ -856,7 +874,8 @@ class RingsHubClient:
     def wrap(self, sender: str, _avatar: str, _amount: int, _type: Any) -> bool:
         """wrap implementation"""
         try:
-            # Base arguments for contract call
+            # Handle struct parameters
+
             tx = self.contract.wrap(_avatar, _amount, _type, sender=sender)
 
             success = bool(tx and tx.status == 1)

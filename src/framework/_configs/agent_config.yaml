@@ -90,6 +90,13 @@ profiles:
         constraints:
           preferred_targets: "trusted_accounts"
 
+      WRAP_TOKEN:
+        probability: 0.8
+        cooldown_blocks: 15
+        gas_limit: 300000
+        min_balance: 0
+        max_value: 10.0
+
   group_creator:
     description: "Creates and manages groups"
     target_account_count: 3

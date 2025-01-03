@@ -9,7 +9,7 @@ from eth_pydantic_types import HexBytes
 from src.framework.agents import AgentManager, BaseAgent, ActionType
 from src.framework.data import CirclesDataCollector
 from src.protocols.ringshub import RingsHubClient
-from src.protocols.fjord import FjordClient
+from src.protocols.fjordlbpproxyv6 import FjordLbpProxyV6Client
 
 # Import your handler classes
 from src.protocols.ringshub import (
@@ -17,7 +17,8 @@ from src.protocols.ringshub import (
     RegisterHumanHandler,
     TrustHandler,
     RegisterGroupHandler,
-    SafeTransferFromHandler
+    SafeTransferFromHandler,
+    WrapHandler
 )
 from src.framework.logging import get_logger
 
@@ -35,7 +36,7 @@ class NetworkEvolver():
         agent_manager: AgentManager,
         collector: Optional[CirclesDataCollector] = None,
         gas_limits: Optional[Dict] = None,
-        fjord_client: Optional[FjordClient] = None
+        fjord_client: Optional[FjordLbpProxyV6Client] = None
     ):
         #super().__init__()
         
@@ -57,6 +58,7 @@ class NetworkEvolver():
             'mint': 300000,
             'transfer': 300000,
             'create_group': 1000000,
+            'wrap': 500000,
         }
         
         # Event callbacks
@@ -93,6 +95,11 @@ class NetworkEvolver():
         )
 
         self.human_registration_handler = RegisterHumanHandler(
+            client=self.client,
+            chain=chain,
+            logger=logger
+        )
+        self.wrap_handler = WrapHandler(
             client=self.client,
             chain=chain,
             logger=logger
@@ -216,6 +223,8 @@ class NetworkEvolver():
                 return self.group_creation_handler.execute(agent)
             elif action_type == ActionType.REGISTER_HUMAN:
                 return self.human_registration_handler.execute(agent)
+            elif action_type == ActionType.WRAP_TOKEN:
+                return self.wrap_handler.execute(agent)
             return False
             
         except Exception as e:

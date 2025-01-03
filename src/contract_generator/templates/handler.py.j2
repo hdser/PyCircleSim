@@ -1,4 +1,3 @@
-{# handler.py.j2 #}
 import random
 from datetime import datetime
 import logging
@@ -26,11 +25,31 @@ class {{ func.name|camel_case }}Handler:
         self.on_{{ func.name|lower }}_performed = on_{{ func.name|lower }}_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-    
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            'sender': None,  # Required: address that will send the transaction
+            {% for inp in func.inputs %}
+            {% if inp.type == 'tuple' %}
+            # Struct definition for {{ inp.name }}
+            '{{ inp.name }}': {
+                {% for component in inp.components %}
+                '{{ component.name }}': None,  # type: {{ component.type }}
+                {% endfor %}
+            },
+            {% else %}
+            '{{ inp.name }}': None,  # type: {{ inp.type }}
+            {% endif %}
+            {% endfor %}
+        }
+        return params
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(
+        self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
+    ) -> bool:
         try:
             # Get internal params if no external params provided
             execution_params = params if params else self._get_params(agent)
@@ -38,20 +57,18 @@ class {{ func.name|camel_case }}Handler:
                 return False
             
             success = self.client.{{ func.name }}(
-                sender=execution_params.get('sender'),
                 {% for inp in func.inputs %}
-                {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
-                {{ param_name }}=execution_params.get('{{ param_name }}'),
+                {{ inp.name }}=execution_params.get("{{ inp.name }}"),
                 {% endfor %}
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_{{ func.name|lower }}_performed:
                 self.on_{{ func.name|lower }}_performed(
-                    sender=execution_params.get('sender'),
                     {% for inp in func.inputs %}
-                    {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
-                    {{ param_name }}=execution_params.get('{{ param_name }}'),
+                    {{ inp.name }}=execution_params.get("{{ inp.name }}"),
                     {% endfor %}
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
                 )

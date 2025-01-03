@@ -25,9 +25,18 @@ class BurnHandler:
         self.on_burn_performed = on_burn_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_id": None,  # type: uint256
+            "_amount": None,  # type: uint256
+            "_data": None,  # type: bytes
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -39,18 +48,18 @@ class BurnHandler:
                 return False
 
             success = self.client.burn(
-                sender=execution_params.get("sender"),
                 _id=execution_params.get("_id"),
                 _amount=execution_params.get("_amount"),
                 _data=execution_params.get("_data"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_burn_performed:
                 self.on_burn_performed(
-                    sender=execution_params.get("sender"),
                     _id=execution_params.get("_id"),
                     _amount=execution_params.get("_amount"),
                     _data=execution_params.get("_data"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -82,9 +91,16 @@ class CalculateIssuanceWithCheckHandler:
         )
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_human": None,  # type: address
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -96,14 +112,14 @@ class CalculateIssuanceWithCheckHandler:
                 return False
 
             success = self.client.calculateIssuanceWithCheck(
-                sender=execution_params.get("sender"),
                 _human=execution_params.get("_human"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_calculateissuancewithcheck_performed:
                 self.on_calculateissuancewithcheck_performed(
-                    sender=execution_params.get("sender"),
                     _human=execution_params.get("_human"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -134,9 +150,19 @@ class GroupMintHandler:
         self.on_groupmint_performed = on_groupmint_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_group": None,  # type: address
+            "_collateralAvatars": None,  # type: address[]
+            "_amounts": None,  # type: uint256[]
+            "_data": None,  # type: bytes
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -148,20 +174,20 @@ class GroupMintHandler:
                 return False
 
             success = self.client.groupMint(
-                sender=execution_params.get("sender"),
                 _group=execution_params.get("_group"),
                 _collateralAvatars=execution_params.get("_collateralAvatars"),
                 _amounts=execution_params.get("_amounts"),
                 _data=execution_params.get("_data"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_groupmint_performed:
                 self.on_groupmint_performed(
-                    sender=execution_params.get("sender"),
                     _group=execution_params.get("_group"),
                     _collateralAvatars=execution_params.get("_collateralAvatars"),
                     _amounts=execution_params.get("_amounts"),
                     _data=execution_params.get("_data"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -192,9 +218,18 @@ class MigrateHandler:
         self.on_migrate_performed = on_migrate_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_owner": None,  # type: address
+            "_avatars": None,  # type: address[]
+            "_amounts": None,  # type: uint256[]
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -206,18 +241,18 @@ class MigrateHandler:
                 return False
 
             success = self.client.migrate(
-                sender=execution_params.get("sender"),
                 _owner=execution_params.get("_owner"),
                 _avatars=execution_params.get("_avatars"),
                 _amounts=execution_params.get("_amounts"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_migrate_performed:
                 self.on_migrate_performed(
-                    sender=execution_params.get("sender"),
                     _owner=execution_params.get("_owner"),
                     _avatars=execution_params.get("_avatars"),
                     _amounts=execution_params.get("_amounts"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -247,9 +282,19 @@ class OperateFlowMatrixHandler:
         self.on_operateflowmatrix_performed = on_operateflowmatrix_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_flowVertices": None,  # type: address[]
+            "_flow": None,  # type: tuple[]
+            "_streams": None,  # type: tuple[]
+            "_packedCoordinates": None,  # type: bytes
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -261,20 +306,20 @@ class OperateFlowMatrixHandler:
                 return False
 
             success = self.client.operateFlowMatrix(
-                sender=execution_params.get("sender"),
                 _flowVertices=execution_params.get("_flowVertices"),
                 _flow=execution_params.get("_flow"),
                 _streams=execution_params.get("_streams"),
                 _packedCoordinates=execution_params.get("_packedCoordinates"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_operateflowmatrix_performed:
                 self.on_operateflowmatrix_performed(
-                    sender=execution_params.get("sender"),
                     _flowVertices=execution_params.get("_flowVertices"),
                     _flow=execution_params.get("_flow"),
                     _streams=execution_params.get("_streams"),
                     _packedCoordinates=execution_params.get("_packedCoordinates"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -373,9 +418,20 @@ class RegisterCustomGroupHandler:
         self.on_registercustomgroup_performed = on_registercustomgroup_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_mint": None,  # type: address
+            "_treasury": None,  # type: address
+            "_name": None,  # type: string
+            "_symbol": None,  # type: string
+            "_metadataDigest": None,  # type: bytes32
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -387,22 +443,22 @@ class RegisterCustomGroupHandler:
                 return False
 
             success = self.client.registerCustomGroup(
-                sender=execution_params.get("sender"),
                 _mint=execution_params.get("_mint"),
                 _treasury=execution_params.get("_treasury"),
                 _name=execution_params.get("_name"),
                 _symbol=execution_params.get("_symbol"),
                 _metadataDigest=execution_params.get("_metadataDigest"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_registercustomgroup_performed:
                 self.on_registercustomgroup_performed(
-                    sender=execution_params.get("sender"),
                     _mint=execution_params.get("_mint"),
                     _treasury=execution_params.get("_treasury"),
                     _name=execution_params.get("_name"),
                     _symbol=execution_params.get("_symbol"),
                     _metadataDigest=execution_params.get("_metadataDigest"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -445,11 +501,11 @@ class RegisterGroupHandler:
         metadata_digest = HexBytes(0)
 
         return {
+            'sender': creator_address,
             '_name': group_name,
             '_symbol': group_symbol,
             '_mint': mint_policy,
-            '_metadataDigest': metadata_digest,
-            'sender': creator_address,
+            '_metadataDigest': metadata_digest
         }
 
 
@@ -463,20 +519,20 @@ class RegisterGroupHandler:
                 return False
 
             success = self.client.registerGroup(
-                sender=execution_params.get("sender"),
                 _mint=execution_params.get("_mint"),
                 _name=execution_params.get("_name"),
                 _symbol=execution_params.get("_symbol"),
                 _metadataDigest=execution_params.get("_metadataDigest"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_registergroup_performed:
                 self.on_registergroup_performed(
-                    sender=execution_params.get("sender"),
                     _mint=execution_params.get("_mint"),
                     _name=execution_params.get("_name"),
                     _symbol=execution_params.get("_symbol"),
                     _metadataDigest=execution_params.get("_metadataDigest"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -541,16 +597,16 @@ class RegisterHumanHandler:
                 return False
 
             success = self.client.registerHuman(
-                sender=execution_params.get("sender"),
                 _inviter=execution_params.get("_inviter"),
                 _metadataDigest=execution_params.get("_metadataDigest"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_registerhuman_performed:
                 self.on_registerhuman_performed(
-                    sender=execution_params.get("sender"),
                     _inviter=execution_params.get("_inviter"),
                     _metadataDigest=execution_params.get("_metadataDigest"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -581,9 +637,17 @@ class RegisterOrganizationHandler:
         self.on_registerorganization_performed = on_registerorganization_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_name": None,  # type: string
+            "_metadataDigest": None,  # type: bytes32
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -595,16 +659,16 @@ class RegisterOrganizationHandler:
                 return False
 
             success = self.client.registerOrganization(
-                sender=execution_params.get("sender"),
                 _name=execution_params.get("_name"),
                 _metadataDigest=execution_params.get("_metadataDigest"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_registerorganization_performed:
                 self.on_registerorganization_performed(
-                    sender=execution_params.get("sender"),
                     _name=execution_params.get("_name"),
                     _metadataDigest=execution_params.get("_metadataDigest"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -635,9 +699,20 @@ class SafeBatchTransferFromHandler:
         self.on_safebatchtransferfrom_performed = on_safebatchtransferfrom_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_from": None,  # type: address
+            "_to": None,  # type: address
+            "_ids": None,  # type: uint256[]
+            "_values": None,  # type: uint256[]
+            "_data": None,  # type: bytes
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -649,22 +724,22 @@ class SafeBatchTransferFromHandler:
                 return False
 
             success = self.client.safeBatchTransferFrom(
-                sender=execution_params.get("sender"),
                 _from=execution_params.get("_from"),
                 _to=execution_params.get("_to"),
                 _ids=execution_params.get("_ids"),
                 _values=execution_params.get("_values"),
                 _data=execution_params.get("_data"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_safebatchtransferfrom_performed:
                 self.on_safebatchtransferfrom_performed(
-                    sender=execution_params.get("sender"),
                     _from=execution_params.get("_from"),
                     _to=execution_params.get("_to"),
                     _ids=execution_params.get("_ids"),
                     _values=execution_params.get("_values"),
                     _data=execution_params.get("_data"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -718,7 +793,6 @@ class SafeTransferFromHandler:
             '_id': id,
             '_value': amount,
             '_data': data,
-
         }
 
     def execute(
@@ -741,12 +815,12 @@ class SafeTransferFromHandler:
 
             if success and self.on_safetransferfrom_performed:
                 self.on_safetransferfrom_performed(
-                    sender=execution_params.get("sender"),
                     _from=execution_params.get("_from"),
                     _to=execution_params.get("_to"),
                     _id=execution_params.get("_id"),
                     _value=execution_params.get("_value"),
                     _data=execution_params.get("_data"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -777,9 +851,16 @@ class SetAdvancedUsageFlagHandler:
         self.on_setadvancedusageflag_performed = on_setadvancedusageflag_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_flag": None,  # type: bytes32
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -791,14 +872,14 @@ class SetAdvancedUsageFlagHandler:
                 return False
 
             success = self.client.setAdvancedUsageFlag(
-                sender=execution_params.get("sender"),
                 _flag=execution_params.get("_flag"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_setadvancedusageflag_performed:
                 self.on_setadvancedusageflag_performed(
-                    sender=execution_params.get("sender"),
                     _flag=execution_params.get("_flag"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -829,9 +910,17 @@ class SetApprovalForAllHandler:
         self.on_setapprovalforall_performed = on_setapprovalforall_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+            "_operator": None,  # type: address
+            "_approved": None,  # type: bool
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -843,16 +932,16 @@ class SetApprovalForAllHandler:
                 return False
 
             success = self.client.setApprovalForAll(
-                sender=execution_params.get("sender"),
                 _operator=execution_params.get("_operator"),
                 _approved=execution_params.get("_approved"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_setapprovalforall_performed:
                 self.on_setapprovalforall_performed(
-                    sender=execution_params.get("sender"),
                     _operator=execution_params.get("_operator"),
                     _approved=execution_params.get("_approved"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -883,9 +972,15 @@ class StopHandler:
         self.on_stop_performed = on_stop_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            "sender": None,  # Required: address that will send the transaction
+        }
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -961,25 +1056,25 @@ class TrustHandler:
         }
 
     def execute(
-        self, agent: BaseAgent, agent_manager:  Optional[AgentManager]= None, params: Optional[Dict[str, Any]] = None
+        self, agent: BaseAgent, agent_manager: Optional[AgentManager]= None, params: Optional[Dict[str, Any]] = None
     ) -> bool:
         try:
             # Get internal params if no external params provided
-            execution_params = params if params else self._get_params(agent,agent_manager)
+            execution_params = params if params else self._get_params(agent, agent_manager)
             if not execution_params:
                 return False
 
             success = self.client.trust(
-                sender=execution_params.get("sender"),
                 _trustReceiver=execution_params.get("_trustReceiver"),
                 _expiry=execution_params.get("_expiry"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_trust_performed:
                 self.on_trust_performed(
-                    sender=execution_params.get("sender"),
                     _trustReceiver=execution_params.get("_trustReceiver"),
                     _expiry=execution_params.get("_expiry"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
@@ -1009,9 +1104,27 @@ class WrapHandler:
         self.on_wrap_performed = on_wrap_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """Get internally computed parameters if needed"""
-
-        return {}
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        sender = random.choice(list(agent.accounts.keys()))
+        avatar = sender
+        id = self.client.toTokenId(avatar)
+        balance = self.client.balanceOf(avatar,id)
+        if balance == 0:
+            return {}
+        amount = int(balance/10.0)
+        type = 0
+        # Template showing required parameters
+        params = {
+            "sender": sender,
+            "_avatar": avatar,
+            "_amount": amount,
+            "_type": type
+        }
+        print(params)
+        return params
 
     def execute(
         self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
@@ -1023,18 +1136,18 @@ class WrapHandler:
                 return False
 
             success = self.client.wrap(
-                sender=execution_params.get("sender"),
                 _avatar=execution_params.get("_avatar"),
                 _amount=execution_params.get("_amount"),
                 _type=execution_params.get("_type"),
+                sender=execution_params.get("sender"),
             )
 
             if success and self.on_wrap_performed:
                 self.on_wrap_performed(
-                    sender=execution_params.get("sender"),
                     _avatar=execution_params.get("_avatar"),
                     _amount=execution_params.get("_amount"),
                     _type=execution_params.get("_type"),
+                    sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,
                     timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
                 )
