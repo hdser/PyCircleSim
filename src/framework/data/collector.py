@@ -9,14 +9,13 @@ import os
 from ape import Contract
 from collections import defaultdict
 from src.framework.agents.base_agent import BaseAgent
-from src.protocols.common.uint256_handler import UINT256Handler
 from .event_logging import EventLogger, ContractEventHandler
 from .base_collector import BaseDataCollector
 from src.framework.logging import get_logger
 
 logger = get_logger(__name__)
 
-class CirclesDataCollector(BaseDataCollector):
+class DataCollector(BaseDataCollector):
     """
     Enhanced data collection system for the Circles network that maintains SQL queries
     in external files while providing improved data handling and validation.
@@ -25,7 +24,6 @@ class CirclesDataCollector(BaseDataCollector):
     def __init__(self, db_path: str = "circles_network.duckdb", sql_dir: Optional[str] = None):
         """Initialize the data collector with a DuckDB database connection."""
         self.db_path = db_path
-        self.uint256_handler = UINT256Handler()
         
         if sql_dir is None:
             module_dir = Path(__file__).parent
@@ -44,7 +42,7 @@ class CirclesDataCollector(BaseDataCollector):
         
         # Set up database schema
         self._initialize_database()
-        logger.info(f"Initialized CirclesDataCollector with database at {db_path}")
+        logger.info(f"Initialized DataCollector with database at {db_path}")
 
         # Initialize event logging components
         self.event_logger = EventLogger(self.con)

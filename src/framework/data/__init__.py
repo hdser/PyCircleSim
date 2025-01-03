@@ -1,4 +1,4 @@
 from .base_collector import BaseDataCollector
-from .circles_collector import CirclesDataCollector
+from .collector import DataCollector
 
-__all__ = ['BaseDataCollector', 'CirclesDataCollector']
+__all__ = ['BaseDataCollector', 'DataCollector']

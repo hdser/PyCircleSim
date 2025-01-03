@@ -4,7 +4,7 @@ from datetime import datetime
 from eth_typing import HexStr
 from eth_pydantic_types import HexBytes
 from ape import Contract, chain
-from src.framework.data import CirclesDataCollector
+from src.framework.data import DataCollector
 from src.framework.logging import get_logger
 
 logger = get_logger(__name__)
@@ -18,7 +18,7 @@ class {{ contract_name }}Client:
         abi_path: str,
         gas_limits: Optional[Dict] = None,
         cache_config: Optional[Dict] = None,
-        data_collector: Optional['CirclesDataCollector'] = None
+        data_collector: Optional['DataCollector'] = None
     ):
         self.contract = Contract(contract_address, abi=abi_path)
         self.collector = data_collector

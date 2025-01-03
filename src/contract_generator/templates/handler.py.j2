@@ -1,0 +1,69 @@
+import random
+from datetime import datetime
+import logging
+from typing import Optional, Dict, Any, Tuple
+
+from ape import chain
+from eth_pydantic_types import HexBytes
+from src.framework.agents import BaseAgent
+from src.protocols.{{ contract_name.lower() }} import {{ contract_name }}Client
+
+{% for func in functions if not func.is_view %}
+class {{ func.name|camel_case }}Handler:
+    """Encapsulates the logic to execute a {{ func.name }} action."""
+
+    def __init__(
+        self,
+        client: {{ contract_name }}Client,
+        chain,
+        logger: logging.Logger,
+    ):
+        self.client = client
+        self.chain = chain
+        self.logger = logger
+
+    def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
+        """
+        Get parameter template showing expected structure.
+        Returns a dict with all required parameters as empty placeholders.
+        """
+        # Template showing required parameters
+        params = {
+            'sender': None,  # Required: address that will send the transaction
+            {% for inp in func.inputs %}
+            {% if inp.type == 'tuple' %}
+            # Struct definition for {{ inp.name }}
+            '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': {
+                {% for component in inp.components %}
+                '{{ component.name }}': None,  # type: {{ component.type }}
+                {% endfor %}
+            },
+            {% else %}
+            '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': None,  # type: {{ inp.type }}
+            {% endif %}
+            {% endfor %}
+        }
+        return params
+
+    def execute(
+        self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        try:
+            # Get internal params if no external params provided
+            execution_params = params if params else self._get_params(agent)
+            if not execution_params:
+                return False
+            
+            success = self.client.{{ func.name }}(
+                {% for orig_name, safe_name in func.get_input_names() %}
+                {{ safe_name }}=execution_params.get("{{ safe_name }}"),
+                {% endfor %}
+                sender=execution_params.get("sender"),
+            )
+
+            return success
+
+        except Exception as e:
+            self.logger.error(f"{{ func.name }} action failed for agent {agent.agent_id}: {e}", exc_info=True)
+            return False
+{% endfor %}

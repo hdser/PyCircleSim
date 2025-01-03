@@ -11,7 +11,7 @@ import json
 from typing import Optional, Dict, Any
 
 from src.protocols.ringshub import RingsHubClient
-from src.framework.data import CirclesDataCollector
+from src.framework.data import DataCollector
 from src.framework.agents import AgentManager
 from src.framework.core import (
     NetworkBuilder, 
@@ -145,7 +145,7 @@ class RingsSimulation:
             )
        
         # Initialize collector if not in fast mode
-        self.collector = None if fast_mode else CirclesDataCollector(
+        self.collector = None if fast_mode else DataCollector(
             config.rings_config.get('db_path', "rings_simulation.duckdb")
         )
 

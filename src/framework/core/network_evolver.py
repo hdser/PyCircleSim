@@ -7,7 +7,7 @@ from ape import chain
 from eth_pydantic_types import HexBytes
 
 from src.framework.agents import AgentManager, BaseAgent, ActionType
-from src.framework.data import CirclesDataCollector
+from src.framework.data import DataCollector
 from src.protocols.ringshub import RingsHubClient
 from src.protocols.fjordlbpproxyv6 import FjordLbpProxyV6Client
 from src.protocols.balancerv3vault import BalancerV3VaultClient
@@ -33,7 +33,7 @@ class NetworkEvolver():
         self,
         client: RingsHubClient,
         agent_manager: AgentManager,
-        collector: Optional[CirclesDataCollector] = None,
+        collector: Optional[DataCollector] = None,
         gas_limits: Optional[Dict] = None,
         fjord_client: Optional[FjordLbpProxyV6Client] = None
     ):

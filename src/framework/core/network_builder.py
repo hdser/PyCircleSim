@@ -7,7 +7,7 @@ from ape import chain
 from eth_pydantic_types import HexBytes
 
 from src.framework.agents import AgentManager, BaseAgent
-from src.framework.data import CirclesDataCollector
+from src.framework.data import DataCollector
 from src.protocols.ringshub import RingsHubClient
 
 from src.protocols.ringshub import (
@@ -37,7 +37,7 @@ class NetworkBuilder():
         client: RingsHubClient,
         batch_size: int = 10,
         agent_manager: Optional[AgentManager] = None,
-        collector: Optional[CirclesDataCollector] = None
+        collector: Optional[DataCollector] = None
     ):
 
         self.client = client
