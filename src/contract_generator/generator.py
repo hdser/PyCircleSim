@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import json
 from pathlib import Path
 import os
@@ -11,6 +11,11 @@ import ast
 logger = logging.getLogger(__name__)
 
 class ContractFunction:
+    PYTHON_KEYWORDS = {
+        'from', 'to', 'in', 'import', 'class', 'def', 'return', 'pass', 
+        'raise', 'global', 'assert', 'lambda', 'yield', 'del'
+    }
+
     def __init__(self, abi_entry: Dict):
         self.name = abi_entry.get('name', '')
         self.inputs = abi_entry.get('inputs', [])
@@ -23,9 +28,25 @@ class ContractFunction:
         params = []
         for i, inp in enumerate(self.inputs):
             param_name = inp['name'] if inp['name'] else f"param{i}"
+            # Add underscore to reserved keywords
+            if param_name in self.PYTHON_KEYWORDS:
+                param_name = f"{param_name}_"
             param_type = self._get_python_type(inp['type'])
             params.append(f"{param_name}: {param_type}")
         return ", ".join(params)
+
+    def get_safe_param_name(self, name: str) -> str:
+        """Get parameter name that's safe to use in Python"""
+        if not name:
+            return name
+        return f"{name}_" if name in self.PYTHON_KEYWORDS else name
+
+    def get_input_names(self) -> List[Tuple[str, str]]:
+        """Get list of (original_name, safe_name) tuples for all inputs"""
+        return [
+            (inp['name'], self.get_safe_param_name(inp['name']))
+            for inp in self.inputs
+        ]
 
     def get_python_return_type(self) -> str:
         if not self.outputs:
@@ -41,7 +62,7 @@ class ContractFunction:
             'address': 'str',
             'uint256': 'int',
             'uint96': 'int',
-            'uint64': 'int', 
+            'uint64': 'int',
             'uint16': 'int',
             'int256': 'int',
             'bytes32': 'bytes',
@@ -193,14 +214,24 @@ class ContractGenerator:
         self._write_formatted_python(content, output_path)
 
     def _write_formatted_python(self, content: str, path: Path):
-        """Write formatted Python code"""
+        """Write formatted Python code, skipping Black formatting for template files"""
         try:
-            formatted = black.format_str(content, mode=black.FileMode())
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(formatted)
+            # Skip Black formatting for template files
+            if path.name.endswith('_template.py'):
+                # Just write the content directly for templates
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+                logger.info(f"Wrote unformatted template to {path}")
+            else:
+                # For non-template files, apply Black formatting
+                formatted = black.format_str(content, mode=black.FileMode())
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(formatted)
+                logger.info(f"Wrote formatted Python code to {path}")
         except Exception as e:
-            logger.error(f"Failed to format/write {path}: {e}")
-            path.write_text(content)  # Write unformatted as fallback
+            logger.error(f"Failed to write {path}: {e}")
+            # Write unformatted as fallback
+            path.write_text(content)
 
 
 def generate_contract_interfaces(abi_path: str, output_dir: str, templates_dir: str):

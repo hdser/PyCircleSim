@@ -1,3 +1,4 @@
+
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime 
 from eth_typing import HexStr
@@ -44,39 +45,15 @@ class {{ contract_name }}Client:
         {% for func in functions if not func.is_view %}
         self.on_{{ func.name }} = None
         {% endfor %}
-
-    # Define input type structs
-    {% for func in functions %}
-    {% if func.inputs %}
-    {% for input in func.inputs %}
-    {% if input.type.startswith('struct ') %}
-    class {{ input.type.split(' ')[1] }}:
-        """Type definition for {{ input.type }} struct"""
-        def __init__(self, **kwargs):
-            {% for component in input.components %}
-            self.{{ component.name }} = kwargs.get('{{ component.name }}')
-            {% endfor %}
-
-        def to_dict(self):
-            return {
-                {% for component in input.components %}
-                '{{ component.name }}': self.{{ component.name }},
-                {% endfor %}
-            }
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% endfor %}
-
+        
     {% for func in functions %}
     {% if func.is_view %}
     def {{ func.name }}(self, {{ func.get_python_params() }}) -> {{ func.get_python_return_type() }}:
         """{{ func.name }} implementation"""
         try:
             return self.contract.{{ func.name }}(
-                {% for inp in func.inputs %}
-                {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
-                {{ param_name }},
+                {% for orig_name, safe_name in func.get_input_names() %}
+                {{ safe_name }},
                 {% endfor %}
             )
         except Exception as e:
@@ -86,22 +63,10 @@ class {{ contract_name }}Client:
     def {{ func.name }}(self, sender: str, {{ func.get_python_params() }}) -> bool:
         """{{ func.name }} implementation"""
         try:
-            # Handle struct parameters
-            {% for inp in func.inputs %}
-            {% if inp.type.startswith('struct ') %}
-            if isinstance({{ inp.name }}, dict):
-                {{ inp.name }} = self.{{ inp.type.split(' ')[1] }}(**{{ inp.name }})
-            {% endif %}
-            {% endfor %}
-
+            # Base arguments for contract call
             tx = self.contract.{{ func.name }}(
-                {% for inp in func.inputs %}
-                {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
-                {% if inp.type.startswith('struct ') %}
-                {{ param_name }}.to_dict(),
-                {% else %}
-                {{ param_name }},
-                {% endif %}
+                {% for orig_name, safe_name in func.get_input_names() %}
+                {{ safe_name }},
                 {% endfor %}
                 sender=sender
             )
@@ -113,9 +78,8 @@ class {{ contract_name }}Client:
                 
                 if self.on_{{ func.name }}:
                     self.on_{{ func.name }}(
-                        {% for inp in func.inputs %}
-                        {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
-                        {{ param_name }}={{ param_name }},
+                        {% for orig_name, safe_name in func.get_input_names() %}
+                        {{ orig_name }}_={{ safe_name }},
                         {% endfor %}
                         tx_hash=tx.txn_hash
                     )

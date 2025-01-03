@@ -1,3 +1,4 @@
+
 import random
 from datetime import datetime
 import logging
@@ -35,13 +36,13 @@ class {{ func.name|camel_case }}Handler:
             {% for inp in func.inputs %}
             {% if inp.type == 'tuple' %}
             # Struct definition for {{ inp.name }}
-            '{{ inp.name }}': {
+            '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': {
                 {% for component in inp.components %}
                 '{{ component.name }}': None,  # type: {{ component.type }}
                 {% endfor %}
             },
             {% else %}
-            '{{ inp.name }}': None,  # type: {{ inp.type }}
+            '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': None,  # type: {{ inp.type }}
             {% endif %}
             {% endfor %}
         }
@@ -57,16 +58,16 @@ class {{ func.name|camel_case }}Handler:
                 return False
             
             success = self.client.{{ func.name }}(
-                {% for inp in func.inputs %}
-                {{ inp.name }}=execution_params.get("{{ inp.name }}"),
+                {% for orig_name, safe_name in func.get_input_names() %}
+                {{ safe_name }}=execution_params.get("{{ safe_name }}"),
                 {% endfor %}
                 sender=execution_params.get("sender"),
             )
 
             if success and self.on_{{ func.name|lower }}_performed:
                 self.on_{{ func.name|lower }}_performed(
-                    {% for inp in func.inputs %}
-                    {{ inp.name }}=execution_params.get("{{ inp.name }}"),
+                    {% for orig_name, safe_name in func.get_input_names() %}
+                    {{ safe_name }}=execution_params.get("{{ safe_name }}"),
                     {% endfor %}
                     sender=execution_params.get("sender"),
                     block=self.chain.blocks.head.number,

@@ -10,6 +10,7 @@ from src.framework.agents import AgentManager, BaseAgent, ActionType
 from src.framework.data import CirclesDataCollector
 from src.protocols.ringshub import RingsHubClient
 from src.protocols.fjordlbpproxyv6 import FjordLbpProxyV6Client
+from src.protocols.balancerv3vault import BalancerV3VaultClient
 
 # Import your handler classes
 from src.protocols.ringshub import (
