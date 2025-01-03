@@ -1,0 +1,94 @@
+from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime 
+from eth_typing import HexStr
+from eth_pydantic_types import HexBytes
+from ape import Contract, chain
+from src.framework.data import CirclesDataCollector
+from src.framework.logging import get_logger
+
+logger = get_logger(__name__)
+
+class {{ contract_name }}Client:
+    """Client interface for {{ contract_name }} contract"""
+    
+    def __init__(
+        self,
+        contract_address: str,
+        abi_path: str,
+        gas_limits: Optional[Dict] = None,
+        cache_config: Optional[Dict] = None,
+        data_collector: Optional['CirclesDataCollector'] = None
+    ):
+        self.contract = Contract(contract_address, abi=abi_path)
+        self.collector = data_collector
+        
+        # Default gas limits
+        self.gas_limits = gas_limits or {
+            {% for func in functions %}
+            '{{ func.name }}': 300000,
+            {% endfor %}
+        }
+        
+        # Optional caching
+        self.cache_enabled = cache_config.get('enabled', True) if cache_config else True
+        self.cache_ttl = cache_config.get('ttl', 100) if cache_config else 100
+        self.cache = {
+            'last_update': datetime.min,
+            'current_block': 0
+        }
+
+        # Initialize event handlers for all events and non-view functions
+        {% for event in events %}
+        self.on_{{ event.name }} = None
+        {% endfor %}
+        {% for func in functions if not func.is_view %}
+        self.on_{{ func.name }} = None
+        {% endfor %}
+
+    {% for func in functions %}
+    {% if func.is_view %}
+    def {{ func.name }}(self, {{ func.get_python_params() }}) -> {{ func.get_python_return_type() }}:
+        """{{ func.name }} implementation"""
+        try:
+            return self.contract.{{ func.name }}(
+                {% for inp in func.inputs %}
+                {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
+                {{ param_name }},
+                {% endfor %}
+            )
+        except Exception as e:
+            logger.error(f"{{ func.name }} failed: {e}")
+            return None
+    {% else %}
+    def {{ func.name }}(self, sender: str, {{ func.get_python_params() }}) -> bool:
+        """{{ func.name }} implementation"""
+        try:
+            # Base arguments for contract call
+            tx = self.contract.{{ func.name }}(
+                {% for inp in func.inputs %}
+                {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
+                {{ param_name }},
+                {% endfor %}
+                sender=sender
+            )
+                
+            success = bool(tx and tx.status == 1)
+            if success:
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                if self.on_{{ func.name }}:
+                    self.on_{{ func.name }}(
+                        {% for inp in func.inputs %}
+                        {% set param_name = inp.name if inp.name else "param" + loop.index0|string %}
+                        {{ param_name }}={{ param_name }},
+                        {% endfor %}
+                        tx_hash=tx.txn_hash
+                    )
+            return success
+                
+        except Exception as e:
+            logger.error(f"{{ func.name }} failed: {e}")
+            return False
+    {% endif %}
+    {% endfor %}

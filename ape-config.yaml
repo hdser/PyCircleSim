@@ -35,7 +35,6 @@ foundry:
         memory_limit: 2048
         ephemeral: true
         prune_history: true
-test:
-  mnemonic: test test test test test test test test test test test junk
-  number_of_accounts: 10
-  hd_path: "m/44'/60'/0'/0/0" 
+
+        
+

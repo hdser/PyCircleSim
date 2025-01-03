@@ -8,11 +8,9 @@ block_time: 5            # Default seconds per block
 
 # Gas configuration
 gas_limits:
-  register_human: 500000
+  registerHuman: 500000
   trust: 300000
-  mint: 300000
-  transfer: 300000
-  create_group: 1000000
+  registerGroup: 1000000
 
 # Cache settings
 cache:

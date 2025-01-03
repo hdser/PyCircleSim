@@ -3,6 +3,7 @@ from datetime import datetime
 import random
 import secrets
 from eth_account import Account
+from ape import networks
 from .types import ActionType, AgentProfile, ActionConfig
 from src.framework.data import BaseDataCollector
 from src.framework.logging import get_logger
@@ -22,24 +23,35 @@ class BaseAgent:
         self.daily_action_counts = {}
         self.creation_time = datetime.now()
         self.collector = data_collector
-
+    
     def create_account(self) -> Tuple[str, bytes]:
         """Create a new blockchain account controlled by this agent"""
-        private_key = secrets.token_bytes(32)
-        account = Account.from_key(private_key)
-        self.accounts[account.address] = private_key
-        self.controlled_addresses.add(account.address)
-        
-        # Record new address if collector exists
-        if self.collector and self.collector.current_run_id:
-            self.collector.record_agent_address(
-                self.agent_id,
-                account.address,
-                is_primary=(len(self.accounts) == 1)
-            )
+        try:
+            # Create account with private key
+            private_key = secrets.token_bytes(32)
+            account = Account.from_key(private_key)
             
-        return account.address, private_key
-    
+            # Store account info
+            self.accounts[account.address] = private_key
+            self.controlled_addresses.add(account.address)
+
+            # Fund the account using Foundry/Anvil provider
+            networks.provider.set_balance(account.address, int(100e18))  # Fund with 100 xDAI
+
+            # Record new address if collector exists
+            if self.collector and self.collector.current_run_id:
+                self.collector.record_agent_address(
+                    self.agent_id,
+                    account.address,
+                    is_primary=(len(self.accounts) == 1)
+                )
+                
+            return account.address, private_key
+            
+        except Exception as e:
+            logger.error(f"Failed to create account: {e}")
+            raise
+
 
     def get_accounts(self) -> List[str]:
         """Get all addresses controlled by this agent"""

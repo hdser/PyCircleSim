@@ -11,6 +11,8 @@ setup(
         "click>=8.0.0",
         "python-dotenv>=0.19.0",
         "requests>=2.32.3",
+        "jinja2>=3.1.5",
+        "black>=24.10.0",
     ],
     entry_points={
         'console_scripts': [

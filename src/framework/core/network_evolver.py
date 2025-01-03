@@ -9,15 +9,17 @@ from eth_pydantic_types import HexBytes
 from src.framework.core.network_component import NetworkComponent
 from src.framework.agents import AgentManager, BaseAgent, ActionType
 from src.framework.data import CirclesDataCollector
-from src.protocols.rings import RingsClient
+from src.protocols.ringshub import RingsHubClient
 from src.protocols.fjord import FjordClient
 
 # Import your handler classes
-from .handlers.mint_action_handler import MintActionHandler
-from .handlers.trust_action_handler import TrustActionHandler
-from .handlers.transfer_action_handler import TransferActionHandler
-from .handlers.group_creation_action_handler import GroupCreationActionHandler
-from .handlers.human_registration_action_handler import HumanRegistrationActionHandler
+from src.protocols.ringshub import (
+    PersonalMintHandler,
+    RegisterHumanHandler,
+    TrustHandler,
+    RegisterGroupHandler,
+    SafeTransferFromHandler
+)
 from src.framework.logging import get_logger
 
 logger = get_logger(__name__)
@@ -30,7 +32,7 @@ class NetworkEvolver(NetworkComponent):
         self,
        # contract_address: str,
        # abi_path: str,
-        rings_client: RingsClient,
+        client: RingsHubClient,
         agent_manager: AgentManager,
         collector: Optional[CirclesDataCollector] = None,
         gas_limits: Optional[Dict] = None,
@@ -39,7 +41,7 @@ class NetworkEvolver(NetworkComponent):
         super().__init__()
         
         # Initialize clients
-        self.rings_client = rings_client
+        self.client = client
         self.fjord_client = fjord_client
         
         self.agent_manager = agent_manager
@@ -59,45 +61,42 @@ class NetworkEvolver(NetworkComponent):
         }
         
         # Event callbacks
-        self.on_mint_performed = None
-        self.on_transfer_performed = None
-        self.on_group_created = None
+        self.on_personalmint_performed = None
+        self.on_safetransferfrom_performed = None
+        self.on_registergroup_performed = None
 
         # Initialize handler classes
-        self.mint_handler = MintActionHandler(
-            rings_client=self.rings_client,
+        self.mint_handler = PersonalMintHandler(
+            client=self.client,
             chain=chain,
             logger=logger,
-            on_mint_performed=self.on_mint_performed
+            on_personalmint_performed=self.on_personalmint_performed
         )
 
-        self.trust_handler = TrustActionHandler(
-            rings_client=self.rings_client,
+        self.trust_handler = TrustHandler(
+            client=self.client,
             chain=chain,
-            logger=logger,
-            agent_manager=self.agent_manager
+            logger=logger
         )
 
-        self.transfer_handler = TransferActionHandler(
-            rings_client=self.rings_client,
+        self.transfer_handler = SafeTransferFromHandler(
+            client=self.client,
             chain=chain,
             logger=logger,
-            on_transfer_performed=self.on_transfer_performed
+            on_safetransferfrom_performed=self.on_safetransferfrom_performed
         )
 
-        self.group_creation_handler = GroupCreationActionHandler(
-            rings_client=self.rings_client,
+        self.group_creation_handler = RegisterGroupHandler(
+            client=self.client,
             chain=chain,
             logger=logger,
-            agent_manager=self.agent_manager,
-            on_group_created=self.on_group_created
+            on_registergroup_performed=self.on_registergroup_performed
         )
 
-        self.human_registration_handler = HumanRegistrationActionHandler(
-            rings_client=self.rings_client,
+        self.human_registration_handler = RegisterHumanHandler(
+            client=self.client,
             chain=chain,
-            logger=logger,
-            agent_manager=self.agent_manager
+            logger=logger
         )
 
     def advance_time(self, blocks: int, block_time: int = 5) -> bool:
@@ -211,7 +210,7 @@ class NetworkEvolver(NetworkComponent):
             if action_type == ActionType.MINT:
                 return self.mint_handler.execute(agent)
             elif action_type == ActionType.TRUST:
-                return self.trust_handler.execute(agent)
+                return self.trust_handler.execute(agent,self.agent_manager)
             elif action_type == ActionType.TRANSFER:
                 return self.transfer_handler.execute(agent)
             elif action_type == ActionType.CREATE_GROUP:
@@ -247,12 +246,12 @@ class NetworkEvolver(NetworkComponent):
         Validate if address is in a valid mint period without advancing time
         """
         try:
-            if not self.rings_client.is_human(address):
+            if not self.client.isHuman(address):
                 return False
-            if self.rings_client.is_stopped(address):
+            if self.client.stopped(address):
                 return False
                 
-            issuance, start_period, end_period = self.rings_client.calculate_issuance(address)
+            issuance, start_period, end_period = self.client.calculateIssuance(address)
             if issuance == 0:
                 return False
                 

@@ -10,7 +10,7 @@ import pandas as pd
 import json
 from typing import Optional, Dict, Any
 
-from src.protocols.rings import RingsClient
+from src.protocols.ringshub import RingsHubClient
 from src.framework.data import CirclesDataCollector
 from src.framework.agents import AgentManager
 from src.framework.core import (
@@ -152,7 +152,7 @@ class RingsSimulation:
 
         # Initialize clients
         rings_abi_path = validate_abi_path(RINGS_ABI, "Rings")
-        self.rings_client = RingsClient(
+        self.rings_client = RingsHubClient(
             RINGS,
             rings_abi_path,
             gas_limits=config.rings_config.get('gas_limits', {}),
@@ -169,14 +169,14 @@ class RingsSimulation:
         )
 
         self.builder = NetworkBuilder(
-            rings_client=self.rings_client,  # Pass the client instance
+            client=self.rings_client,  # Pass the client instance
             batch_size=config.batch_size,
             agent_manager=self.agent_manager,
-            data_collector=self.collector
+            collector=self.collector
         )
 
         self.evolver = NetworkEvolver(
-            rings_client=self.rings_client,  # Pass the client instance
+            client=self.rings_client,  # Pass the client instance
             agent_manager=self.agent_manager,
             collector=self.collector,
             gas_limits=config.rings_config.get('gas_limits'),
