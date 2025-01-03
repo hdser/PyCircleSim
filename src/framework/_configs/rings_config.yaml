@@ -12,11 +12,6 @@ gas_limits:
   trust: 300000
   registerGroup: 1000000
 
-# Cache settings
-cache:
-  enabled: false
-  ttl: 100
-
 # Database configuration
 db_path: "rings_simulation.duckdb"
 

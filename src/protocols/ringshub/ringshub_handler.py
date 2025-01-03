@@ -17,12 +17,10 @@ class BurnHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_burn_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_burn_performed = on_burn_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -54,16 +52,6 @@ class BurnHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_burn_performed:
-                self.on_burn_performed(
-                    _id=execution_params.get("_id"),
-                    _amount=execution_params.get("_amount"),
-                    _data=execution_params.get("_data"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -81,14 +69,10 @@ class CalculateIssuanceWithCheckHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_calculateissuancewithcheck_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_calculateissuancewithcheck_performed = (
-            on_calculateissuancewithcheck_performed
-        )
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -116,14 +100,6 @@ class CalculateIssuanceWithCheckHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_calculateissuancewithcheck_performed:
-                self.on_calculateissuancewithcheck_performed(
-                    _human=execution_params.get("_human"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -142,12 +118,10 @@ class GroupMintHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_groupmint_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_groupmint_performed = on_groupmint_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -181,17 +155,6 @@ class GroupMintHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_groupmint_performed:
-                self.on_groupmint_performed(
-                    _group=execution_params.get("_group"),
-                    _collateralAvatars=execution_params.get("_collateralAvatars"),
-                    _amounts=execution_params.get("_amounts"),
-                    _data=execution_params.get("_data"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -210,12 +173,10 @@ class MigrateHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_migrate_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_migrate_performed = on_migrate_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -247,16 +208,6 @@ class MigrateHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_migrate_performed:
-                self.on_migrate_performed(
-                    _owner=execution_params.get("_owner"),
-                    _avatars=execution_params.get("_avatars"),
-                    _amounts=execution_params.get("_amounts"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -274,12 +225,10 @@ class OperateFlowMatrixHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_operateflowmatrix_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_operateflowmatrix_performed = on_operateflowmatrix_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -313,17 +262,6 @@ class OperateFlowMatrixHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_operateflowmatrix_performed:
-                self.on_operateflowmatrix_performed(
-                    _flowVertices=execution_params.get("_flowVertices"),
-                    _flow=execution_params.get("_flow"),
-                    _streams=execution_params.get("_streams"),
-                    _packedCoordinates=execution_params.get("_packedCoordinates"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -342,12 +280,10 @@ class PersonalMintHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_personalmint_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_personalmint_performed = on_personalmint_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """Get internally computed parameters if needed"""
@@ -385,13 +321,6 @@ class PersonalMintHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_personalmint_performed:
-                self.on_personalmint_performed(
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -410,12 +339,10 @@ class RegisterCustomGroupHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_registercustomgroup_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_registercustomgroup_performed = on_registercustomgroup_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -451,18 +378,6 @@ class RegisterCustomGroupHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_registercustomgroup_performed:
-                self.on_registercustomgroup_performed(
-                    _mint=execution_params.get("_mint"),
-                    _treasury=execution_params.get("_treasury"),
-                    _name=execution_params.get("_name"),
-                    _symbol=execution_params.get("_symbol"),
-                    _metadataDigest=execution_params.get("_metadataDigest"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -481,12 +396,10 @@ class RegisterGroupHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_registergroup_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_registergroup_performed = on_registergroup_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """Get internally computed parameters if needed"""
@@ -526,17 +439,6 @@ class RegisterGroupHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_registergroup_performed:
-                self.on_registergroup_performed(
-                    _mint=execution_params.get("_mint"),
-                    _name=execution_params.get("_name"),
-                    _symbol=execution_params.get("_symbol"),
-                    _metadataDigest=execution_params.get("_metadataDigest"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -555,12 +457,10 @@ class RegisterHumanHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_registerhuman_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_registerhuman_performed = on_registerhuman_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """Get internally computed parameters if needed"""
@@ -602,15 +502,6 @@ class RegisterHumanHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_registerhuman_performed:
-                self.on_registerhuman_performed(
-                    _inviter=execution_params.get("_inviter"),
-                    _metadataDigest=execution_params.get("_metadataDigest"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -629,12 +520,10 @@ class RegisterOrganizationHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_registerorganization_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_registerorganization_performed = on_registerorganization_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -664,15 +553,6 @@ class RegisterOrganizationHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_registerorganization_performed:
-                self.on_registerorganization_performed(
-                    _name=execution_params.get("_name"),
-                    _metadataDigest=execution_params.get("_metadataDigest"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -691,12 +571,10 @@ class SafeBatchTransferFromHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_safebatchtransferfrom_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_safebatchtransferfrom_performed = on_safebatchtransferfrom_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -732,18 +610,6 @@ class SafeBatchTransferFromHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_safebatchtransferfrom_performed:
-                self.on_safebatchtransferfrom_performed(
-                    _from=execution_params.get("_from"),
-                    _to=execution_params.get("_to"),
-                    _ids=execution_params.get("_ids"),
-                    _values=execution_params.get("_values"),
-                    _data=execution_params.get("_data"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -762,12 +628,10 @@ class SafeTransferFromHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_safetransferfrom_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_safetransferfrom_performed = on_safetransferfrom_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """Get internally computed parameters if needed"""
@@ -813,18 +677,6 @@ class SafeTransferFromHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_safetransferfrom_performed:
-                self.on_safetransferfrom_performed(
-                    _from=execution_params.get("_from"),
-                    _to=execution_params.get("_to"),
-                    _id=execution_params.get("_id"),
-                    _value=execution_params.get("_value"),
-                    _data=execution_params.get("_data"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -843,12 +695,10 @@ class SetAdvancedUsageFlagHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_setadvancedusageflag_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_setadvancedusageflag_performed = on_setadvancedusageflag_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -876,14 +726,6 @@ class SetAdvancedUsageFlagHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_setadvancedusageflag_performed:
-                self.on_setadvancedusageflag_performed(
-                    _flag=execution_params.get("_flag"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -902,12 +744,10 @@ class SetApprovalForAllHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_setapprovalforall_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_setapprovalforall_performed = on_setapprovalforall_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -937,15 +777,6 @@ class SetApprovalForAllHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_setapprovalforall_performed:
-                self.on_setapprovalforall_performed(
-                    _operator=execution_params.get("_operator"),
-                    _approved=execution_params.get("_approved"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -964,12 +795,10 @@ class StopHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_stop_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_stop_performed = on_stop_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -995,13 +824,6 @@ class StopHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_stop_performed:
-                self.on_stop_performed(
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -1019,12 +841,10 @@ class TrustHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_trust_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_trust_performed = on_trust_performed
 
     def _get_params(self, agent: BaseAgent, agent_manager: AgentManager) -> Dict[str, Any]:
         """Get internally computed parameters if needed"""
@@ -1070,15 +890,6 @@ class TrustHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_trust_performed:
-                self.on_trust_performed(
-                    _trustReceiver=execution_params.get("_trustReceiver"),
-                    _expiry=execution_params.get("_expiry"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
-
             return success
 
         except Exception as e:
@@ -1096,12 +907,10 @@ class WrapHandler:
         client: RingsHubClient,
         chain,
         logger: logging.Logger,
-        on_wrap_performed=None,
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_wrap_performed = on_wrap_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -1141,16 +950,6 @@ class WrapHandler:
                 _type=execution_params.get("_type"),
                 sender=execution_params.get("sender"),
             )
-
-            if success and self.on_wrap_performed:
-                self.on_wrap_performed(
-                    _avatar=execution_params.get("_avatar"),
-                    _amount=execution_params.get("_amount"),
-                    _type=execution_params.get("_type"),
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp),
-                )
 
             return success
 

@@ -60,77 +60,6 @@ class BalancerV3VaultClient:
             'current_block': 0
         }
 
-        # Initialize event handlers for all events and non-view functions
-        
-        self.on_AggregateSwapFeePercentageChanged = None
-        
-        self.on_AggregateYieldFeePercentageChanged = None
-        
-        self.on_Approval = None
-        
-        self.on_AuthorizerChanged = None
-        
-        self.on_BufferSharesBurned = None
-        
-        self.on_BufferSharesMinted = None
-        
-        self.on_LiquidityAdded = None
-        
-        self.on_LiquidityAddedToBuffer = None
-        
-        self.on_LiquidityRemoved = None
-        
-        self.on_LiquidityRemovedFromBuffer = None
-        
-        self.on_PoolInitialized = None
-        
-        self.on_PoolPausedStateChanged = None
-        
-        self.on_PoolRecoveryModeStateChanged = None
-        
-        self.on_PoolRegistered = None
-        
-        self.on_ProtocolFeeControllerChanged = None
-        
-        self.on_Swap = None
-        
-        self.on_SwapFeePercentageChanged = None
-        
-        self.on_Transfer = None
-        
-        self.on_Unwrap = None
-        
-        self.on_VaultAuxiliary = None
-        
-        self.on_VaultBuffersPausedStateChanged = None
-        
-        self.on_VaultPausedStateChanged = None
-        
-        self.on_VaultQueriesDisabled = None
-        
-        self.on_VaultQueriesEnabled = None
-        
-        self.on_Wrap = None
-        
-        
-        self.on_addLiquidity = None
-        
-        self.on_erc4626BufferWrapOrUnwrap = None
-        
-        self.on_removeLiquidity = None
-        
-        self.on_sendTo = None
-        
-        self.on_settle = None
-        
-        self.on_swap = None
-        
-        self.on_transfer = None
-        
-        self.on_transferFrom = None
-        
-        self.on_unlock = None
-        
         
     
     
@@ -150,13 +79,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_addLiquidity:
-                    self.on_addLiquidity(
-                        
-                        params_=params,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -181,13 +103,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_erc4626BufferWrapOrUnwrap:
-                    self.on_erc4626BufferWrapOrUnwrap(
-                        
-                        params_=params,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -252,13 +167,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_removeLiquidity:
-                    self.on_removeLiquidity(
-                        
-                        params_=params,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -287,17 +195,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_sendTo:
-                    self.on_sendTo(
-                        
-                        token_=token,
-                        
-                        to_=to_,
-                        
-                        amount_=amount,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -324,15 +221,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_settle:
-                    self.on_settle(
-                        
-                        token_=token,
-                        
-                        amountHint_=amountHint,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -357,13 +245,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_swap:
-                    self.on_swap(
-                        
-                        vaultSwapParams_=vaultSwapParams,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -392,17 +273,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_transfer:
-                    self.on_transfer(
-                        
-                        owner_=owner,
-                        
-                        to_=to_,
-                        
-                        amount_=amount,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -433,19 +303,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_transferFrom:
-                    self.on_transferFrom(
-                        
-                        spender_=spender,
-                        
-                        from_=from_,
-                        
-                        to_=to_,
-                        
-                        amount_=amount,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:
@@ -470,13 +327,6 @@ class BalancerV3VaultClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_unlock:
-                    self.on_unlock(
-                        
-                        data_=data,
-                        
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:

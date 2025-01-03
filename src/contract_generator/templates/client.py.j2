@@ -38,13 +38,6 @@ class {{ contract_name }}Client:
             'current_block': 0
         }
 
-        # Initialize event handlers for all events and non-view functions
-        {% for event in events %}
-        self.on_{{ event.name }} = None
-        {% endfor %}
-        {% for func in functions if not func.is_view %}
-        self.on_{{ func.name }} = None
-        {% endfor %}
         
     {% for func in functions %}
     {% if func.is_view %}
@@ -76,13 +69,6 @@ class {{ contract_name }}Client:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
                 
-                if self.on_{{ func.name }}:
-                    self.on_{{ func.name }}(
-                        {% for orig_name, safe_name in func.get_input_names() %}
-                        {{ orig_name }}_={{ safe_name }},
-                        {% endfor %}
-                        tx_hash=tx.txn_hash
-                    )
             return success
                 
         except Exception as e:

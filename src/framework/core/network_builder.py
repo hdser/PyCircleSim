@@ -39,8 +39,7 @@ class NetworkBuilder():
         agent_manager: Optional[AgentManager] = None,
         collector: Optional[CirclesDataCollector] = None
     ):
-       # super().__init__()
-        
+
         self.client = client
         self.batch_size = batch_size
         self.agent_manager = agent_manager

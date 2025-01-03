@@ -156,7 +156,6 @@ class RingsSimulation:
             RINGS,
             rings_abi_path,
             gas_limits=config.rings_config.get('gas_limits', {}),
-            cache_config={'enabled': not fast_mode, 'ttl': 60},
             data_collector=self.collector 
         )
         

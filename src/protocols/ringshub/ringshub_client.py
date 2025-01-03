@@ -17,7 +17,7 @@ class RingsHubClient:
         contract_address: str,
         abi_path: str,
         gas_limits: Optional[Dict] = None,
-        cache_config: Optional[Dict] = None,
+       # cache_config: Optional[Dict] = None,
         data_collector: Optional["CirclesDataCollector"] = None,
     ):
         self.contract = Contract(contract_address, abi=abi_path)
@@ -72,77 +72,10 @@ class RingsHubClient:
         }
 
         # Optional caching
-        self.cache_enabled = cache_config.get("enabled", True) if cache_config else True
-        self.cache_ttl = cache_config.get("ttl", 100) if cache_config else 100
-        self.cache = {"last_update": datetime.min, "current_block": 0}
+       # self.cache_enabled = cache_config.get("enabled", True) if cache_config else True
+       # self.cache_ttl = cache_config.get("ttl", 100) if cache_config else 100
+       # self.cache = {"last_update": datetime.min, "current_block": 0}
 
-        # Initialize event handlers for all events and non-view functions
-
-        self.on_ApprovalForAll = None
-
-        self.on_DiscountCost = None
-
-        self.on_FlowEdgesScopeLastEnded = None
-
-        self.on_FlowEdgesScopeSingleStarted = None
-
-        self.on_GroupMint = None
-
-        self.on_PersonalMint = None
-
-        self.on_RegisterGroup = None
-
-        self.on_RegisterHuman = None
-
-        self.on_RegisterOrganization = None
-
-        self.on_SetAdvancedUsageFlag = None
-
-        self.on_Stopped = None
-
-        self.on_StreamCompleted = None
-
-        self.on_TransferBatch = None
-
-        self.on_TransferSingle = None
-
-        self.on_Trust = None
-
-        self.on_URI = None
-
-        self.on_burn = None
-
-        self.on_calculateIssuanceWithCheck = None
-
-        self.on_groupMint = None
-
-        self.on_migrate = None
-
-        self.on_operateFlowMatrix = None
-
-        self.on_personalMint = None
-
-        self.on_registerCustomGroup = None
-
-        self.on_registerGroup = None
-
-        self.on_registerHuman = None
-
-        self.on_registerOrganization = None
-
-        self.on_safeBatchTransferFrom = None
-
-        self.on_safeTransferFrom = None
-
-        self.on_setAdvancedUsageFlag = None
-
-        self.on_setApprovalForAll = None
-
-        self.on_stop = None
-
-        self.on_trust = None
-
-        self.on_wrap = None
 
     # Define input type structs
 
@@ -212,10 +145,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_burn:
-                    self.on_burn(
-                        _id=_id, _amount=_amount, _data=_data, tx_hash=tx.txn_hash
-                    )
             return success
 
         except Exception as e:
@@ -244,10 +173,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_calculateIssuanceWithCheck:
-                    self.on_calculateIssuanceWithCheck(
-                        _human=_human, tx_hash=tx.txn_hash
-                    )
             return success
 
         except Exception as e:
@@ -311,14 +236,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_groupMint:
-                    self.on_groupMint(
-                        _group=_group,
-                        _collateralAvatars=_collateralAvatars,
-                        _amounts=_amounts,
-                        _data=_data,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -423,13 +340,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_migrate:
-                    self.on_migrate(
-                        _owner=_owner,
-                        _avatars=_avatars,
-                        _amounts=_amounts,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -477,14 +387,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_operateFlowMatrix:
-                    self.on_operateFlowMatrix(
-                        _flowVertices=_flowVertices,
-                        _flow=_flow,
-                        _streams=_streams,
-                        _packedCoordinates=_packedCoordinates,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -506,8 +408,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_personalMint:
-                    self.on_personalMint(tx_hash=tx.txn_hash)
             return success
 
         except Exception as e:
@@ -536,15 +436,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_registerCustomGroup:
-                    self.on_registerCustomGroup(
-                        _mint=_mint,
-                        _treasury=_treasury,
-                        _name=_name,
-                        _symbol=_symbol,
-                        _metadataDigest=_metadataDigest,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -567,14 +458,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_registerGroup:
-                    self.on_registerGroup(
-                        _mint=_mint,
-                        _name=_name,
-                        _symbol=_symbol,
-                        _metadataDigest=_metadataDigest,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -593,12 +476,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_registerHuman:
-                    self.on_registerHuman(
-                        _inviter=_inviter,
-                        _metadataDigest=_metadataDigest,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -621,12 +498,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_registerOrganization:
-                    self.on_registerOrganization(
-                        _name=_name,
-                        _metadataDigest=_metadataDigest,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -655,15 +526,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_safeBatchTransferFrom:
-                    self.on_safeBatchTransferFrom(
-                        _from=_from,
-                        _to=_to,
-                        _ids=_ids,
-                        _values=_values,
-                        _data=_data,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -686,15 +548,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_safeTransferFrom:
-                    self.on_safeTransferFrom(
-                        _from=_from,
-                        _to=_to,
-                        _id=_id,
-                        _value=_value,
-                        _data=_data,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -713,8 +566,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_setAdvancedUsageFlag:
-                    self.on_setAdvancedUsageFlag(_flag=_flag, tx_hash=tx.txn_hash)
             return success
 
         except Exception as e:
@@ -733,10 +584,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_setApprovalForAll:
-                    self.on_setApprovalForAll(
-                        _operator=_operator, _approved=_approved, tx_hash=tx.txn_hash
-                    )
             return success
 
         except Exception as e:
@@ -758,8 +605,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_stop:
-                    self.on_stop(tx_hash=tx.txn_hash)
             return success
 
         except Exception as e:
@@ -838,12 +683,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_trust:
-                    self.on_trust(
-                        _trustReceiver=_trustReceiver,
-                        _expiry=_expiry,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:
@@ -883,13 +722,6 @@ class RingsHubClient:
                 if self.collector:
                     self.collector.record_transaction_events(tx)
 
-                if self.on_wrap:
-                    self.on_wrap(
-                        _avatar=_avatar,
-                        _amount=_amount,
-                        _type=_type,
-                        tx_hash=tx.txn_hash,
-                    )
             return success
 
         except Exception as e:

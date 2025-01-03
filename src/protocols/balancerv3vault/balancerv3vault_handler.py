@@ -18,12 +18,10 @@ class AddLiquidityHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_addliquidity_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_addliquidity_performed = on_addliquidity_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -72,16 +70,6 @@ class AddLiquidityHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_addliquidity_performed:
-                self.on_addliquidity_performed(
-                    
-                    params=execution_params.get("params"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -96,12 +84,10 @@ class Erc4626BufferWrapOrUnwrapHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_erc4626bufferwraporunwrap_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_erc4626bufferwraporunwrap_performed = on_erc4626bufferwraporunwrap_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -148,16 +134,6 @@ class Erc4626BufferWrapOrUnwrapHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_erc4626bufferwraporunwrap_performed:
-                self.on_erc4626bufferwraporunwrap_performed(
-                    
-                    params=execution_params.get("params"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -172,12 +148,10 @@ class RemoveLiquidityHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_removeliquidity_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_removeliquidity_performed = on_removeliquidity_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -226,16 +200,6 @@ class RemoveLiquidityHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_removeliquidity_performed:
-                self.on_removeliquidity_performed(
-                    
-                    params=execution_params.get("params"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -250,12 +214,10 @@ class SendToHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_sendto_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_sendto_performed = on_sendto_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -301,20 +263,6 @@ class SendToHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_sendto_performed:
-                self.on_sendto_performed(
-                    
-                    token=execution_params.get("token"),
-                    
-                    to_=execution_params.get("to_"),
-                    
-                    amount=execution_params.get("amount"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -329,12 +277,10 @@ class SettleHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_settle_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_settle_performed = on_settle_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -374,18 +320,6 @@ class SettleHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_settle_performed:
-                self.on_settle_performed(
-                    
-                    token=execution_params.get("token"),
-                    
-                    amountHint=execution_params.get("amountHint"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -400,12 +334,10 @@ class SwapHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_swap_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_swap_performed = on_swap_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -456,16 +388,6 @@ class SwapHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_swap_performed:
-                self.on_swap_performed(
-                    
-                    vaultSwapParams=execution_params.get("vaultSwapParams"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -480,12 +402,10 @@ class TransferHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_transfer_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_transfer_performed = on_transfer_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -531,20 +451,6 @@ class TransferHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_transfer_performed:
-                self.on_transfer_performed(
-                    
-                    owner=execution_params.get("owner"),
-                    
-                    to_=execution_params.get("to_"),
-                    
-                    amount=execution_params.get("amount"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -559,12 +465,10 @@ class TransferFromHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_transferfrom_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_transferfrom_performed = on_transferfrom_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -616,22 +520,6 @@ class TransferFromHandler:
                 sender=execution_params.get("sender"),
             )
 
-            if success and self.on_transferfrom_performed:
-                self.on_transferfrom_performed(
-                    
-                    spender=execution_params.get("spender"),
-                    
-                    from_=execution_params.get("from_"),
-                    
-                    to_=execution_params.get("to_"),
-                    
-                    amount=execution_params.get("amount"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
-
             return success
 
         except Exception as e:
@@ -646,12 +534,10 @@ class UnlockHandler:
         client: BalancerV3VaultClient,
         chain,
         logger: logging.Logger,
-        on_unlock_performed=None
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
-        self.on_unlock_performed = on_unlock_performed
 
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """
@@ -684,16 +570,6 @@ class UnlockHandler:
                 
                 sender=execution_params.get("sender"),
             )
-
-            if success and self.on_unlock_performed:
-                self.on_unlock_performed(
-                    
-                    data=execution_params.get("data"),
-                    
-                    sender=execution_params.get("sender"),
-                    block=self.chain.blocks.head.number,
-                    timestamp=datetime.fromtimestamp(self.chain.blocks.head.timestamp)
-                )
 
             return success
 

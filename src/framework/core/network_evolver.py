@@ -31,15 +31,12 @@ class NetworkEvolver():
     
     def __init__(
         self,
-       # contract_address: str,
-       # abi_path: str,
         client: RingsHubClient,
         agent_manager: AgentManager,
         collector: Optional[CirclesDataCollector] = None,
         gas_limits: Optional[Dict] = None,
         fjord_client: Optional[FjordLbpProxyV6Client] = None
     ):
-        #super().__init__()
         
         # Initialize clients
         self.client = client
@@ -61,18 +58,12 @@ class NetworkEvolver():
             'create_group': 1000000,
             'wrap': 500000,
         }
-        
-        # Event callbacks
-        self.on_personalmint_performed = None
-        self.on_safetransferfrom_performed = None
-        self.on_registergroup_performed = None
 
         # Initialize handler classes
         self.mint_handler = PersonalMintHandler(
             client=self.client,
             chain=chain,
             logger=logger,
-            on_personalmint_performed=self.on_personalmint_performed
         )
 
         self.trust_handler = TrustHandler(
@@ -85,14 +76,12 @@ class NetworkEvolver():
             client=self.client,
             chain=chain,
             logger=logger,
-            on_safetransferfrom_performed=self.on_safetransferfrom_performed
         )
 
         self.group_creation_handler = RegisterGroupHandler(
             client=self.client,
             chain=chain,
             logger=logger,
-            on_registergroup_performed=self.on_registergroup_performed
         )
 
         self.human_registration_handler = RegisterHumanHandler(
