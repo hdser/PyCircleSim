@@ -5,6 +5,6 @@ INSERT INTO agents (
     description, 
     total_accounts, 
     max_daily_actions, 
-    risk_tolerance, 
-    preferred_contracts
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    risk_tolerance 
+--    preferred_contracts
+) VALUES (?, ?, ?, ?, ?, ?, ?)

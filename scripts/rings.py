@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 import click
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import yaml
 from dotenv import load_dotenv
@@ -161,11 +161,18 @@ class RingsSimulation:
         
         self.fjord_client = None  # Optional Fjord initialization here if needed
 
+        clients = {
+            'ringshub': self.rings_client,
+            'fjordlbpproxyv6': self.fjord_client,
+        }
+
         # Initialize managers
         self.agent_manager = AgentManager(
             config=config.agent_config,
             data_collector=self.collector
         )
+        protocols_path = str(Path(__file__).parent.parent / "src" / "protocols")
+        self.agent_manager.registry.discover_actions(protocols_path)
 
         self.builder = NetworkBuilder(
             client=self.rings_client,  # Pass the client instance
@@ -175,11 +182,10 @@ class RingsSimulation:
         )
 
         self.evolver = NetworkEvolver(
-            client=self.rings_client,  # Pass the client instance
+            clients=clients,
             agent_manager=self.agent_manager,
             collector=self.collector,
             gas_limits=config.rings_config.get('gas_limits'),
-            fjord_client=self.fjord_client
         )
 
 

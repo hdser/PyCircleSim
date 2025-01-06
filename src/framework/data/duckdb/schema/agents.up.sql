@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS agents (
     risk_tolerance FLOAT NOT NULL,           -- Agent's risk tolerance
     
     -- Preferred Interaction Contexts
-    preferred_contracts TEXT[],              -- List of preferred contract types
+  --  preferred_contracts TEXT[],              -- List of preferred contract types
     
     -- Detailed Action Configuration
     FOREIGN KEY(simulation_run_id) REFERENCES simulation_runs(run_id)

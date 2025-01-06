@@ -1,15 +1,10 @@
-from typing import Dict, Optional, List, Any, Tuple
-from datetime import datetime
+from typing import Dict, Optional, List
 import random
-import logging
-
 from ape import chain
 from eth_pydantic_types import HexBytes
-
 from src.framework.agents import AgentManager, BaseAgent
 from src.framework.data import DataCollector
 from src.protocols.ringshub import RingsHubClient
-
 from src.protocols.ringshub import (
     PersonalMintHandler,
     RegisterHumanHandler,
@@ -179,6 +174,10 @@ class NetworkBuilder():
         total_trust = 0
         
         for agent in agents:
+            # Initialize trusted addresses in state if not present
+            if 'trusted_addresses' not in agent.state:
+                agent.state['trusted_addresses'] = set()
+                
             # Select random trustees
             potential_trustees = [a for a in agents if a != agent] 
             random.shuffle(potential_trustees)
@@ -209,7 +208,8 @@ class NetworkBuilder():
                         trust_failures += 1
                         
                     if success:
-                        agent.trusted_addresses.add(trustee_addr)
+                        # Store trust relationship in agent's state
+                        agent.state['trusted_addresses'].add(trustee_addr)
                         
                 except Exception as e:
                     trust_failures += 1
@@ -244,7 +244,7 @@ class NetworkBuilder():
             # Verify trust network density
             total_agents = len(self.agent_manager.agents)
             total_trust = sum(
-                len(agent.trusted_addresses) 
+                len(agent.state['trusted_addresses']) 
                 for agent in self.agent_manager.agents.values()
             )
             

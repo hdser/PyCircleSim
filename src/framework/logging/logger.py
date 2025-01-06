@@ -1,5 +1,3 @@
-# src/framework/logging/logger.py
-
 import logging
 import colorama
 from typing import Optional

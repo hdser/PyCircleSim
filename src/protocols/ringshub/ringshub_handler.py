@@ -637,7 +637,7 @@ class SafeTransferFromHandler:
         """Get internally computed parameters if needed"""
 
         sender = random.choice(list(agent.accounts.keys()))
-        receiver = random.choice(list(agent.trusted_addresses))
+        receiver = random.choice(list(agent.state['trusted_addresses']))
         id = self.client.toTokenId(sender)
         balance = self.client.balanceOf(sender,id)
 
@@ -846,16 +846,16 @@ class TrustHandler:
         self.chain = chain
         self.logger = logger
 
-    def _get_params(self, agent: BaseAgent, agent_manager: AgentManager) -> Dict[str, Any]:
+    def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """Get internally computed parameters if needed"""
 
         all_registered = set()
         # We iterate over known addresses and see if they're humans or orgs
-        for addr in agent_manager.address_to_agent.keys():
+        for addr in agent.accounts.keys():
             if self.client.isHuman(addr) or self.client.isOrganization(addr):
                 all_registered.add(addr)
 
-        already_trusted = agent.trusted_addresses or set()
+        already_trusted = agent.state['trusted_addresses'] or set()
         potential_trustees = list(
             all_registered
             - already_trusted
@@ -876,11 +876,11 @@ class TrustHandler:
         }
 
     def execute(
-        self, agent: BaseAgent, agent_manager: Optional[AgentManager]= None, params: Optional[Dict[str, Any]] = None
+        self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
     ) -> bool:
         try:
             # Get internal params if no external params provided
-            execution_params = params if params else self._get_params(agent, agent_manager)
+            execution_params = params if params else self._get_params(agent)
             if not execution_params:
                 return False
 
@@ -932,7 +932,6 @@ class WrapHandler:
             "_amount": amount,
             "_type": type
         }
-        print(params)
         return params
 
     def execute(

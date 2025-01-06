@@ -1,14 +1,13 @@
 import duckdb
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple, Union
-import pandas as pd
-import logging
+from typing import List, Dict, Optional, Tuple
 import json
-import os
 from ape import Contract
 from collections import defaultdict
-from src.framework.agents.base_agent import BaseAgent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.framework.agents.base_agent import BaseAgent
 from .event_logging import EventLogger, ContractEventHandler
 from .base_collector import BaseDataCollector
 from src.framework.logging import get_logger
@@ -21,7 +20,7 @@ class DataCollector(BaseDataCollector):
     in external files while providing improved data handling and validation.
     """
     
-    def __init__(self, db_path: str = "circles_network.duckdb", sql_dir: Optional[str] = None):
+    def __init__(self, db_path: str = "rings_network.duckdb", sql_dir: Optional[str] = None):
         """Initialize the data collector with a DuckDB database connection."""
         self.db_path = db_path
         
@@ -46,7 +45,7 @@ class DataCollector(BaseDataCollector):
 
         # Initialize event logging components
         self.event_logger = EventLogger(self.con)
-        self.event_handler = None  # Will be initialized when simulation run starts
+        self.event_handler = None  
 
     def _get_unique_timestamp(self, base_timestamp: datetime, table_name: str) -> datetime:
         """Generate a unique timestamp for database operations."""
@@ -190,7 +189,7 @@ class DataCollector(BaseDataCollector):
             logger.error(f"Failed to end simulation run: {e}")
             raise
             
-    def record_agent(self, agent: BaseAgent):
+    def record_agent(self, agent: 'BaseAgent'):
         """
         Record a comprehensive representation of a BaseAgent
         
@@ -207,7 +206,7 @@ class DataCollector(BaseDataCollector):
                 len(agent.accounts),
                 agent.profile.max_daily_actions,
                 agent.profile.risk_tolerance,
-                agent.profile.preferred_contracts
+              #  agent.profile.preferred_contracts
             ])
             
             # Insert action configurations
@@ -216,7 +215,7 @@ class DataCollector(BaseDataCollector):
             for action_type, config in agent.profile.action_configs.items():
                 self.con.execute(sql, [
                     agent.agent_id,
-                    action_type.name,
+                    action_type,  
                     config.probability,
                     config.cooldown_blocks,
                     config.gas_limit,

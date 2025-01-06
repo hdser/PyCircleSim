@@ -13,9 +13,6 @@ CREATE TABLE IF NOT EXISTS events (
     topics VARCHAR,           -- Store topics as plain text/hex string
     event_data VARCHAR,       -- Store event data as text
     raw_data VARCHAR,        -- Store raw data as hex string
-    indexed_values VARCHAR,   -- Store as text
-    decoded_values VARCHAR,   -- Store as text
-  --  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY(simulation_run_id) REFERENCES simulation_runs(run_id)
 );

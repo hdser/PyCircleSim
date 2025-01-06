@@ -1,8 +1,6 @@
-from typing import Optional, Dict, Any, List, Union
-import logging
+from typing import List
 from datetime import datetime
-from eth_utils import encode_hex
-from ape import Contract, chain
+from ape import Contract
 from ethpm_types.abi import EventABI
 from .event_logger import ContractEvent, EventLogger
 from src.framework.logging import get_logger
@@ -77,8 +75,6 @@ class ContractEventHandler:
                 topics = [str(topic) for topic in log.get('topics', [])]
                 event_data = str(decoded_log.event_arguments)
                 raw_data = str(log.get('data', ''))
-                indexed_values = str(decoded_log.indexed_arguments if hasattr(decoded_log, 'indexed_arguments') else {})
-                decoded_values = str(decoded_log.decoded_arguments if hasattr(decoded_log, 'decoded_arguments') else {})
 
                 event = ContractEvent(
                     simulation_run_id=self.simulation_run_id,
@@ -94,8 +90,6 @@ class ContractEventHandler:
                     topics=topics,
                     event_data=event_data,
                     raw_data=raw_data,
-                    indexed_values=indexed_values,
-                    decoded_values=decoded_values
                 )
                
                 self.logger.record_event(event)

@@ -1,9 +1,7 @@
-from typing import Dict, Any, Optional, List
+from typing import Dict, Optional, List
 from datetime import datetime
 import json
-import logging
 from dataclasses import dataclass, asdict
-from eth_utils import encode_hex
 from pathlib import Path
 import duckdb
 from src.framework.logging import get_logger
@@ -25,8 +23,6 @@ class ContractEvent:
     topics: List[str]
     event_data: Dict
     raw_data: str
-    indexed_values: Dict
-    decoded_values: Dict
 
 class EventLogger:
     """Efficient event logging system for contract events"""
@@ -59,8 +55,6 @@ class EventLogger:
             data = asdict(event)
             data['topics'] = json.dumps(data['topics'])
             data['event_data'] = json.dumps(data['event_data'])
-            data['indexed_values'] = json.dumps(data['indexed_values'])
-            data['decoded_values'] = json.dumps(data['decoded_values'])
             
             self.con.execute(sql, [
                 data['simulation_run_id'],
@@ -75,9 +69,7 @@ class EventLogger:
                 data['contract_address'],
                 data['topics'],
                 data['event_data'],
-                data['raw_data'],
-                data['indexed_values'],
-                data['decoded_values']
+                data['raw_data']
             ])
             self.con.commit()
             logger.info(f"Recorded contract event '{data['event_name']}' at block {data['block_number']}")

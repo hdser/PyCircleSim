@@ -1,42 +1,77 @@
-from dataclasses import dataclass
-from typing import Dict, List, Any
 from enum import Enum, auto
 
 class ActionType(Enum):
-    """All possible actions an agent can perform"""
-    # Rings protocol actions
-    MINT = auto()
-    TRANSFER = auto()
-    TRUST = auto()
-    CREATE_GROUP = auto()
-    REGISTER_HUMAN = auto()
-    SET_FLAGS = auto()
-    WRAP_TOKEN = auto()
-    OPERATE_MATRIX = auto()
+    """Available actions derived from protocol handlers"""
     
-    # Fjord protocol actions
-    CREATE_POOL = auto()
-    EXIT_POOL = auto()
-    UPDATE_WEIGHTS = auto()
-    SET_SWAP_ENABLED = auto()
-
-@dataclass
-class ActionConfig:
-    """Configuration for a single action type"""
-    probability: float
-    cooldown_blocks: int
-    gas_limit: int
-    min_balance: float
-    max_value: float
-    constraints: Dict[str, any]
-
-@dataclass
-class AgentProfile:
-    """Defines an agent's behavioral characteristics"""
-    name: str
-    description: str
-    action_configs: Dict[str, ActionConfig]
-    target_account_count: int
-    max_daily_actions: int
-    risk_tolerance: float
-    preferred_contracts: List[str]
+    balancerv3vault_AddLiquidity = auto()
+    
+    balancerv3vault_Erc4626BufferWrapOrUnwrap = auto()
+    
+    balancerv3vault_RemoveLiquidity = auto()
+    
+    balancerv3vault_SendTo = auto()
+    
+    balancerv3vault_Settle = auto()
+    
+    balancerv3vault_Swap = auto()
+    
+    balancerv3vault_Transfer = auto()
+    
+    balancerv3vault_TransferFrom = auto()
+    
+    balancerv3vault_Unlock = auto()
+    
+    fjordlbpproxyv6_AddFundTokenOptions = auto()
+    
+    fjordlbpproxyv6_CreateLBP = auto()
+    
+    fjordlbpproxyv6_CreateWeightedPoolForLBP = auto()
+    
+    fjordlbpproxyv6_ExitPool = auto()
+    
+    fjordlbpproxyv6_RenounceOwnership = auto()
+    
+    fjordlbpproxyv6_SetSwapEnabled = auto()
+    
+    fjordlbpproxyv6_Skim = auto()
+    
+    fjordlbpproxyv6_TransferOwnership = auto()
+    
+    fjordlbpproxyv6_TransferPoolOwnership = auto()
+    
+    fjordlbpproxyv6_UpdateRecipients = auto()
+    
+    ringshub_Burn = auto()
+    
+    ringshub_CalculateIssuanceWithCheck = auto()
+    
+    ringshub_GroupMint = auto()
+    
+    ringshub_Migrate = auto()
+    
+    ringshub_OperateFlowMatrix = auto()
+    
+    ringshub_PersonalMint = auto()
+    
+    ringshub_RegisterCustomGroup = auto()
+    
+    ringshub_RegisterGroup = auto()
+    
+    ringshub_RegisterHuman = auto()
+    
+    ringshub_RegisterOrganization = auto()
+    
+    ringshub_SafeBatchTransferFrom = auto()
+    
+    ringshub_SafeTransferFrom = auto()
+    
+    ringshub_SetAdvancedUsageFlag = auto()
+    
+    ringshub_SetApprovalForAll = auto()
+    
+    ringshub_Stop = auto()
+    
+    ringshub_Trust = auto()
+    
+    ringshub_Wrap = auto()
+    
