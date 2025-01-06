@@ -636,8 +636,12 @@ class SafeTransferFromHandler:
     def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
         """Get internally computed parameters if needed"""
 
+        trusted_addresses = agent.state.get('trusted_addresses', set())
+        if not trusted_addresses:
+            return {}  
+    
         sender = random.choice(list(agent.accounts.keys()))
-        receiver = random.choice(list(agent.state['trusted_addresses']))
+        receiver = random.choice(list(trusted_addresses))
         id = self.client.toTokenId(sender)
         balance = self.client.balanceOf(sender,id)
 

@@ -14,7 +14,7 @@ class NetworkEvolver():
     
     def __init__(
         self,
-        clients: Dict,
+        clients: Dict[str, Any],
         agent_manager: AgentManager,
         collector: Optional[DataCollector] = None,
         gas_limits: Optional[Dict] = None,

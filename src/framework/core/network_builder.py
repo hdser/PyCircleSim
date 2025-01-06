@@ -1,75 +1,45 @@
-from typing import Dict, Optional, List
-import random
+from typing import Dict, Optional, List, Any
 from ape import chain
 from eth_pydantic_types import HexBytes
 from src.framework.agents import AgentManager, BaseAgent
 from src.framework.data import DataCollector
-from src.protocols.ringshub import RingsHubClient
-from src.protocols.ringshub import (
-    PersonalMintHandler,
-    RegisterHumanHandler,
-    TrustHandler,
-    RegisterGroupHandler
-)
-
 from src.framework.logging import get_logger
 
 logger = get_logger(__name__)
 
-class BatchExecutionResult:
-    """Container for batch execution results"""
-    def __init__(self):
-        self.total = 0
-        self.successful = 0
-        self.failed = 0
-        self.errors = []
-
-class NetworkBuilder():
-    """Enhanced NetworkBuilder using handler-based architecture"""
+class NetworkBuilder:
+    """
+    Enhanced NetworkBuilder that handles initial network setup in a generalized way
+    """
     
     def __init__(
         self,
-        client: RingsHubClient,
+        clients: Dict[str, Any],
         batch_size: int = 10,
         agent_manager: Optional[AgentManager] = None,
         collector: Optional[DataCollector] = None
     ):
-
-        self.client = client
+        self.clients = clients
         self.batch_size = batch_size
         self.agent_manager = agent_manager
         self.collector = collector
-        
-        # Initialize handlers
-        self.register_human_handler = RegisterHumanHandler(
-            client=self.client,
-            chain=chain,
-            logger=logger
-        )
-        
-        self.trust_handler = TrustHandler(
-            client=self.client,
-            chain=chain,
-            logger=logger
-        )
-        
-        self.mint_handler = PersonalMintHandler(
-            client=self.client,
-            chain=chain,
-            logger=logger
-        )
-        
-        self.group_handler = RegisterGroupHandler(
-            client=self.client,
-            chain=chain,
-            logger=logger
-        )
 
     def build_large_network(
         self,
         target_size: int,
-        profile_distribution: Dict[str, int]
+        profile_distribution: Dict[str, int],
+        initial_state: Optional[Dict[str, Any]] = None,
+        initial_actions: Optional[List[Dict[str, Any]]] = None
     ) -> bool:
+        """
+        Build initial network state
+        
+        Args:
+            target_size: Target network size
+            profile_distribution: Distribution of agent profiles
+            initial_state: Initial state parameters
+            initial_actions: List of initial actions to execute
+        """
         try:
             logger.info(f"Creating {target_size} agents with distribution: {profile_distribution}")
             
@@ -78,19 +48,28 @@ class NetworkBuilder():
             if len(created_agents) != target_size:
                 logger.error(f"Created {len(created_agents)} agents, expected {target_size}")
                 return False
-            
+
             # Create accounts for each agent based on their profile
             for agent in created_agents:
                 self._ensure_agent_accounts(agent)
-            
-            # Register humans in batches
-            if not self._batch_register_humans(created_agents):
-                return False
-            
-            # Establish initial trust relationships
-            if not self._establish_initial_trust(created_agents):
-                return False
-                
+                # Initialize empty trusted addresses set
+                agent.state['trusted_addresses'] = set()
+
+            # Set initial network state
+            if initial_state:
+                if not self._set_initial_state(created_agents, initial_state):
+                    return False
+
+            # Execute initial actions in single block
+            if initial_actions:
+                if not self._execute_initial_actions(created_agents, initial_actions):
+                    return False
+
+            # Set initial network state
+            if initial_state:
+                if not self._set_initial_state(created_agents, initial_state):
+                    return False
+                    
             return True
             
         except Exception as e:
@@ -102,159 +81,110 @@ class NetworkBuilder():
         target_accounts = agent.profile.target_account_count
         current_accounts = len(agent.accounts)
         
-        # Create additional accounts if needed
+        # Create additional accounts if needed  
         for _ in range(current_accounts, target_accounts):
             agent.create_account()
 
-    def _batch_register_humans(self, agents: List[BaseAgent]) -> bool:
-        """Register humans in batches"""
-        total_registrations = 0
+    def _execute_initial_actions(
+        self, 
+        agents: List[BaseAgent],
+        actions: List[Dict[str, Any]]
+    ) -> bool:
+        total_executed = 0
         total_failures = 0
-        
-        try:
-            for batch in self._get_agent_batches(agents):
-                result = self._execute_registration_batch(batch)
-                total_registrations += result.successful
-                total_failures += result.failed
-                
-                if result.failed > 0:
-                    logger.warning(f"Batch had {result.failed} registration failures")
-                
-                logger.info(f"Batch registration complete - Success: {result.successful}, Failed: {result.failed}")
-                
-            # Check overall success rate
-            if total_failures > total_registrations * 0.2:  # Allow up to 20% failure rate
-                logger.error(f"Too many registration failures: {total_failures} out of {total_registrations + total_failures}")
-                return False
-                
-            return True
-                
-        except Exception as e:
-            logger.error(f"Batch registration failed: {e}")  
-            return False
-            
-    def _execute_registration_batch(self, agents: List[BaseAgent]) -> BatchExecutionResult:
-        """Execute a batch of registrations"""
-        result = BatchExecutionResult()
-        
+
+        # Create accounts first
         for agent in agents:
-            try:
-                # Get primary account for registration
-                primary_account = next(iter(agent.accounts.keys()))
-                if not primary_account:
-                    logger.error(f"Agent {agent.agent_id} has no accounts")
-                    result.failed += 1
+            self._ensure_agent_accounts(agent)
+            
+        # Then execute actions
+        for action_spec in actions:
+            action_type = action_spec["action"]
+            handler = self._get_handler_for_action(action_type)
+            if not handler:
+                continue
+
+            for agent in agents:
+                params = self._prepare_action_params(agent, action_spec)
+                if not params:
+                    # If param_function returned None (or an empty dict), skip
                     continue
+                success = handler.execute(agent, params)
+                total_executed += 1
+                if not success:
+                    total_failures += 1
 
-                success = self.register_human_handler.execute(
-                    agent,
-                    params={
-                        'sender': primary_account,
-                        '_inviter': "0x0000000000000000000000000000000000000000",
-                        '_metadataDigest': HexBytes(0),
-                    }
-                )
-                
-                result.total += 1
-                if success:
-                    result.successful += 1
-                else:
-                    result.failed += 1
-                    
-            except Exception as e:
-                result.failed += 1
-                result.errors.append(str(e))
-                logger.error(f"Registration failed for agent {agent.agent_id}: {e}")
-                
-        return result
-
-    def _establish_initial_trust(self, agents: List[BaseAgent]) -> bool:
-        """Create initial trust relationships"""
-        trust_failures = 0
-        total_trust = 0
-        
-        for agent in agents:
-            # Initialize trusted addresses in state if not present
-            if 'trusted_addresses' not in agent.state:
-                agent.state['trusted_addresses'] = set()
-                
-            # Select random trustees
-            potential_trustees = [a for a in agents if a != agent] 
-            random.shuffle(potential_trustees)
-            target_trustees = potential_trustees[:2]  # Trust up to 2 random agents
-            
-            for trustee in target_trustees:
-                try:
-                    if not agent.accounts or not trustee.accounts:
-                        continue
-                        
-                    truster_addr = next(iter(agent.accounts.keys()))  # Get primary account
-                    trustee_addr = next(iter(trustee.accounts.keys()))  # Get trustee's primary account
-                    
-                    # Calculate trust expiry (1 year)
-                    expiry = int(chain.blocks.head.timestamp + 365 * 24 * 60 * 60)
-                    
-                    success = self.trust_handler.execute(
-                        agent,
-                        params={
-                            'sender': truster_addr,
-                            '_trustReceiver': trustee_addr,
-                            '_expiry': expiry,
-                        }
-                    )
-                    
-                    total_trust += 1
-                    if not success:
-                        trust_failures += 1
-                        
-                    if success:
-                        # Store trust relationship in agent's state
-                        agent.state['trusted_addresses'].add(trustee_addr)
-                        
-                except Exception as e:
-                    trust_failures += 1
-                    logger.error(f"Trust establishment failed: {e}")
-
-        # Allow some failures but ensure majority succeed
-        if trust_failures > total_trust / 2:
-            logger.error(f"Too many trust failures: {trust_failures}/{total_trust}")
-            return False
-            
-        return True
-
-    def _get_agent_batches(self, agents: List[BaseAgent]) -> List[List[BaseAgent]]:
-        """Split agents into batches"""
-        for i in range(0, len(agents), self.batch_size):
-            yield agents[i:i + self.batch_size]
-
-    def verify_network_state(self) -> bool:
-        """Verify network build state"""
+        return total_failures <= total_executed * 0.2
+    
+    def _set_initial_state(
+        self, 
+        agents: List[BaseAgent],
+        state: Dict[str, Any]
+    ) -> bool:
+        """Set initial network state"""
         try:
-            # Verify all agents are registered
-            for agent in self.agent_manager.get_all_agents():
-                registered = False
-                for addr in agent.accounts.keys():
-                    if self.client.isHuman(addr):
-                        registered = True
-                        break
-                if not registered:
-                    logger.error(f"Agent {agent.agent_id} not properly registered")
-                    return False
-                    
-            # Verify trust network density
-            total_agents = len(self.agent_manager.agents)
-            total_trust = sum(
-                len(agent.state['trusted_addresses']) 
-                for agent in self.agent_manager.agents.values()
-            )
-            
-            avg_trust = total_trust / total_agents if total_agents > 0 else 0
-            if avg_trust < 1.5:  # Each agent should trust ~2 others
-                logger.warning(f"Low trust density: {avg_trust:.2f} average trust connections")
-                return False
-                
+            for agent in agents:
+                for key, value in state.items():
+                    agent.update_state(key, value)
             return True
-            
         except Exception as e:
-            logger.error(f"Network state verification failed: {e}")
+            logger.error(f"Failed to set initial state: {e}")
             return False
+
+    def _select_agents_for_action(
+        self,
+        agents: List[BaseAgent], 
+        action_spec: Dict[str, Any]
+    ) -> List[BaseAgent]:
+        """Select agents that should execute this action"""
+        profile = action_spec.get("profile")
+        count = action_spec.get("count", len(agents))
+        
+        filtered = agents
+        if profile:
+            filtered = [a for a in agents if a.profile.name == profile]
+            
+        return filtered[:count]
+
+    def _get_handler_for_action(self, action_type: str):
+        """Get appropriate handler for action type"""
+        try:
+            action_meta = self.agent_manager.registry.get_metadata(action_type)
+            if not action_meta:
+                return None
+
+            # Import handler
+            mod_path = action_meta.module_path.replace("/", ".").replace(".py", "")
+            module = __import__(mod_path, fromlist=[action_meta.handler_class])
+            handler_class = getattr(module, action_meta.handler_class)
+
+            # Initialize handler with appropriate client
+            client = self.clients.get(action_meta.module_name)
+            if client:
+                return handler_class(client=client, chain=chain, logger=logger)
+                
+        except Exception as e:
+            logger.error(f"Failed to get handler for {action_type}: {e}")
+            return None
+
+    def _prepare_action_params(
+        self,
+        agent: BaseAgent,
+        action_spec: Dict[str, Any]  
+    ) -> Dict[str, Any]:
+        """Prepare params handling both static and dynamic parameters"""
+        params = {}
+        for key, value in action_spec.items():
+            if key == "param_function":
+                continue
+            if callable(value):
+                params[key] = value(agent)
+            else:
+                params[key] = value
+
+        if "param_function" in action_spec:
+            params.update(action_spec["param_function"](agent, self.agent_manager.get_all_agents()))
+            
+        if "sender" not in params and agent.accounts:
+            params["sender"] = next(iter(agent.accounts.keys()))
+        return params

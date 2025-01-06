@@ -6,8 +6,8 @@ import os
 import yaml
 from dotenv import load_dotenv
 from ape import networks, chain
-import pandas as pd
-import json
+from eth_pydantic_types import HexBytes
+import random
 from typing import Optional, Dict, Any
 
 from src.protocols.ringshub import RingsHubClient
@@ -175,7 +175,8 @@ class RingsSimulation:
         self.agent_manager.registry.discover_actions(protocols_path)
 
         self.builder = NetworkBuilder(
-            client=self.rings_client,  # Pass the client instance
+            #client=self.rings_client,  # Pass the client instance
+            clients=clients,
             batch_size=config.batch_size,
             agent_manager=self.agent_manager,
             collector=self.collector
@@ -220,7 +221,73 @@ class RingsSimulation:
             logger.error(f"Simulation failed: {e}", exc_info=True)
             return False
 
+
     def _build_initial_network(self) -> bool:
+        """Build the initial network with agents"""
+        try:
+            logger.info(f"Building initial network with {self.config.network_size} agents")
+            
+            # Calculate agent distribution
+            distribution = {}
+            remaining = self.config.network_size
+            
+            for profile, weight in self.config.agent_distribution.items():
+                if profile == list(self.config.agent_distribution.keys())[-1]:
+                    # Last profile gets remaining agents
+                    distribution[profile] = remaining
+                else:
+                    count = int(weight * self.config.network_size)
+                    distribution[profile] = count
+                    remaining -= count
+            
+            
+            initial_actions = [
+                {
+                    "action": "ringshub_RegisterHuman",
+                    "param_function": lambda agent, _: {
+                        "_inviter": "0x0000000000000000000000000000000000000000",
+                        "_metadataDigest": HexBytes("0x00"),
+                        "sender": next(iter(agent.accounts.keys()))
+                    } if agent.accounts else None
+                },
+                {
+                    "action": "ringshub_Trust",
+                    "param_function": lambda agent, all_agents: {
+                        "_trustReceiver": next(iter(random.choice([
+                            a for a in all_agents if a != agent and len(a.accounts) > 0
+                        ]).accounts.keys())),
+                        "_expiry": int(chain.pending_timestamp + 365*24*60*60),
+                        "sender": next(iter(agent.accounts.keys()))
+                    } if agent.accounts else None
+                }
+            ]
+
+            initial_state = {
+                "trusted_addresses": set(),
+                "group_count": 0
+            }
+
+            success = self.builder.build_large_network(
+                target_size=self.config.network_size,
+                profile_distribution=distribution,
+                initial_actions=initial_actions,
+                initial_state=initial_state
+            )
+
+            
+            if success:
+                logger.info("Successfully built initial network")
+            else:
+                logger.error("Failed to build initial network")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error building initial network: {e}")
+            #self._log_event('network_build_error', error=str(e))
+            return False
+
+    def _build_initial_network2(self) -> bool:
         """Build the initial network with agents"""
         try:
             logger.info(f"Building initial network with {self.config.network_size} agents")

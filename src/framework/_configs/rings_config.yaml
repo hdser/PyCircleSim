@@ -1,8 +1,8 @@
 # Base network parameters (no nested 'network' key)
-size: 20              # Default network size
-trust_density: 0.1         # Default trust density
+size: 40              # Default network size
+trust_density: 0.5         # Default trust density
 batch_size: 10           # Default processing batch size
-iterations: 100              # Default number of iterations
+iterations: 10              # Default number of iterations
 blocks_per_iteration: 100  # Default blocks per iteration
 block_time: 5            # Default seconds per block
 
