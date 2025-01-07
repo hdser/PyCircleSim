@@ -59,7 +59,7 @@ class ContractEventHandler:
             logger.error(f"Failed to load ABIs: {e}")
             return []
 
-
+    
     def handle_transaction_events(self, tx) -> None:
         """Process and log all events from a transaction"""
         if not tx:
@@ -67,7 +67,7 @@ class ContractEventHandler:
             
         try:
             decoded_logs = tx.decode_logs(abi=self.abis)
-
+            
             for i, decoded_log in enumerate(decoded_logs):
                 log = tx.logs[i]
 
@@ -75,7 +75,7 @@ class ContractEventHandler:
                 topics = [str(topic) for topic in log.get('topics', [])]
                 event_data = str(decoded_log.event_arguments)
                 raw_data = str(log.get('data', ''))
-
+               
                 event = ContractEvent(
                     simulation_run_id=self.simulation_run_id,
                     event_name=decoded_log.event_name,

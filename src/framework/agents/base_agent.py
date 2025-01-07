@@ -7,8 +7,17 @@ from ape import networks
 from .profile import AgentProfile
 from src.framework.data import BaseDataCollector
 from src.framework.logging import get_logger
+from dataclasses import dataclass
 
 logger = get_logger(__name__)
+
+@dataclass
+class BalanceUpdate:
+    contract: str
+    account: str 
+    balance: int
+    timestamp: datetime
+    block: int
 
 class BaseAgent:
     """
@@ -30,7 +39,10 @@ class BaseAgent:
         self.accounts: Dict[str, bytes] = {}  # address -> private_key
         
         # Generic state management
-        self.state: Dict[str, Any] = {}  # For protocol-specific state
+        self.state: Dict[str, Any] = {
+            'balances-ERC20': {},  # {account: {contract: balance}}
+            'balances-history': []  # List of BalanceUpdate
+        }
         
         # Action tracking
         self.last_actions: Dict[str, int] = {}  # action_name -> last block
@@ -89,7 +101,8 @@ class BaseAgent:
         # Get available actions based on configuration
         available_actions = []
         for action_name in self.profile.action_configs.keys():
-            if self.profile.can_perform_action(action_name, current_block, 0):
+            last_block = 0 if action_name not in self.last_actions else self.last_actions[action_name]
+            if self.profile.can_perform_action(action_name, current_block, last_block):
                 available_actions.append((action_name, self.profile.action_configs[action_name].probability))
                 
         if not available_actions:
@@ -160,3 +173,45 @@ class BaseAgent:
     def get_state(self, key: str, default: Any = None) -> Any:
         """Get value from agent's state"""
         return self.state.get(key, default)
+    
+    def update_balance(self, account: str, contract: str, balance: int, 
+                      timestamp: datetime, block: int) -> None:
+        """Update the ERC20 balance for an account/contract pair"""
+        # Skip if not our account
+        if account not in self.accounts:
+            return
+            
+        # Initialize if needed
+        if account not in self.state['balances-ERC20']:
+            self.state['balances-ERC20'][account] = {}
+        
+        # Only store if non-zero or updating existing entry
+        if balance > 0 or contract in self.state['balances-ERC20'][account]:
+            self.state['balances-ERC20'][account][contract] = balance
+            
+            # Add to history
+            update = BalanceUpdate(
+                contract=contract,
+                account=account,
+                balance=balance,
+                timestamp=timestamp,
+                block=block
+            )
+            self.state['balances-history'].append(update)
+
+    def get_last_balance(self, account: str, contract: str) -> Optional[int]:
+        """Get last recorded balance for account/contract pair"""
+        return self.state['balances-ERC20'].get(account, {}).get(contract)
+
+    def get_balance_history(self, account: str = None, 
+                          contract: str = None) -> List[BalanceUpdate]:
+        """Get balance update history, optionally filtered"""
+        history = self.state['balances-history']
+        
+        if account:
+            history = [h for h in history if h.account == account]
+        if contract:
+            history = [h for h in history if h.contract == contract]
+            
+        return history
+    

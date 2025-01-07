@@ -48,6 +48,12 @@ profiles:
           max_trusted_accounts: 50
           min_target_age: 86400  # 1 day
           trust_score_threshold: 0.6
+      
+      - action: "wxdai_Deposit"
+        probability: 0.1
+        cooldown_blocks: 100
+
+          
 
   group_creator:
     description: "Creates and manages groups"

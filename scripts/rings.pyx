@@ -11,8 +11,10 @@ import random
 from typing import Optional, Dict, Any
 
 from src.protocols.ringshub import RingsHubClient
+from src.protocols.balancerv3vault import BalancerV3VaultClient
+from src.protocols.wxdai import WXDAIClient
 from src.framework.data import DataCollector
-from src.framework.agents import AgentManager
+from src.framework.agents import AgentManager, BalanceTracker
 from src.framework.core import (
     NetworkBuilder, 
     NetworkEvolver,
@@ -25,18 +27,32 @@ load_dotenv()
 logging.getLogger('ape').setLevel(logging.WARNING)
 logger = get_logger(__name__) 
 
-# Contract configuration 
-RINGS = "0x3D61f0A272eC69d65F5CFF097212079aaFDe8267"
-FJORD_LBP = "0x1ddf1109f8cb373dbb66f3d30077571ab21bdd58"
-
 PROJECT_ROOT = Path(__file__).parent.parent
 ABIS_DIR = PROJECT_ROOT / "src" / "protocols" / "abis"
-RINGS_ABI = ABIS_DIR / "rings" / f"{RINGS}.json"
-FJORD_ABI = ABIS_DIR / "fjord" / f"{FJORD_LBP}.json"
 
-ABIS_DIR.mkdir(parents=True, exist_ok=True)
-(ABIS_DIR / "rings").mkdir(exist_ok=True)
-(ABIS_DIR / "fjord").mkdir(exist_ok=True)
+
+CONTRACT_CONFIGS = {
+    'rings': {
+        'address': '0x3D61f0A272eC69d65F5CFF097212079aaFDe8267',
+        'client_class': 'RingsHubClient',
+        'module_name': 'ringshub',
+        'abi_folder': 'rings'
+    },
+    'balancerv3vault': {
+        'address': '0xbA1333333333a1BA1108E8412f11850A5C319bA9', 
+        'client_class': 'BalancerV3VaultClient',
+        'module_name': 'balancerv3vault',
+        'abi_folder': 'balancer_v3'
+    },
+    'wxdai': {
+        'address': '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d', 
+        'client_class': 'WXDAIClient', 
+        'module_name': 'wxdai',
+        'abi_folder': 'tokens'
+    }
+}
+
+
 
 def validate_abi_path(path: Path, name: str) -> str:
     if not path.exists():
@@ -150,21 +166,8 @@ class RingsSimulation:
         )
 
 
-        # Initialize clients
-        rings_abi_path = validate_abi_path(RINGS_ABI, "Rings")
-        self.rings_client = RingsHubClient(
-            RINGS,
-            rings_abi_path,
-            gas_limits=config.rings_config.get('gas_limits', {}),
-            data_collector=self.collector 
-        )
-        
-        self.fjord_client = None  # Optional Fjord initialization here if needed
-
-        clients = {
-            'ringshub': self.rings_client,
-            'fjordlbpproxyv6': self.fjord_client,
-        }
+       # Initialize all clients
+        self.clients = self.initialize_clients(config)
 
         # Initialize managers
         self.agent_manager = AgentManager(
@@ -176,14 +179,14 @@ class RingsSimulation:
 
         self.builder = NetworkBuilder(
             #client=self.rings_client,  # Pass the client instance
-            clients=clients,
+            clients=self.clients,
             batch_size=config.batch_size,
             agent_manager=self.agent_manager,
             collector=self.collector
         )
 
         self.evolver = NetworkEvolver(
-            clients=clients,
+            clients=self.clients,
             agent_manager=self.agent_manager,
             collector=self.collector,
             gas_limits=config.rings_config.get('gas_limits'),
@@ -192,7 +195,60 @@ class RingsSimulation:
 
         # Initialize tracking
         self.iteration_stats = []
+
+        self.balance_tracker = BalanceTracker(self.agent_manager)
+        if self.collector:
+            self.balance_tracker.subscribe(self.collector.event_logger)
         
+
+    def initialize_clients(self, config: SimulationConfig) -> Dict[str, Any]:
+        """Initialize all contract clients from configuration"""
+        clients = {}
+        
+        for contract_name, contract_config in CONTRACT_CONFIGS.items():
+            try:
+                # Build ABI path
+                abi_path = ABIS_DIR / contract_config['abi_folder'] / f"{contract_config['address']}.json"
+                validated_abi = validate_abi_path(abi_path, contract_name.title())
+                
+                # Parse ABI content
+                if validated_abi == "{}":
+                    # Empty ABI case
+                    abi_content = []
+                else:
+                    # Read actual ABI content from file
+                    with open(validated_abi, 'r') as f:
+                        abi_content = f.read()
+                
+                # Import client class dynamically
+                module = __import__(
+                    f"src.protocols.{contract_config['module_name']}", 
+                    fromlist=[contract_config['client_class']]
+                )
+                client_class = getattr(module, contract_config['client_class'])
+                
+                # Initialize client
+                client = client_class(
+                    contract_config['address'],
+                    abi_content,  # Pass ABI content instead of path
+                    gas_limits=config.rings_config.get('gas_limits', {}),
+                    data_collector=self.collector
+                )
+                
+                # Store client instance
+                setattr(self, f"{contract_name}_client", client)
+                clients[contract_config['module_name']] = client
+                
+                # Create ABI directory if it doesn't exist
+              #  (ABIS_DIR / contract_config['module_name']).mkdir(exist_ok=True)
+                
+                logger.debug(f"Successfully initialized {contract_name} client")
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize {contract_name} client: {e}")
+                raise
+        
+        return clients
 
     def run(self) -> bool:
         """Execute the entire simulation"""
@@ -287,40 +343,6 @@ class RingsSimulation:
             #self._log_event('network_build_error', error=str(e))
             return False
 
-    def _build_initial_network2(self) -> bool:
-        """Build the initial network with agents"""
-        try:
-            logger.info(f"Building initial network with {self.config.network_size} agents")
-            
-            # Calculate agent distribution
-            distribution = {}
-            remaining = self.config.network_size
-            
-            for profile, weight in self.config.agent_distribution.items():
-                if profile == list(self.config.agent_distribution.keys())[-1]:
-                    # Last profile gets remaining agents
-                    distribution[profile] = remaining
-                else:
-                    count = int(weight * self.config.network_size)
-                    distribution[profile] = count
-                    remaining -= count
-            
-            success = self.builder.build_large_network(
-                target_size=self.config.network_size,
-                profile_distribution=distribution
-            )
-            
-            if success:
-                logger.info("Successfully built initial network")
-            else:
-                logger.error("Failed to build initial network")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Error building initial network: {e}")
-            #self._log_event('network_build_error', error=str(e))
-            return False
 
     def _run_iterations(self) -> bool:
         """Run all simulation iterations"""
@@ -356,10 +378,7 @@ class RingsSimulation:
                 'agent_profiles': list(self.config.agent_config.get('profiles', {}).keys()),
                 'fast_mode': self.fast_mode
             },
-            'contracts': {
-                'rings': RINGS,
-                'fjord': FJORD_LBP if not self.fast_mode else None
-            },
+            'contracts': {key: CONTRACT_CONFIGS[key]['address'] for key in CONTRACT_CONFIGS},
             'chain_id': networks.provider.chain_id
         }
 

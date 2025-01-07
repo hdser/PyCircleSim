@@ -32,6 +32,11 @@ class EventLogger:
         self.con = connection
         self.sql_dir = Path(__file__).parent.parent / "duckdb"
         self._initialize_table()
+        self._subscribers = []
+
+    def subscribe(self, callback):
+        """Add a subscriber callback"""
+        self._subscribers.append(callback)
         
     def _initialize_table(self):
         """Ensure events table exists"""
@@ -73,6 +78,14 @@ class EventLogger:
             ])
             self.con.commit()
             logger.info(f"Recorded contract event '{data['event_name']}' at block {data['block_number']}")
+
+            # Notify subscribers
+            for subscriber in self._subscribers:
+                try:
+                    subscriber(event)
+                except Exception as e:
+                    logger.error(f"Error notifying subscriber: {e}")
+                    
             return True
             
         except Exception as e:

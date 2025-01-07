@@ -78,31 +78,38 @@ class CreateLBPHandler:
         Get parameter template showing expected structure.
         Returns a dict with all required parameters as empty placeholders.
         """
+        sender = random.choice(list(agent.accounts.keys()))
+        id = self.client.toTokenId(sender)
+        balance = self.client.balanceOf(sender,id)
+
+        if balance == 0:
+            return {}
+        
         # Template showing required parameters
         params = {
-            'sender': None,  # Required: address that will send the transaction
+            'sender':sender, 
             
             
             # Struct definition for poolConfig
             'poolConfig': {
                 
-                'name': None,  # type: string
+                'name': 'TEST',  # type: string
                 
-                'symbol': None,  # type: string
+                'symbol': 'TEST12',  # type: string
                 
                 'tokens': None,  # type: address[]
                 
-                'amounts': None,  # type: uint256[]
+                'amounts': [20000000000000000000,100000000000000000000],  # type: uint256[]
                 
-                'weights': None,  # type: uint256[]
+                'weights': [10000000000000000,990000000000000000],  # type: uint256[]
                 
-                'endWeights': None,  # type: uint256[]
+                'endWeights': [500000000000000000,500000000000000000],  # type: uint256[]
                 
-                'swapFeePercentage': None,  # type: uint256
+                'swapFeePercentage': 3000000000000000,  # type: uint256
                 
-                'startTime': None,  # type: uint256
+                'startTime': chain.blocks.head.timestamp,  # type: uint256
                 
-                'endTime': None,  # type: uint256
+                'endTime': chain.blocks.head.timestamp,  # type: uint256
                 
             },
             

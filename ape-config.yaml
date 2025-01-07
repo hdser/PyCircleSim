@@ -35,6 +35,7 @@ foundry:
         memory_limit: 2048
         ephemeral: true
         prune_history: true
-
+        anvil_args:
+          - --no-mining 
         
 

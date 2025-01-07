@@ -1,10 +1,11 @@
 # Base network parameters (no nested 'network' key)
-size: 40              # Default network size
+size: 20              # Default network size
 trust_density: 0.5         # Default trust density
 batch_size: 10           # Default processing batch size
-iterations: 10              # Default number of iterations
+iterations: 40              # Default number of iterations
 blocks_per_iteration: 100  # Default blocks per iteration
 block_time: 5            # Default seconds per block
+
 
 # Gas configuration
 gas_limits:

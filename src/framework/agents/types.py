@@ -75,3 +75,13 @@ class ActionType(Enum):
     
     ringshub_Wrap = auto()
     
+    wxdai_Approve = auto()
+    
+    wxdai_Deposit = auto()
+    
+    wxdai_Transfer = auto()
+    
+    wxdai_TransferFrom = auto()
+    
+    wxdai_Withdraw = auto()
+    
