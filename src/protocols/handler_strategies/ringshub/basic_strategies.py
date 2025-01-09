@@ -291,7 +291,8 @@ class TrustStrategy(BaseStrategy):
         if not truster:
             return {}
             
-        for addr in agent.accounts.keys():
+        all_accounts = agent_manager.address_to_agent.keys()
+        for addr in all_accounts:
             if client.isHuman(addr) and addr != truster:
                 all_registered.add(addr)
 
