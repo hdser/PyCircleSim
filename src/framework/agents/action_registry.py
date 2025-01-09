@@ -28,32 +28,67 @@ class ActionRegistry:
         )
         
     def discover_actions(self, protocols_dir: str):
-        """Auto-discover action handlers from protocol modules"""
+        """Auto-discover action handlers from protocol interfaces"""
         protocols_path = Path(protocols_dir)
         if not protocols_path.exists():
             logger.error(f"Protocols directory not found: {protocols_dir}")
             return
 
-        for proto_dir in protocols_path.iterdir():
-            if not proto_dir.is_dir() or proto_dir.name.startswith('_'):
+        # Look specifically in the interfaces directory
+        interfaces_path = protocols_path / "interfaces"
+        if not interfaces_path.exists():
+            logger.error(f"Interfaces directory not found: {interfaces_path}")
+            return
+
+        for interface_dir in interfaces_path.iterdir():
+            if not interface_dir.is_dir() or interface_dir.name.startswith('_'):
                 continue
+            
+            module_name = interface_dir.name
+            self._register_handlers_from_interface(module_name)
+
+    def _register_handlers_from_interface(self, module_name: str):
+        """Extract and register handlers from an interface module"""
+        try:
+            interface_path = f"src.protocols.interfaces.{module_name}"
+            module = importlib.import_module(interface_path)
+            
+            # Get handler classes from the module's __all__ attribute
+            handler_classes = [
+                name for name in module.__all__ 
+                if name.endswith('Handler') and not name.endswith('BaseHandler')
+            ]
+            
+            for handler_name in handler_classes:
+                handler_class = getattr(module, handler_name)
                 
-            handler_file = proto_dir / f"{proto_dir.name}_handler.py"
-            if handler_file.exists():
-                self._register_handlers_from_file(handler_file, proto_dir.name)
+                # Create action name
+                action_name = f"{module_name}_{handler_name[:-7]}"
                 
+                metadata = ActionMetadata(
+                    name=action_name,
+                    handler_class=handler_name,
+                    module_path=interface_path,
+                    constraints=self._extract_constraints(handler_class),
+                    required_params=self._extract_params(handler_class),
+                    module_name=module_name
+                )
+                
+                self._actions[action_name] = metadata
+                logger.info(f"Registered action {action_name} from {interface_path}")
+                    
+        except Exception as e:
+            logger.error(f"Error registering handlers from {module_name}: {e}", exc_info=True)
+
+
     def _register_handlers_from_file(self, handler_file: Path, module_name: str):
         """Extract and register handlers from a file"""
         try:
-            # Import the module
-            module_path = str(handler_file.relative_to(Path.cwd()))
-            spec = importlib.util.spec_from_file_location(
-                f"{module_name}_handler", handler_file
-            )
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            
-            # Find handler classes
+            # Determine module path for interfaces structure
+            interface_path = f"src.protocols.interfaces.{module_name}"
+            module = importlib.import_module(interface_path)
+                
+            # Find handler classes from the module
             for name, obj in inspect.getmembers(module):
                 if (inspect.isclass(obj) and 
                     name.endswith('Handler') and 
@@ -65,17 +100,18 @@ class ActionRegistry:
                     metadata = ActionMetadata(
                         name=action_name,
                         handler_class=name,
-                        module_path=module_path,
+                        module_path=interface_path,
                         constraints=self._extract_constraints(obj),
                         required_params=self._extract_params(obj),
                         module_name=module_name
                     )
                     
                     self._actions[action_name] = metadata
-                    logger.debug(f"Registered action {action_name}")
-                    
+                    logger.debug(f"Registered action {action_name} from {interface_path}")
+                        
         except Exception as e:
-            logger.error(f"Error registering handlers from {handler_file}: {e}")
+            logger.error(f"Error registering handlers from {module_name}: {e}")
+                
                     
     def _extract_constraints(self, handler_class) -> List[str]:
         """Extract supported constraints from handler class"""

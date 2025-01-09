@@ -106,13 +106,20 @@ class BaseSimulation(ABC):
 
         # Initialize infrastructure
         self.collector = self._initialize_collector()
-        self.clients = self._initialize_clients()
         self.agent_manager = self._initialize_agent_manager()
+        self.clients = self._initialize_clients()
         self.builder = self._initialize_builder()
         self.evolver = self._initialize_evolver()
         
+        # Call post-initialization
+      #  self.post_initialize()
+
         # Tracking
         self.iteration_stats = []
+
+    #def post_initialize(self):
+    #    """Hook for post-initialization tasks"""
+    #    pass
 
     def _initialize_collector(self) -> Optional[DataCollector]:
         """Initialize data collector if not in fast mode"""

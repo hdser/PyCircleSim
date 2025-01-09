@@ -25,10 +25,21 @@ class ContractFunction:
         self.is_view = self.stateMutability in ['view', 'pure']
 
     def get_python_params(self) -> str:
+        """Get parameters as a string suitable for both function definition and calling"""
         params = []
         for i, inp in enumerate(self.inputs):
             param_name = inp['name'] if inp['name'] else f"param{i}"
-            # Add underscore to reserved keywords
+            if param_name in self.PYTHON_KEYWORDS:
+                param_name = f"{param_name}_"
+            param_type = self._get_python_type(inp['type'])
+            params.append(param_name)
+        return ", ".join(params)
+    
+    def get_python_param_defs(self) -> str:
+        """Get parameter definitions for function signatures"""
+        params = []
+        for i, inp in enumerate(self.inputs):
+            param_name = inp['name'] if inp['name'] else f"param{i}"
             if param_name in self.PYTHON_KEYWORDS:
                 param_name = f"{param_name}_"
             param_type = self._get_python_type(inp['type'])
@@ -44,8 +55,8 @@ class ContractFunction:
     def get_input_names(self) -> List[Tuple[str, str]]:
         """Get list of (original_name, safe_name) tuples for all inputs"""
         return [
-            (inp['name'], self.get_safe_param_name(inp['name']))
-            for inp in self.inputs
+            (inp.get('name', f'param{i}'), self.get_safe_param_name(inp.get('name', f'param{i}')))
+            for i, inp in enumerate(self.inputs)
         ]
 
     def get_python_return_type(self) -> str:
@@ -142,46 +153,36 @@ class ContractGenerator:
             elif entry['type'] == 'event':
                 self.events.append(ContractEvent(entry))
 
-    def _parse_abi2(self):
-        # Standard ERC1155 events we need to handle
-        erc1155_events = {
-            'TransferSingle': {'name': 'TransferSingle', 'inputs': []},
-            'TransferBatch': {'name': 'TransferBatch', 'inputs': []},
-            'ApprovalForAll': {'name': 'ApprovalForAll', 'inputs': []},
-            'URI': {'name': 'URI', 'inputs': []}
-        }
-        
-        # Add base ERC1155 events first
-        for event_name, event_data in erc1155_events.items():
-            self.events.append(ContractEvent(event_data))
-
-        # Then parse contract-specific functions and events
-        for entry in self.abi:
-            if entry['type'] == 'function':
-                self.functions.append(ContractFunction(entry))
-            elif entry['type'] == 'event':
-                # Only add if not already added from ERC1155
-                if entry['name'] not in erc1155_events:
-                    self.events.append(ContractEvent(entry))
-
     def generate_all(self):
-        contract_dir = self.protocols_dir / self.contract_name.lower()
-        contract_dir.mkdir(parents=True, exist_ok=True)
+        """Generate all contract interfaces and strategies"""
+        # Create interface directory 
+        interface_dir = self.protocols_dir / "interfaces" / self.contract_name.lower()
+        interface_dir.mkdir(parents=True, exist_ok=True)
 
-        self.generate_client(contract_dir)
-        self.generate_handler(contract_dir)
+        # Create handler strategies directory
+        strategies_dir = self.protocols_dir / "handler_strategies" / self.contract_name.lower()
+        strategies_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate client and handler
+        self.generate_client(interface_dir)
+        self.generate_handler(interface_dir)
+        self.generate_interface_init(interface_dir)
+        self.generate_strategies(strategies_dir)
+
+    def generate_interface_init(self, output_dir: Path):
+        """Generate __init__.py for interface directory"""
+        template = self.env.get_template('interface_init.py.j2')
         
-        # Update __init__.py to export action handlers
-        init_file = contract_dir / "__init___template.py"
-        action_handler = [f"{to_camel_case(f.name)}Handler" for f in self.functions if not f.is_view]
+        # Get handler classes for non-view functions
+        handlers = [f.name for f in self.functions if not f.is_view]
         
-        init_content = (
-            f"from .{self.contract_name.lower()}_client import {self.contract_name}Client\n"
-            f"from .{self.contract_name.lower()}_handler import (\n    "
-            + ",\n    ".join(action_handler)
-            + "\n)\n"
+        content = template.render(
+            contract_name=self.contract_name,
+            handlers=[to_camel_case(h) + "Handler" for h in handlers]
         )
-        init_file.write_text(init_content)
+        
+        output_path = output_dir / "__init___template.py"
+        self._write_formatted_python(content, output_path)
         
 
     def generate_client(self, output_dir: str):
@@ -211,6 +212,25 @@ class ContractGenerator:
         
         # Output path now includes 'actions' in name
         output_path = Path(output_dir) / f"{self.contract_name.lower()}_handler_template.py"
+        self._write_formatted_python(content, output_path)
+
+    def generate_strategies(self, output_dir: Path):
+        """Generate strategy files"""
+        # Generate basic strategies
+        template = self.env.get_template('basic_strategies.py.j2')
+        content = template.render(
+            contract_name=self.contract_name,
+            functions=self.functions
+        )
+        output_path = output_dir / "basic_strategies_template.py"
+        self._write_formatted_python(content, output_path)
+
+        # Generate init file
+        template = self.env.get_template('__init__.py.j2')
+        content = template.render(
+            functions=self.functions
+        )
+        output_path = output_dir / "__init___template.py"
         self._write_formatted_python(content, output_path)
 
     def _write_formatted_python(self, content: str, path: Path):

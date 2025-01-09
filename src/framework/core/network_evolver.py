@@ -5,6 +5,7 @@ from ape import chain
 from src.framework.agents import AgentManager, BaseAgent, ActionType
 from src.framework.data import DataCollector
 from src.framework.logging import get_logger
+import importlib 
 
 
 logger = get_logger(__name__)
@@ -30,39 +31,47 @@ class NetworkEvolver():
         # Initialize all available handlers
         self.handlers = {}
         self._initialize_handlers()
-        
+
     def _initialize_handlers(self):
-        """Initialize all available action handlers"""
-        # Get action registry
+        """Initialize all available action handlers with configured strategies"""
         registry = self.agent_manager.registry
-        
-        # For each registered action, initialize its handler
+
         for action_name, metadata in registry._actions.items():
             try:
-                # Import handler class
-                module = __import__(
-                    metadata.module_path.replace('/', '.').replace('.py', ''),
-                    fromlist=[metadata.handler_class]
-                )
+                interface_path = f"src.protocols.interfaces.{metadata.module_name}"
+                module = importlib.import_module(interface_path)
                 handler_class = getattr(module, metadata.handler_class)
-                
-                # Initialize handler with appropriate client
+
                 client = self._get_client_for_module(metadata.module_name)
-                if client:
-                    handler = handler_class(
-                        client=client,
-                        chain=chain,
-                        logger=logger
-                    )
-                    self.handlers[action_name] = handler
-                    logger.debug(f"Initialized handler for {action_name}")
-                    
+                if not client:
+                    continue
+
+                strategy = getattr(self, 'strategy_config', {}).get(
+                    metadata.module_name,
+                    'basic'
+                )
+                
+                handler = handler_class(
+                    client=client,
+                    chain=chain,
+                    logger=logger,
+                    strategy_name=strategy
+                )
+                self.handlers[action_name] = handler
+                
+                logger.info(
+                    f"Initialized handler {action_name} with {strategy} strategy"
+                )
+                
             except Exception as e:
-                logger.error(f"Failed to initialize handler for {action_name}: {e}")
+                logger.error(
+                    f"Failed to initialize handler for {action_name}: {e}",
+                    exc_info=True
+                )
+        
                 
     def _get_client_for_module(self, module_name: str) -> Any:
         """Get appropriate client for module"""
-        
         return self.clients.get(module_name)
         
     def _execute_action(
@@ -144,7 +153,6 @@ class NetworkEvolver():
                     current_block=chain_state['current_block'],
                     network_state=chain_state
                 )
-                
                 if action_name is None:
                     continue
 
@@ -153,10 +161,8 @@ class NetworkEvolver():
                 success = self._execute_action(
                     agent, 
                     action_name,
-                  #  acting_address,
                     params
                 )
-                
                 if success:
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
@@ -167,6 +173,7 @@ class NetworkEvolver():
                         chain_state['current_block'],
                         True
                     )
+                    
 
             logger.info(
                 f"Iteration {iteration} complete - "

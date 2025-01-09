@@ -41,7 +41,8 @@ class BaseAgent:
         # Generic state management
         self.state: Dict[str, Any] = {
             'balances-ERC20': {},  # {account: {contract: balance}}
-            'balances-history': []  # List of BalanceUpdate
+            'balances-history': [],  # List of BalanceUpdate
+            'isGroup': []
         }
         
         # Action tracking
@@ -61,7 +62,7 @@ class BaseAgent:
             self.accounts[account.address] = private_key
             
             # Fund account if needed
-            networks.provider.set_balance(account.address, int(100e18))
+            networks.provider.set_balance(account.address, int(10000e18))
             
             # Record if collector exists
             if self.collector and self.collector.current_run_id:

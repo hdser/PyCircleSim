@@ -1,4 +1,3 @@
-
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime 
 from eth_typing import HexStr
@@ -17,7 +16,6 @@ class {{ contract_name }}Client:
         contract_address: str,
         abi_path: str,
         gas_limits: Optional[Dict] = None,
-        cache_config: Optional[Dict] = None,
         data_collector: Optional['DataCollector'] = None
     ):
         self.contract = Contract(contract_address, abi=abi_path)
@@ -30,47 +28,28 @@ class {{ contract_name }}Client:
             {% endfor %}
         }
         
-        # Optional caching
-        self.cache_enabled = cache_config.get('enabled', True) if cache_config else True
-        self.cache_ttl = cache_config.get('ttl', 100) if cache_config else 100
-        self.cache = {
-            'last_update': datetime.min,
-            'current_block': 0
-        }
-
-        
     {% for func in functions %}
     {% if func.is_view %}
-    def {{ func.name }}(self, {{ func.get_python_params() }}) -> {{ func.get_python_return_type() }}:
+    def {{ func.name }}(self, {{ func.get_python_param_defs() }}) -> {{ func.get_python_return_type() }}:
         """{{ func.name }} implementation"""
         try:
-            return self.contract.{{ func.name }}(
-                {% for orig_name, safe_name in func.get_input_names() %}
-                {{ safe_name }},
-                {% endfor %}
-            )
+            return self.contract.{{ func.name }}({{ func.get_python_params() }})
         except Exception as e:
             logger.error(f"{{ func.name }} failed: {e}")
             return None
     {% else %}
-    def {{ func.name }}(self, sender: str, {{ func.get_python_params() }}) -> bool:
+    def {{ func.name }}(self, sender: str, value: int{% if func.get_python_param_defs() %}, {{ func.get_python_param_defs() }}{% endif %}) -> bool:
         """{{ func.name }} implementation"""
         try:
-            # Base arguments for contract call
             tx = self.contract.{{ func.name }}(
-                {% for orig_name, safe_name in func.get_input_names() %}
-                {{ safe_name }},
-                {% endfor %}
-                sender=sender
+                {% if func.get_python_params() %}{{ func.get_python_params() }}, {% endif %}
+                sender=sender,
+                value=value
             )
-                
             success = bool(tx and tx.status == 1)
-            if success:
-                if self.collector:
-                    self.collector.record_transaction_events(tx)
-                
+            if success and self.collector:
+                self.collector.record_transaction_events(tx)
             return success
-                
         except Exception as e:
             logger.error(f"{{ func.name }} failed: {e}")
             return False

@@ -1,15 +1,15 @@
-import random
+from typing import Dict, List, Any, Optional
 from pathlib import Path
-from typing import Dict, List, Any
 from datetime import datetime
+import random
 from eth_pydantic_types import HexBytes
 from ape import networks, chain
 
 from src.framework.simulation.base import BaseSimulation, BaseSimulationConfig
 from src.framework.logging import get_logger
-from src.protocols.ringshub import RingsHubClient
-from src.protocols.balancerv3vault import BalancerV3VaultClient
-from src.protocols.wxdai import WXDAIClient
+from src.protocols.interfaces.ringshub import RingsHubClient
+#from src.protocols.interfaces.balancerv3vault import BalancerV3VaultClient
+from src.protocols.interfaces.wxdai import WXDAIClient
 
 logger = get_logger(__name__)
 
@@ -19,19 +19,22 @@ CONTRACT_CONFIGS = {
         'address': '0x3D61f0A272eC69d65F5CFF097212079aaFDe8267',
         'client_class': RingsHubClient,
         'module_name': 'ringshub',
-        'abi_folder': 'rings'
+        'abi_folder': 'rings',
+        'strategy': 'basic'  # Default strategy, can be overridden in config
     },
-    'balancerv3vault': {
-        'address': '0xbA1333333333a1BA1108E8412f11850A5C319bA9',
-        'client_class': BalancerV3VaultClient,
-        'module_name': 'balancerv3vault',
-        'abi_folder': 'balancer_v3'
-    },
+  #  'balancerv3vault': {
+  #      'address': '0xbA1333333333a1BA1108E8412f11850A5C319bA9',
+  #      'client_class': BalancerV3VaultClient,
+  #      'module_name': 'balancerv3vault',
+  #      'abi_folder': 'balancer_v3',
+  #      'strategy': 'basic'
+  #  },
     'wxdai': {
         'address': '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
         'client_class': WXDAIClient,
         'module_name': 'wxdai',
-        'abi_folder': 'tokens'
+        'abi_folder': 'tokens',
+        'strategy': 'basic'
     }
 }
 
@@ -39,6 +42,13 @@ class RingsSimulationConfig(BaseSimulationConfig):
     """Configuration for Rings simulation"""
 
     def _validate_config(self):
+        """Validate Rings-specific configuration"""
+        if 'strategies' not in self.network_config:
+            self.network_config['strategies'] = {
+                'rings': 'basic',
+                'wxdai': 'basic'
+            }
+
         """Validate Rings-specific configuration"""
         if 'trust_density' not in self.network_config:
             self.network_config['trust_density'] = 0.1
@@ -108,6 +118,26 @@ class RingsSimulation(BaseSimulation):
                 raise
                 
         return clients
+
+    def _initialize_handler(self, contract_name: str, handler_class, client):
+        """Initialize a handler with configured strategy"""
+        strategy = self.config.network_config['strategies'].get(
+            contract_name, 
+            CONTRACT_CONFIGS[contract_name]['strategy']
+        )
+        
+        return handler_class(
+            client=client,
+            chain=chain,
+            logger=logger,
+            strategy_name=strategy
+        )
+        
+    def _initialize_evolver(self) -> 'NetworkEvolver':
+        evolver = super()._initialize_evolver()
+        # Pass strategy configuration to evolver
+        evolver.strategy_config = self.config.network_config['strategies']
+        return evolver
 
     def get_initial_actions(self) -> List[Dict[str, Any]]:
         """Get initial actions for network building"""

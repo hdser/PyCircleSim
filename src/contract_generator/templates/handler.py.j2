@@ -1,69 +1,64 @@
 import random
-from datetime import datetime
-import logging
-from typing import Optional, Dict, Any, Tuple
-
-from ape import chain
+import importlib
+from typing import Dict, Any, Optional
 from eth_pydantic_types import HexBytes
 from src.framework.agents import BaseAgent
-from src.protocols.{{ contract_name.lower() }} import {{ contract_name }}Client
+from src.protocols.interfaces.{{ contract_name.lower() }}.{{ contract_name.lower() }}_client import {{ contract_name }}Client
 
 {% for func in functions if not func.is_view %}
-class {{ func.name|camel_case }}Handler:
-    """Encapsulates the logic to execute a {{ func.name }} action."""
-
+class {{ func.name|camel_case }}BaseHandler:
+    """Base handler class for {{ func.name }} action."""
+    
     def __init__(
         self,
         client: {{ contract_name }}Client,
         chain,
-        logger: logging.Logger,
+        logger,
+        strategy_name: str = "basic"
     ):
         self.client = client
         self.chain = chain
         self.logger = logger
+        
+        try:
+            module_path = f"src.protocols.handler_strategies.{client.__class__.__name__.lower().replace('client', '')}.{strategy_name}_strategies"
+            strategy_module = importlib.import_module(module_path)
+            strategy_class = getattr(strategy_module, f"{self.__class__.__name__.replace('Handler', 'Strategy').replace('Base', '')}")
+            self.strategy = strategy_class()
+        except (ImportError, AttributeError) as e:
+            self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
+            self.strategy = self
 
-    def _get_params(self, agent: BaseAgent) -> Dict[str, Any]:
-        """
-        Get parameter template showing expected structure.
-        Returns a dict with all required parameters as empty placeholders.
-        """
-        # Template showing required parameters
-        params = {
-            'sender': None,  # Required: address that will send the transaction
+    def get_params(self, agent) -> Dict[str, Any]:
+        """Default parameter generation if no strategy is loaded"""
+        return {
+            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'value': 0,
             {% for inp in func.inputs %}
-            {% if inp.type == 'tuple' %}
-            # Struct definition for {{ inp.name }}
-            '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': {
-                {% for component in inp.components %}
-                '{{ component.name }}': None,  # type: {{ component.type }}
-                {% endfor %}
-            },
-            {% else %}
             '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': None,  # type: {{ inp.type }}
-            {% endif %}
             {% endfor %}
         }
-        return params
 
-    def execute(
-        self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None
-    ) -> bool:
+    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            # Get internal params if no external params provided
-            execution_params = params if params else self._get_params(agent)
+            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
             if not execution_params:
                 return False
-            
-            success = self.client.{{ func.name }}(
+                
+            return self.client.{{ func.name }}(
                 {% for orig_name, safe_name in func.get_input_names() %}
                 {{ safe_name }}=execution_params.get("{{ safe_name }}"),
                 {% endfor %}
                 sender=execution_params.get("sender"),
+                value=execution_params.get("value", 0)
             )
 
-            return success
-
         except Exception as e:
-            self.logger.error(f"{{ func.name }} action failed for agent {agent.agent_id}: {e}", exc_info=True)
+            self.logger.error(f"{{ func.name }} action failed: {e}", exc_info=True)
             return False
+
+class {{ func.name|camel_case }}Handler({{ func.name|camel_case }}BaseHandler):
+    """Concrete handler implementation"""
+    pass
+
 {% endfor %}

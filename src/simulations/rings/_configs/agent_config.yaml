@@ -18,7 +18,7 @@ profiles:
   honest_user:
     description: "Regular network participant with standard behavior"
     base_config:
-      target_account_count: 1  # Number of accounts this agent controls
+      target_account_count: 3  # Number of accounts this agent controls
       max_daily_actions: 20    # Maximum actions per day
       risk_tolerance: 0.3      # Risk factor 0-1
       preferred_networks: ["gnosis"]  # Preferred networks
@@ -26,15 +26,15 @@ profiles:
     available_actions:
       - action: "ringshub_PersonalMint"
         probability: 0.8
-        cooldown_blocks: 240
+        cooldown_blocks: 2
         constraints:
-          max_executions: 100
+          max_executions: 100000
           required_actions: ["ringshub_RegisterHuman"]
           min_balance: 0
           
       - action: "ringshub_SafeTransferFrom"
         probability: 0.3
-        cooldown_blocks: 20
+        cooldown_blocks: 2
         max_value: 10.0
         constraints:
           require_trusted_target: true
@@ -43,7 +43,7 @@ profiles:
           
       - action: "ringshub_Trust"
         probability: 0.1
-        cooldown_blocks: 100
+        cooldown_blocks: 1
         constraints:
           max_trusted_accounts: 50
           min_target_age: 86400  # 1 day
@@ -51,14 +51,14 @@ profiles:
       
       - action: "wxdai_Deposit"
         probability: 0.1
-        cooldown_blocks: 100
+        cooldown_blocks: 1
 
           
 
   group_creator:
     description: "Creates and manages groups"
     base_config:
-      target_account_count: 3
+      target_account_count: 1
       max_daily_actions: 30
       risk_tolerance: 0.5
       preferred_networks: ["gnosis"]
@@ -66,20 +66,20 @@ profiles:
     available_actions:
       - action: "ringshub_RegisterGroup"
         probability: 0.9
-        cooldown_blocks: 1000
+        cooldown_blocks: 1
         constraints:
           max_groups: 5
           min_trust_connections: 10
           
       - action: "ringshub_PersonalMint"
         probability: 0.2
-        cooldown_blocks: 240
+        cooldown_blocks: 2
         constraints:
           max_executions: 100
           
       - action: "ringshub_GroupMint"
         probability: 0.4
-        cooldown_blocks: 100
+        cooldown_blocks: 1
         max_value: 50.0
         constraints:
           min_collateral_ratio: 1.5
@@ -87,16 +87,38 @@ profiles:
           
       - action: "balancerv3vault_Swap"
         probability: 0.3
-        cooldown_blocks: 50
+        cooldown_blocks: 5
         max_value: 20.0
         constraints:
           max_slippage: 0.02
           min_pool_liquidity: 1000.0
 
+
+  supergroup:
+    description: "Super Group"
+    base_config:
+      target_account_count: 1
+      max_daily_actions: 30
+      risk_tolerance: 0.5
+      preferred_networks: ["gnosis"]
+      
+    available_actions:
+      - action: "ringshub_RegisterGroup"
+        probability: 0.9
+        cooldown_blocks: 1
+        constraints:
+          max_groups: 1
+          max_trust_connections: 10000
+   
+      - action: "ringshub_GroupMint"
+        probability: 0.4
+        cooldown_blocks: 1
+          
+
   sybil_attacker:
     description: "Creates multiple accounts for network manipulation"
     base_config:
-      target_account_count: 50
+      target_account_count: 5
       max_daily_actions: 100
       risk_tolerance: 0.8
       preferred_networks: ["gnosis"]
@@ -109,7 +131,7 @@ profiles:
           max_accounts_per_day: 5
           
       - action: "ringshub_Trust"
-        probability: 0.3
+        probability: 0.9
         cooldown_blocks: 1
         constraints:
           trust_targets: "controlled_accounts"
@@ -117,14 +139,14 @@ profiles:
           
       - action: "ringshub_SafeTransferFrom"
         probability: 0.3
-        cooldown_blocks: 15
+        cooldown_blocks: 1
         max_value: 10.0
         constraints:
           preferred_targets: "trusted_accounts"
 
       - action: "ringshub_Wrap"
-        probability: 0.8
-        cooldown_blocks: 15
+        probability: 0.1
+        cooldown_blocks: 1
         max_value: 10.0
         constraints:
           min_balance: 1.0
@@ -139,16 +161,16 @@ profiles:
       
     available_actions:
       - action: "ringshub_Trust"
-        probability: 0.5
-        cooldown_blocks: 10
+        probability: 0.9
+        cooldown_blocks: 1
         constraints:
-          max_trust_connections: 200
+          max_trust_connections: 20000
           min_trustee_age: 604800  # 1 week
           trust_score_threshold: 0.6
           
       - action: "ringshub_SafeTransferFrom"
         probability: 0.3
-        cooldown_blocks: 30
+        cooldown_blocks: 3
         max_value: 5.0
         constraints:
           preferred_targets: "trusted_accounts"

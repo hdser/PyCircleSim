@@ -1,0 +1,13 @@
+from .{{ contract_name.lower() }}_client import {{ contract_name }}Client
+from .{{ contract_name.lower() }}_handler import (
+    {% for handler in handlers %}
+    {{ handler }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+)
+
+__all__ = [
+    '{{ contract_name }}Client',
+    {% for handler in handlers %}
+    '{{ handler }}'{% if not loop.last %},{% endif %}
+    {% endfor %}
+]
