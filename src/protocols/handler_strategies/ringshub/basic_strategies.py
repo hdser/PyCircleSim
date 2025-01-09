@@ -1,11 +1,11 @@
 from typing import Dict, Any, Optional
-from eth_pydantic_types import HexBytes
 import random
+from eth_pydantic_types import HexBytes
 from src.protocols.handler_strategies.base import BaseStrategy
 
 
 class BurnStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -24,7 +24,7 @@ class BurnStrategy(BaseStrategy):
 
 
 class CalculateIssuanceWithCheckStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -39,7 +39,7 @@ class CalculateIssuanceWithCheckStrategy(BaseStrategy):
 
 
 class GroupMintStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -60,7 +60,7 @@ class GroupMintStrategy(BaseStrategy):
 
 
 class MigrateStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -79,7 +79,7 @@ class MigrateStrategy(BaseStrategy):
 
 
 class OperateFlowMatrixStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -100,7 +100,7 @@ class OperateFlowMatrixStrategy(BaseStrategy):
 
 
 class PersonalMintStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         mintable_accounts = []
         for address in agent.accounts.keys():
             if client.isHuman(address) and not client.stopped(address):
@@ -117,7 +117,7 @@ class PersonalMintStrategy(BaseStrategy):
 
 
 class RegisterCustomGroupStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -140,7 +140,7 @@ class RegisterCustomGroupStrategy(BaseStrategy):
 
 
 class RegisterGroupStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         group_number = getattr(agent, 'group_count', 0) + 1
         creator_address, _ = agent.create_account()
         return {
@@ -153,7 +153,7 @@ class RegisterGroupStrategy(BaseStrategy):
 
 
 class RegisterHumanStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         if len(agent.accounts) < agent.profile.target_account_count:
             agent.create_account()
 
@@ -168,9 +168,8 @@ class RegisterHumanStrategy(BaseStrategy):
             "_metadataDigest": HexBytes("0x00")
         }
 
-
 class RegisterOrganizationStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -187,7 +186,7 @@ class RegisterOrganizationStrategy(BaseStrategy):
 
 
 class SafeBatchTransferFromStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -210,7 +209,7 @@ class SafeBatchTransferFromStrategy(BaseStrategy):
 
 
 class SafeTransferFromStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         trusted_addresses = agent.state.get('trusted_addresses', set())
         if not trusted_addresses:
             return {}
@@ -241,7 +240,7 @@ class SafeTransferFromStrategy(BaseStrategy):
 
 
 class SetAdvancedUsageFlagStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -256,7 +255,7 @@ class SetAdvancedUsageFlagStrategy(BaseStrategy):
 
 
 class SetApprovalForAllStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -273,7 +272,7 @@ class SetApprovalForAllStrategy(BaseStrategy):
 
 
 class StopStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -286,7 +285,7 @@ class StopStrategy(BaseStrategy):
 
 
 class TrustStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         all_registered = set()
         truster = self.get_sender(agent)
         if not truster:
@@ -313,7 +312,7 @@ class TrustStrategy(BaseStrategy):
 
 
 class WrapStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return {}

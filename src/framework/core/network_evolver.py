@@ -89,7 +89,7 @@ class NetworkEvolver():
                 logger.error(f"No handler found for action {action_name}")
                 return False
     
-            success = handler.execute(agent)
+            success = handler.execute(agent, self.agent_manager)
 
             if success:
                 logger.debug(f"Successfully executed {action_name}")

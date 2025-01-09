@@ -2,7 +2,7 @@ import random
 import importlib
 from typing import Dict, Any, Optional
 from eth_pydantic_types import HexBytes
-from src.framework.agents import BaseAgent
+from src.framework.agents import BaseAgent, AgentManager
 from src.protocols.interfaces.ringshub.ringshub_client import RingsHubClient
 
 
@@ -29,7 +29,7 @@ class BurnBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -43,9 +43,9 @@ class BurnBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -93,7 +93,7 @@ class CalculateIssuanceWithCheckBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -103,9 +103,9 @@ class CalculateIssuanceWithCheckBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -149,7 +149,7 @@ class GroupMintBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -165,9 +165,9 @@ class GroupMintBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -217,7 +217,7 @@ class MigrateBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -231,9 +231,9 @@ class MigrateBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -281,7 +281,7 @@ class OperateFlowMatrixBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -297,9 +297,9 @@ class OperateFlowMatrixBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -349,7 +349,7 @@ class PersonalMintBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -357,9 +357,9 @@ class PersonalMintBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -401,7 +401,7 @@ class RegisterCustomGroupBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -419,9 +419,9 @@ class RegisterCustomGroupBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -473,7 +473,7 @@ class RegisterGroupBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -489,9 +489,9 @@ class RegisterGroupBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -541,7 +541,7 @@ class RegisterHumanBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -553,9 +553,9 @@ class RegisterHumanBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -601,7 +601,7 @@ class RegisterOrganizationBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -613,9 +613,9 @@ class RegisterOrganizationBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -661,7 +661,7 @@ class SafeBatchTransferFromBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -679,9 +679,9 @@ class SafeBatchTransferFromBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -733,7 +733,7 @@ class SafeTransferFromBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -751,9 +751,9 @@ class SafeTransferFromBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -805,7 +805,7 @@ class SetAdvancedUsageFlagBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -815,9 +815,9 @@ class SetAdvancedUsageFlagBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -861,7 +861,7 @@ class SetApprovalForAllBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -873,9 +873,9 @@ class SetApprovalForAllBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -921,7 +921,7 @@ class StopBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -929,9 +929,9 @@ class StopBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -973,7 +973,7 @@ class TrustBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -985,9 +985,9 @@ class TrustBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 
@@ -1033,7 +1033,7 @@ class WrapBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent) -> Dict[str, Any]:
+    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
             'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
@@ -1047,9 +1047,9 @@ class WrapBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
                 

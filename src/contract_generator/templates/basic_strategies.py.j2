@@ -3,7 +3,7 @@ from src.protocols.handler_strategies.base import BaseStrategy
 
 {% for func in functions if not func.is_view %}
 class {{ func.name|camel_case }}Strategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None

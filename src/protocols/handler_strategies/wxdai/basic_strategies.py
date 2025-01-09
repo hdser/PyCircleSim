@@ -3,7 +3,7 @@ from src.protocols.handler_strategies.base import BaseStrategy
 
 
 class ApproveStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -20,7 +20,7 @@ class ApproveStrategy(BaseStrategy):
 
 
 class TransferFromStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -39,7 +39,7 @@ class TransferFromStrategy(BaseStrategy):
 
 
 class WithdrawStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -54,7 +54,7 @@ class WithdrawStrategy(BaseStrategy):
 
 
 class TransferStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -71,7 +71,7 @@ class TransferStrategy(BaseStrategy):
 
 
 class DepositStrategy(BaseStrategy):
-    def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
         if not sender:
             return None
@@ -81,3 +81,4 @@ class DepositStrategy(BaseStrategy):
             'value': int(10**18)
             
         }
+

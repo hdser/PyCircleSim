@@ -109,7 +109,7 @@ class NetworkBuilder:
                 if not params:
                     # If param_function returned None (or an empty dict), skip
                     continue
-                success = handler.execute(agent, params)
+                success = handler.execute(agent, self.agent_manager, params)
                 total_executed += 1
                 if not success:
                     total_failures += 1
