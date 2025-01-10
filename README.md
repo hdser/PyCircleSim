@@ -13,7 +13,6 @@ __PyCircleSim__ is a Python framework for simulating and analyzing the Circles p
 - [Configuration](#configuration)
 - [Running Simulations](#running-simulations)
 - [Analysis & Monitoring](#analysis--monitoring)
-- [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -320,31 +319,6 @@ events = collector.get_events(
 )
 ```
 
-## Troubleshooting
-
-Common issues and solutions:
-
-1. Interface Generation
-- Verify GnosisScan API key is valid
-- Check ABI file exists and is valid JSON
-- Ensure templates directory exists
-
-2. Simulation Startup
-- Confirm Foundry is running
-- Check Ape configuration
-- Verify network fork is accessible
-
-3. Database Issues  
-- Check DuckDB file permissions
-- Verify SQL schema files exist
-- Look for syntax errors in queries
-
-4. Contract Interactions
-- Verify gas limits are sufficient
-- Check account balances
-- Confirm contract ABIs match implementation
-
-For any other issues, check the detailed logs in the console output.
 
 ## License
 
