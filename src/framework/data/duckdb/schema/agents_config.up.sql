@@ -4,10 +4,6 @@ CREATE TABLE IF NOT EXISTS agent_action_configs (
     
     probability FLOAT NOT NULL,              -- Probability of performing this action
     cooldown_blocks INTEGER NOT NULL,        -- Cooldown between similar actions
-    gas_limit INTEGER NOT NULL,              -- Maximum gas limit for the action
-    min_balance FLOAT NOT NULL,              -- Minimum balance required
-    max_value FLOAT NOT NULL,                -- Maximum value for the action
-    
     constraints JSON,                       -- Flexible constraints storage
     
     PRIMARY KEY(agent_id, action_type),

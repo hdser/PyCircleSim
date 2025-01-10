@@ -15,9 +15,6 @@ class ActionConfig:
     action_type: str
     probability: float
     cooldown_blocks: int
-    gas_limit: int
-    min_balance: float
-    max_value: float
     constraints: Dict[str, Any]
 
     @classmethod
@@ -27,9 +24,6 @@ class ActionConfig:
             action_type=action_type,
             probability=config['probability'],
             cooldown_blocks=config['cooldown_blocks'],
-            gas_limit=config.get('gas_limit', 300000),
-            min_balance=float(config.get('constraints', {}).get('min_balance', 0)),
-            max_value=float(config.get('max_value', 0)),
             constraints=config.get('constraints', {})
         )
 

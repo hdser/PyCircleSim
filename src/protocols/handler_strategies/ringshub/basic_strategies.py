@@ -1,25 +1,67 @@
 from typing import Dict, Any, Optional
 import random
 from eth_pydantic_types import HexBytes
+from ape_ethereum import Ethereum
 from src.protocols.handler_strategies.base import BaseStrategy
 
+
+#--------------------------------------------------------------------------------
+#-- AUXILIAR FUNCTIONS
+#--------------------------------------------------------------------------------
+
+def agent_balances(agent_addr: str, agent_manager, client) -> dict:
+    """
+    Retrieve the balances of all tokens for a agent.
+
+    Args:
+        agent_addr (str): The address of the agent to query balances for.
+        agent_manager: The manager object containing agents information.
+        client: The client interface to interact with the blockchain.
+
+    Returns:
+        dict: A dictionary where keys are token IDs and values are balances.
+    """
+    all_accounts = agent_manager.address_to_agent.keys()
+    
+    # Create lists for token IDs and accounts using comprehensions
+    token_ids = [client.toTokenId(addr) for addr in all_accounts]
+    accounts = [agent_addr] * len(all_accounts)
+
+    if not accounts:
+        return {}
+
+    # Fetch balances and map them to their respective token IDs
+    balances = client.balanceOfBatch(accounts, token_ids)
+    return {token_id: balance for token_id, balance in zip(token_ids, balances)}
+
+
+
+#--------------------------------------------------------------------------------
 
 class BurnStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
+
         if not sender:
-            return None
+            return {}
+
+        balances = agent_balances(sender, agent_manager, client)
+        #for ids, _ in balances.iterrows():
+        #    addr = Ethereum.decode_address(ids)
+        #    if client.isTrusted()
+        tokenid = None
+        amount = None
+        for id, value in balances.items():
+            if value > 0:
+                amount = value
+                tokenid = id
             
         return {
             'sender': sender,
             'value': 0
-            
-            ,'_id': None
-            
-            ,'_amount': None
-            
-            ,'_data': None
-            
+            ,'_id': tokenid
+            ,'_amount': amount
+            ,'_data':  b"" 
         }
 
 
@@ -40,22 +82,43 @@ class CalculateIssuanceWithCheckStrategy(BaseStrategy):
 
 class GroupMintStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
+
         sender = self.get_sender(agent)
         if not sender:
-            return None
+            return {}
+
+
+        groups = []
+        all_accounts = agent_manager.address_to_agent.keys()
+        for addr in all_accounts:
+            if client.isGroup(addr) and addr != sender:
+                groups.append(addr)
+
+        if not groups:
+            return {}
             
+
+        group = random.choice(groups)
+        collateral_avatar = sender
+
+
+        collateral_id = client.toTokenId(collateral_avatar)
+        balance = client.balanceOf(collateral_avatar, collateral_id)
+        if balance == 0:
+            return {}
+
+
+        amount = int(balance * random.uniform(0.1, 0.3))
+        if amount == 0:
+            return {}
+
+
         return {
             'sender': sender,
-            'value': 0
-            
-            ,'_group': None
-            
-            ,'_collateralAvatars': None
-            
-            ,'_amounts': None
-            
-            ,'_data': None
-            
+            '_group': group,
+            '_collateralAvatars': [collateral_avatar],  
+            '_amounts': [amount],  
+            '_data': b"" 
         }
 
 
@@ -141,8 +204,29 @@ class RegisterCustomGroupStrategy(BaseStrategy):
 
 class RegisterGroupStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
+        
+        addresses = []
+        for addr in agent.accounts.keys():
+            if not client.isGroup(addr) and not client.isHuman(addr) and not client.isOrganization(addr):
+                addresses.append(addr)
+
+        if addresses:
+            creator_address = random.choice(addresses)
+        else:
+            if len(agent.accounts) <= agent.profile.target_account_count:
+                creator_address, _ = agent.create_account()
+                agent_manager.address_to_agent[creator_address] = agent.agent_id
+            else:
+                return {}
+
         group_number = getattr(agent, 'group_count', 0) + 1
-        creator_address, _ = agent.create_account()
+        print({
+            'sender': creator_address,
+            '_name': f"RingsGroup{creator_address[:4]}{group_number}",
+            '_symbol': f"RG{creator_address[:2]}{group_number}",
+            '_mint': "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60",
+            '_metadataDigest': HexBytes("0x00")
+        })
         return {
             'sender': creator_address,
             '_name': f"RingsGroup{creator_address[:4]}{group_number}",
@@ -150,20 +234,28 @@ class RegisterGroupStrategy(BaseStrategy):
             '_mint': "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60",
             '_metadataDigest': HexBytes("0x00")
         }
+    
 
 
 class RegisterHumanStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        if len(agent.accounts) < agent.profile.target_account_count:
-            agent.create_account()
 
-        unregistered = [addr for addr in agent.accounts.keys() 
-                       if not client.isHuman(addr)]
-        if not unregistered:
-            return {}
+        addresses = []
+        for addr in agent.accounts.keys():
+            if not client.isGroup(addr) and not client.isHuman(addr) and not client.isOrganization(addr):
+                addresses.append(addr)
+
+        if addresses:
+            address = random.choice(addresses)
+        else:
+            if len(agent.accounts) <= agent.profile.target_account_count:
+                address, _ = agent.create_account()
+                agent_manager.address_to_agent[address] = agent.agent_id
+            else:
+                return {}
 
         return {
-            "sender": random.choice(unregistered),
+            "sender": address,
             "_inviter": "0x0000000000000000000000000000000000000000",
             "_metadataDigest": HexBytes("0x00")
         }
@@ -286,24 +378,23 @@ class StopStrategy(BaseStrategy):
 
 class TrustStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        all_registered = set()
-        truster = self.get_sender(agent)
-        if not truster:
-            return {}
-            
-        all_accounts = agent_manager.address_to_agent.keys()
-        for addr in all_accounts:
-            if client.isHuman(addr) and addr != truster:
-                all_registered.add(addr)
+        # Parameters
+        block_timestamp = chain.blocks.head.timestamp
+        expiry_delta = 365 * 24 * 60 * 60
 
-        already_trusted = agent.state.get('trusted_addresses', set())
-        potential_trustees = list(all_registered - already_trusted)
+        truster = self.get_sender(agent)
+
+        all_accounts = agent_manager.address_to_agent.keys()
+        potential_trustees = []
+        for addr in all_accounts:
+            if (client.isHuman(addr) or client.isGroup(addr)) and addr != truster and not client.isTrusted(truster,addr):
+                potential_trustees.append(addr)
         
         if not potential_trustees:
             return {}
 
         trustee = random.choice(potential_trustees)
-        expiry = int(chain.blocks.head.timestamp + 365 * 24 * 60 * 60)
+        expiry = int(block_timestamp + expiry_delta)
 
         return {
             'sender': truster,

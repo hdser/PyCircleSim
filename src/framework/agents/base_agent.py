@@ -155,7 +155,7 @@ class BaseAgent:
             
         return {
             'sender': acting_address,
-            'max_value': action.max_value,
+         #   'max_value': action.max_value,
             'risk_tolerance': self.profile.risk_tolerance
         }
         
