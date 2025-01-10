@@ -218,9 +218,6 @@ class DataCollector(BaseDataCollector):
                     action_type,  
                     config.probability,
                     config.cooldown_blocks,
-                #    config.gas_limit,
-                #    config.min_balance,
-                #    config.max_value,
                     json.dumps(config.constraints)
                 ])
                        

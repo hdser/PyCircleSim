@@ -71,10 +71,9 @@ class ContractEventHandler:
             for i, decoded_log in enumerate(decoded_logs):
                 log = tx.logs[i]
 
-                # Convert HexBytes and complex types to strings
-                topics = [str(topic) for topic in log.get('topics', [])]
+                topic0 = log.get('topics', [])[0]
+                topic0_string = '0x' + topic0.hex().upper()
                 event_data = str(decoded_log.event_arguments)
-                raw_data = str(log.get('data', ''))
                
                 event = ContractEvent(
                     simulation_run_id=self.simulation_run_id,
@@ -87,9 +86,8 @@ class ContractEventHandler:
                     tx_index=log.get('transactionIndex'),
                     log_index=log.get('logIndex'),
                     contract_address=str(decoded_log.contract_address),
-                    topics=topics,
+                    topic0=topic0_string,
                     event_data=event_data,
-                    raw_data=raw_data,
                 )
                
                 self.logger.record_event(event)

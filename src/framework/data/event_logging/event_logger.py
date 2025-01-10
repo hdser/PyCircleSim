@@ -20,9 +20,8 @@ class ContractEvent:
     tx_index: Optional[int]
     log_index: Optional[int]
     contract_address: str
-    topics: List[str]
+    topic0: str
     event_data: Dict
-    raw_data: str
 
 class EventLogger:
     """Efficient event logging system for contract events"""
@@ -58,8 +57,8 @@ class EventLogger:
             
             # Convert dataclass to dict and serialize JSON fields
             data = asdict(event)
-            data['topics'] = json.dumps(data['topics'])
-            data['event_data'] = json.dumps(data['event_data'])
+            data['event_data'] = json.loads(data['event_data'].replace("'", '"'))
+            print(data['event_data'] )
             
             self.con.execute(sql, [
                 data['simulation_run_id'],
@@ -72,9 +71,8 @@ class EventLogger:
                 data['tx_index'],
                 data['log_index'],
                 data['contract_address'],
-                data['topics'],
-                data['event_data'],
-                data['raw_data']
+                data['topic0'],
+                data['event_data']
             ])
             self.con.commit()
             logger.info(f"Recorded contract event '{data['event_name']}' at block {data['block_number']}")

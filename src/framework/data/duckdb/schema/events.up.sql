@@ -10,9 +10,8 @@ CREATE TABLE IF NOT EXISTS events (
     tx_index INTEGER,
     log_index INTEGER,
     contract_address VARCHAR NOT NULL,
-    topics VARCHAR,           -- Store topics as plain text/hex string
-    event_data VARCHAR,       -- Store event data as text
-    raw_data VARCHAR,        -- Store raw data as hex string
+    topic0 VARCHAR NOT NULL,           -- Store topic0 as plain text/hex string
+    event_data JSON,       -- Store event data as text
     
     FOREIGN KEY(simulation_run_id) REFERENCES simulation_runs(run_id)
 );
