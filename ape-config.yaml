@@ -11,7 +11,7 @@ etherscan:
 node:
   gnosis:
     mainnet:
-      uri: http://192.168.2.186:8545
+      uri: https://rpc.eu-central-2.gateway.fm/v4/gnosis/non-archival/mainnet #http://192.168.2.186:8545
 
 gnosis:
   default_network: mainnet-fork
@@ -25,11 +25,12 @@ gnosis:
     transaction_acceptance_timeout: 180
 
 foundry:
+  auto_mine: true
   host: http://localhost:8545
   fork:
     gnosis:
       mainnet_fork:
-        upstream_provider: http://192.168.2.186:8545
+        upstream_provider: https://rpc.eu-central-2.gateway.fm/v4/gnosis/non-archival/mainnet #http://192.168.2.186:8545
         no_storage_caching: true
         compute_units_per_second: 100
         memory_limit: 2048

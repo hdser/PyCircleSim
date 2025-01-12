@@ -395,6 +395,7 @@
                 "type": "address"
             },
             {
+                "indexed": false,
                 "internalType": "address",
                 "name": "masterCopy",
                 "type": "address"

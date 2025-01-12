@@ -73,7 +73,7 @@ class ContractEventHandler:
 
                 topic0 = log.get('topics', [])[0]
                 topic0_string = '0x' + topic0.hex().upper()
-                event_data = str(decoded_log.event_arguments)
+                event_data = decoded_log.event_arguments
                
                 event = ContractEvent(
                     simulation_run_id=self.simulation_run_id,

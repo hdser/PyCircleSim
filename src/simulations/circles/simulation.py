@@ -9,21 +9,19 @@ from ape import networks, chain
 
 from src.framework.simulation.base import BaseSimulation, BaseSimulationConfig
 from src.framework.logging import get_logger
-from src.protocols.interfaces.ringshub import RingsHubClient
 from src.protocols.interfaces.circleshub import CirclesHubClient
 from src.protocols.interfaces.wxdai import WXDAIClient
 
 logger = get_logger(__name__)
 
 
-class RingsSimulationConfig(BaseSimulationConfig):
+class CirclesSimulationConfig(BaseSimulationConfig):
     """Configuration for Rings simulation"""
 
     def _validate_config(self):
         """Validate Rings-specific configuration"""
         if 'strategies' not in self.network_config:
             self.network_config['strategies'] = {
-                'rings': 'basic',
                 'circles': 'basic',
                 'wxdai': 'basic'
             }
@@ -64,17 +62,10 @@ class RingsSimulationConfig(BaseSimulationConfig):
         return distribution
 
 
-class RingsSimulation(BaseSimulation):
+class CirclesSimulation(BaseSimulation):
     """Implementation of a Rings-based simulation"""
     
     CONTRACT_CONFIGS = {
-        'rings': {
-            'address': '0x3D61f0A272eC69d65F5CFF097212079aaFDe8267',
-            'client_class': RingsHubClient,
-            'module_name': 'ringshub',
-            'abi_folder': 'rings',
-            'strategy': 'sybil'  # default strategy
-        },
         'circles': {
             'address': '0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8',
             'client_class': CirclesHubClient,
@@ -91,40 +82,18 @@ class RingsSimulation(BaseSimulation):
         }
     }
 
+
     def get_initial_actions(self) -> List[Dict[str, Any]]:
         """Get initial actions to be performed on network build"""
-        return [
-            {
-                "action": "ringshub_RegisterHuman",
-                "param_function": lambda agent, _: {
-                    "_inviter": "0x0000000000000000000000000000000000000000",
-                    "_metadataDigest": HexBytes("0x00"),
-                    "sender": next(iter(agent.accounts.keys()))
-                } if agent.accounts else None
-            },
-            {
-                "action": "ringshub_Trust",
-                "param_function": lambda agent, all_agents: {
-                    "_trustReceiver": next(iter(random.choice([
-                        a for a in all_agents 
-                        if a != agent and len(a.accounts) > 0
-                    ]).accounts.keys())),
-                    "_expiry": int(chain.pending_timestamp + 365 * 24 * 60 * 60),
-                    "sender": next(iter(agent.accounts.keys()))
-                } if agent.accounts else None
-            }
-        ]
+        return []
 
     def get_initial_state(self) -> Dict[str, Any]:
         """Get initial state for agents before simulation starts"""
-        return {
-            "trusted_addresses": set(),
-            "group_count": 0
-        }
+        return {}
 
     def get_simulation_description(self) -> str:
         """A short description of this simulation run"""
-        return "Rings Network Agent-based Simulation"
+        return "Circles Network Agent-based Simulation"
 
     def _create_simulation_metadata(self) -> Dict[str, Any]:
         """Create simulation metadata for logging / database"""

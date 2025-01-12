@@ -57,8 +57,7 @@ class EventLogger:
             
             # Convert dataclass to dict and serialize JSON fields
             data = asdict(event)
-            data['event_data'] = json.loads(data['event_data'].replace("'", '"'))
-            print(data['event_data'] )
+            data['event_data'] = {key: str(value) for key, value in data['event_data'].items()}
             
             self.con.execute(sql, [
                 data['simulation_run_id'],

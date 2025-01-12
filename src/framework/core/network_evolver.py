@@ -19,10 +19,13 @@ class NetworkEvolver():
         agent_manager: AgentManager,
         collector: Optional[DataCollector] = None,
         gas_limits: Optional[Dict] = None,
+        strategy_config: Optional[Dict] = None
     ):
         self.clients = clients
         self.agent_manager = agent_manager
         self.collector = collector
+        self.gas_limits = gas_limits
+        self.strategy_config = strategy_config
         
         # Track last action times
         self.last_action_times: Dict[str, int] = {}

@@ -15,6 +15,7 @@ from src.framework.logging import get_logger
 
 logger = get_logger(__name__)
 
+
 class BaseSimulationConfig:
     """Base configuration class that can be extended for specific simulations"""
     
@@ -88,6 +89,10 @@ class BaseSimulationConfig:
         """Get the distribution of agent types"""
         pass
 
+
+BASE_CONTRACT_CONFIGS: Dict[str, Dict[str, Any]] = {}
+
+
 class BaseSimulation(ABC):
     """Base simulation class that can be extended for specific simulations"""
 
@@ -103,6 +108,7 @@ class BaseSimulation(ABC):
         self.fast_mode = fast_mode
         self.project_root = project_root or Path(__file__).parents[3]
         self.simulation_start_time = datetime.now()
+        self.strategy_config = self.config.network_config.get('strategies', {})
 
         # Initialize infrastructure
         self.collector = self._initialize_collector()
@@ -110,16 +116,9 @@ class BaseSimulation(ABC):
         self.clients = self._initialize_clients()
         self.builder = self._initialize_builder()
         self.evolver = self._initialize_evolver()
-        
-        # Call post-initialization
-      #  self.post_initialize()
 
         # Tracking
-        self.iteration_stats = []
-
-    #def post_initialize(self):
-    #    """Hook for post-initialization tasks"""
-    #    pass
+        self.iteration_stats: List[Dict[str, Any]] = []
 
     def _initialize_collector(self) -> Optional[DataCollector]:
         """Initialize data collector if not in fast mode"""
@@ -128,11 +127,6 @@ class BaseSimulation(ABC):
         return DataCollector(
             self.config.network_config.get('db_path', 'simulation.duckdb')
         )
-
-    @abstractmethod
-    def _initialize_clients(self) -> Dict[str, Any]:
-        """Initialize protocol clients"""
-        pass
 
     def _initialize_agent_manager(self) -> AgentManager:
         """Initialize agent manager"""
@@ -144,6 +138,45 @@ class BaseSimulation(ABC):
         manager.registry.discover_actions(protocols_path)
         return manager
 
+    def _initialize_clients(self) -> Dict[str, Any]:
+        """Initialize all contract clients"""
+        clients = {}
+        
+        for name, config in self.contract_configs.items():
+            try:
+                abi_dir = self.project_root / "src" / "protocols" / "abis" / config['abi_folder']
+                abi_path = abi_dir / f"{config['address']}.json"
+                
+                if not abi_path.exists():
+                    logger.warning(f"ABI file not found for {name}")
+                    continue
+
+                # Fallback if module_name is not in config:
+                module_name = config.get('module_name', name)
+
+                strategy = config.get(
+                    config['module_name'], 
+                    config.get('strategy', 'basic')
+                )
+                logger.info(f"Initializing {name} client with {strategy} strategy")
+
+                client = config['client_class'](
+                    config['address'],
+                    str(abi_path),
+                    gas_limits=self.config.network_config.get('gas_limits', {}),
+                    data_collector=self.collector
+                )
+                
+                # Store clients by their module_name
+                clients[module_name] = client
+                setattr(self, f"{name}_client", client)
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize {name} client: {e}")
+                raise
+                
+        return clients
+
     def _initialize_builder(self) -> NetworkBuilder:
         """Initialize network builder"""
         return NetworkBuilder(
@@ -154,13 +187,15 @@ class BaseSimulation(ABC):
         )
 
     def _initialize_evolver(self) -> NetworkEvolver:
-        """Initialize network evolver"""
-        return NetworkEvolver(
+        """Initialize network evolver with strategies"""
+        evolver = NetworkEvolver(
             clients=self.clients,
             agent_manager=self.agent_manager,
             collector=self.collector,
-            gas_limits=self.config.network_config.get('gas_limits')
+            gas_limits=self.config.network_config.get('gas_limits'),
+            strategy_config=self.strategy_config
         )
+        return evolver
 
     @abstractmethod
     def get_initial_actions(self) -> List[Dict[str, Any]]:
@@ -172,8 +207,18 @@ class BaseSimulation(ABC):
         """Get initial state for agents"""
         pass
 
+    @abstractmethod
+    def get_simulation_description(self) -> str:
+        """Get description of the simulation"""
+        pass
+
+    @abstractmethod
+    def _create_simulation_metadata(self) -> Dict[str, Any]:
+        """Create metadata for the simulation run"""
+        pass
+
     def run(self) -> bool:
-        """Execute the simulation"""
+        """Execute the simulation from start to finish"""
         try:
             logger.info("Starting simulation")
             metadata = self._create_simulation_metadata()
@@ -240,16 +285,6 @@ class BaseSimulation(ABC):
             
         return True
 
-    @abstractmethod
-    def get_simulation_description(self) -> str:
-        """Get description of the simulation"""
-        pass
-
-    @abstractmethod
-    def _create_simulation_metadata(self) -> Dict[str, Any]:
-        """Create metadata for the simulation run"""
-        pass
-
     def _log_iteration_summary(self, iteration: int, stats: Dict[str, Any]):
         """Log iteration summary"""
         logger.info(
@@ -260,7 +295,7 @@ class BaseSimulation(ABC):
         )
 
     def get_statistics(self) -> Dict[str, Any]:
-        """Get simulation statistics"""
+        """Get simulation statistics after execution"""
         total_actions = sum(s.get('total_actions', 0) for s in self.iteration_stats)
         successful_actions = sum(s.get('successful_actions', 0) for s in self.iteration_stats)
         action_counts = {}

@@ -13,7 +13,7 @@ def main():
         registry = ActionRegistry()
         
         # Discover actions from protocols
-        protocols_dir = Path(__file__).parents[4] / "src" / "protocols" / "interfaces"
+        protocols_dir = Path(__file__).parents[4] / "src" / "protocols"
         registry.discover_actions(str(protocols_dir))
         
         # Generate action types

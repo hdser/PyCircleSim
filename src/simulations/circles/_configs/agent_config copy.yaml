@@ -1,0 +1,64 @@
+
+# Agent distribution (total should be your target network size)
+agent_distribution:
+  honest_user: 1
+  group_creator: 1
+
+# Agent profiles and their actions
+profiles:
+  honest_user:
+    description: "Regular network participant with standard behavior"
+    base_config:
+      target_account_count: 1  # Number of accounts this agent controls
+      max_daily_actions: 20    # Maximum actions per day
+      risk_tolerance: 0.3      # Risk factor 0-1
+      preferred_networks: ["gnosis"]  # Preferred networks
+      
+    available_actions:   
+      - action: "ringshub_PersonalMint"
+        probability: 0.8
+        cooldown_blocks: 2
+        constraints:
+          max_executions: 100000
+          required_actions: ["ringshub_RegisterHuman"]
+          min_balance: 0
+          
+      - action: "ringshub_Trust"
+        probability: 0.5
+        cooldown_blocks: 1
+        constraints:
+          max_trusted_accounts: 50
+          min_target_age: 86400  # 1 day
+          trust_score_threshold: 0.6
+
+      - action: "ringshub_GroupMint"
+        probability: 0.4
+        cooldown_blocks: 1
+        max_value: 50.0
+        constraints:
+          min_collateral_ratio: 1.5
+          max_mint_per_day: 1000.0
+
+          
+
+  group_creator:
+    description: "Creates and manages groups"
+    base_config:
+      target_account_count: 1
+      max_daily_actions: 30
+      risk_tolerance: 0.5
+      preferred_networks: ["gnosis"]
+      
+    available_actions:
+      - action: "ringshub_RegisterGroup"
+        probability: 1
+        cooldown_blocks: 1
+        
+      - action: "ringshub_Trust"
+        probability: 0.5
+        cooldown_blocks: 1
+        constraints:
+          max_trusted_accounts: 50
+          min_target_age: 86400  # 1 day
+          trust_score_threshold: 0.6
+ 

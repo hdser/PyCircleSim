@@ -223,11 +223,6 @@
     },
     {
         "inputs": [],
-        "name": "CirclesMigrationAmountMustBeGreaterThanZero",
-        "type": "error"
-    },
-    {
-        "inputs": [],
         "name": "CirclesProxyAlreadyInitialized",
         "type": "error"
     },

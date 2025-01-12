@@ -17,7 +17,7 @@ def load_simulation_module(simulation_name: str):
         module = importlib.import_module(f"src.simulations.{simulation_name}.simulation")
         simulation_class = getattr(module, f"{simulation_name.title()}Simulation")
         config_class = getattr(module, f"{simulation_name.title()}SimulationConfig")
-        contract_configs = getattr(module, 'CONTRACT_CONFIGS')
+        contract_configs = getattr(simulation_class, 'CONTRACT_CONFIGS')
         return simulation_class, config_class, contract_configs
     except Exception as e:
         logger.error(f"Failed to load simulation module: {e}")

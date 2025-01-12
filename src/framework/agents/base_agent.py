@@ -37,6 +37,20 @@ class BaseAgent:
         
         # Account management - just stores raw accounts
         self.accounts: Dict[str, bytes] = {}  # address -> private_key
+
+        # Initialize with preset addresses if provided
+        if self.profile.preset_addresses:
+            for address in self.profile.preset_addresses:
+                self.accounts[address] = bytes()  # Empty bytes since we'll impersonate
+                
+            # Record if collector exists
+          #  if self.collector and self.collector.current_run_id:
+          #      for i, address in enumerate(self.accounts.keys()):
+          #          self.collector.record_agent_address(
+          #              self.agent_id,
+          #              address,
+          #              is_primary=(i == 0)
+          #          )
         
         # Generic state management
         self.state: Dict[str, Any] = {
@@ -53,6 +67,37 @@ class BaseAgent:
         self.creation_time = datetime.now()
         
     def create_account(self) -> Tuple[str, bytes]:
+        """Create a new blockchain account or use preset addresses"""
+        # If using preset addresses and haven't reached target count, return None
+        if self.profile.preset_addresses:
+            logger.debug(f"Using preset addresses for agent {self.agent_id}")
+            return None, None
+            
+        try:
+            private_key = secrets.token_bytes(32)
+            account = Account.from_key(private_key)
+            
+            # Store account info
+            self.accounts[account.address] = private_key
+            
+            # Fund account if needed and not using preset addresses
+            networks.provider.set_balance(account.address, int(10000e18))
+            
+            # Record if collector exists
+            if self.collector and self.collector.current_run_id:
+                self.collector.record_agent_address(
+                    self.agent_id,
+                    account.address,
+                    is_primary=(len(self.accounts) == 1)
+                )
+                
+            return account.address, private_key
+            
+        except Exception as e:
+            logger.error(f"Failed to create account: {e}")
+            raise
+
+    def create_account2(self) -> Tuple[str, bytes]:
         """Create a new blockchain account"""
         try:
             private_key = secrets.token_bytes(32)

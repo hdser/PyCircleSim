@@ -2,24 +2,19 @@
     {
         "inputs": [
             {
+                "internalType": "contract IHubV1",
+                "name": "_hubV1",
+                "type": "address"
+            },
+            {
                 "internalType": "contract IHubV2",
-                "name": "_hub",
+                "name": "_hubV2",
                 "type": "address"
             },
             {
-                "internalType": "contract INameRegistry",
-                "name": "_nameRegistry",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "_masterCopyERC20Demurrage",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "_masterCopyERC20Inflation",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "_inflationDayZero",
+                "type": "uint256"
             }
         ],
         "stateMutability": "nonpayable",
@@ -139,6 +134,11 @@
     },
     {
         "inputs": [],
+        "name": "CirclesMigrationAmountMustBeGreaterThanZero",
+        "type": "error"
+    },
+    {
+        "inputs": [],
         "name": "CirclesProxyAlreadyInitialized",
         "type": "error"
     },
@@ -154,102 +154,30 @@
         "type": "error"
     },
     {
-        "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
-                "internalType": "address",
-                "name": "avatar",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "erc20Wrapper",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "enum CirclesType",
-                "name": "circlesType",
-                "type": "uint8"
+                "internalType": "uint256",
+                "name": "_amount",
+                "type": "uint256"
             }
         ],
-        "name": "ERC20WrapperDeployed",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "contract Proxy",
-                "name": "proxy",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "masterCopy",
-                "type": "address"
-            }
-        ],
-        "name": "ProxyCreation",
-        "type": "event"
-    },
-    {
-        "inputs": [],
-        "name": "ERC20_WRAPPER_SETUP_CALLPREFIX",
+        "name": "convertFromV1ToDemurrage",
         "outputs": [
             {
-                "internalType": "bytes4",
+                "internalType": "uint256",
                 "name": "",
-                "type": "bytes4"
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "_avatar",
-                "type": "address"
-            },
-            {
-                "internalType": "enum CirclesType",
-                "name": "_circlesType",
-                "type": "uint8"
-            }
-        ],
-        "name": "ensureERC20",
+        "inputs": [],
+        "name": "hubV1",
         "outputs": [
             {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "enum CirclesType",
-                "name": "",
-                "type": "uint8"
-            },
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "name": "erc20Circles",
-        "outputs": [
-            {
-                "internalType": "address",
+                "internalType": "contract IHubV1",
                 "name": "",
                 "type": "address"
             }
@@ -259,7 +187,7 @@
     },
     {
         "inputs": [],
-        "name": "hub",
+        "name": "hubV2",
         "outputs": [
             {
                 "internalType": "contract IHubV2",
@@ -271,32 +199,50 @@
         "type": "function"
     },
     {
-        "inputs": [
+        "inputs": [],
+        "name": "inflationDayZero",
+        "outputs": [
             {
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
             }
         ],
-        "name": "masterCopyERC20Wrapper",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
         "stateMutability": "view",
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "nameRegistry",
+        "inputs": [
+            {
+                "internalType": "address[]",
+                "name": "_avatars",
+                "type": "address[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "_amounts",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "migrate",
         "outputs": [
             {
-                "internalType": "contract INameRegistry",
+                "internalType": "uint256[]",
                 "name": "",
-                "type": "address"
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "period",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",

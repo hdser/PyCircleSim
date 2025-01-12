@@ -16,6 +16,7 @@ class ActionConfig:
     probability: float
     cooldown_blocks: int
     constraints: Dict[str, Any]
+    preset_addresses: Optional[List[str]] = None 
 
     @classmethod
     def from_dict(cls, action_type: str, config: Dict[str, Any]) -> 'ActionConfig':
@@ -36,6 +37,7 @@ class AgentProfile:
     max_daily_actions: int
     risk_tolerance: float
     preferred_networks: List[str]
+    preset_addresses: Optional[List[str]]
     action_configs: Dict[str, ActionConfig]
 
     @classmethod
@@ -56,6 +58,7 @@ class AgentProfile:
             max_daily_actions=base_config.get('max_daily_actions', 10),
             risk_tolerance=base_config.get('risk_tolerance', 0.5),
             preferred_networks=base_config.get('preferred_networks', []),
+            preset_addresses=base_config.get('preset_addresses', None),
             action_configs=action_configs
         )
 
