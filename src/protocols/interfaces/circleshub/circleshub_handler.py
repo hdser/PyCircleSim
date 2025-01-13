@@ -2,7 +2,7 @@ import random
 import importlib
 from typing import Dict, Any, Optional
 from eth_pydantic_types import HexBytes
-from src.framework.agents import BaseAgent, AgentManager
+from src.framework.core import SimulationContext
 from src.protocols.interfaces.circleshub.circleshub_client import CirclesHubClient
 
 
@@ -43,9 +43,9 @@ class BurnBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -103,9 +103,9 @@ class CalculateIssuanceWithCheckBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -165,9 +165,9 @@ class GroupMintBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -231,9 +231,9 @@ class MigrateBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -297,9 +297,9 @@ class OperateFlowMatrixBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -357,9 +357,9 @@ class PersonalMintBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -419,9 +419,9 @@ class RegisterCustomGroupBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -489,9 +489,9 @@ class RegisterGroupBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -553,9 +553,9 @@ class RegisterHumanBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -613,9 +613,9 @@ class RegisterOrganizationBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -679,9 +679,9 @@ class SafeBatchTransferFromBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -751,9 +751,9 @@ class SafeTransferFromBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -815,9 +815,9 @@ class SetAdvancedUsageFlagBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -873,9 +873,9 @@ class SetApprovalForAllBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -929,9 +929,9 @@ class StopBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -985,9 +985,9 @@ class TrustBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
                 
@@ -1047,9 +1047,9 @@ class WrapBaseHandler:
             
         }
 
-    def execute(self, agent: BaseAgent, agent_manager: AgentManager, params: Optional[Dict[str, Any]] = None) -> bool:
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
         try:
-            execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
+            execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
             

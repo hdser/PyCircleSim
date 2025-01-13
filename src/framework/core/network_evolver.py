@@ -5,8 +5,8 @@ from ape import chain
 from src.framework.agents import AgentManager, BaseAgent, ActionType
 from src.framework.data import DataCollector
 from src.framework.logging import get_logger
+from .context import SimulationContext
 import importlib 
-
 
 logger = get_logger(__name__)
 
@@ -31,9 +31,25 @@ class NetworkEvolver():
         self.last_action_times: Dict[str, int] = {}
         self.min_blocks_between_actions = 5
         
+        self.network_state = {
+            'current_block': 0,
+            'current_time': 0,
+            'contract_states': {},  # Will store per-contract state
+            'running_state': {}     # For dynamic state
+        }
+
         # Initialize all available handlers
         self.handlers = {}
         self._initialize_handlers()
+
+    def initialize_contract_states(self, contract_states: Dict[str, Dict[str, Any]]):
+        """Initialize per-contract state data"""
+        self.network_state['contract_states'] = contract_states
+
+    def get_contract_state(self, contract_id: str, var_name: str, default: Any = None) -> Any:
+        """Get specific contract state variable"""
+        contract_state = self.network_state['contract_states'].get(contract_id, {}).get('state', {})
+        return contract_state.get(var_name, default)
 
     def _initialize_handlers(self):
         """Initialize all available action handlers with configured strategies"""
@@ -77,31 +93,6 @@ class NetworkEvolver():
         """Get appropriate client for module"""
         return self.clients.get(module_name)
         
-    def _execute_action(
-        self,
-        agent: BaseAgent,
-        action_name: str,
-       # acting_address: str,
-        params: Dict
-    ) -> bool:
-        """Execute action using appropriate handler"""
-        try:
-            # Get handler for action
-            handler = self.handlers.get(action_name)
-            if not handler:
-                logger.error(f"No handler found for action {action_name}")
-                return False
-    
-            success = handler.execute(agent, self.agent_manager)
-            
-            if success:
-                logger.debug(f"Successfully executed {action_name}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Action execution failed: {e}", exc_info=True)
-            return False
             
     def advance_time(self, blocks: int, block_time: int = 5) -> bool:
         """
@@ -129,7 +120,6 @@ class NetworkEvolver():
             return False
             
     def evolve_network(self, iteration: int) -> Dict[str, int]:
-        """Evolve network with action tracking"""
         stats = {
             'total_actions': 0,
             'successful_actions': 0,
@@ -140,54 +130,64 @@ class NetworkEvolver():
             all_agents = list(self.agent_manager.agents.values())
             random.shuffle(all_agents)
 
-            # Current chain state
-            chain_state = {
+            self.network_state.update({
                 'current_block': chain.blocks.head.number,
                 'current_time': chain.blocks.head.timestamp,
-                'balances': {}
-            }
+            })
 
-            # Process each agent's action
             for agent in all_agents:
-                if not self._check_action_timing(agent.agent_id, chain_state['current_block']):
+                if not self._check_action_timing(agent.agent_id, self.network_state['current_block']):
                     continue
                     
-                action_name, acting_address, params = agent.select_action(
-                    current_block=chain_state['current_block'],
-                    network_state=chain_state
+                # Pass all clients to context
+                context = SimulationContext(
+                    agent=agent,
+                    agent_manager=self.agent_manager,
+                    clients=self.clients,
+                    chain=chain,
+                    network_state=self.network_state
                 )
-                if action_name is None:
+                
+                action_name = self._select_action(context)
+                if not action_name:
                     continue
 
+                handler = self.handlers.get(action_name)
+                if not handler:
+                    continue
+                    
                 stats['total_actions'] += 1
-                
-                success = self._execute_action(
-                    agent, 
-                    action_name,
-                    params
-                )
+                success = handler.execute(context)
                 if success:
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
-                    self.last_action_times[agent.agent_id] = chain_state['current_block']
-                    
-                    agent.record_action(
-                        action_name,
-                        chain_state['current_block'],
-                        True
-                    )
-                    
 
-            logger.info(
-                f"Iteration {iteration} complete - "
-                f"Actions: {stats['total_actions']}, "
-                f"Successful: {stats['successful_actions']}"
-            )
             return stats
             
         except Exception as e:
-            logger.error(f"Network evolution failed: {e}", exc_info=True)
+            logger.error(f"Network evolution failed: {e}")
             return stats
+        
+    def _select_action(self, context: SimulationContext) -> Optional[str]:
+        """Select an action for the agent to perform"""
+        try:
+            action_name, acting_address, params = context.agent.select_action(
+                current_block=self.network_state['current_block'],
+                network_state=self.network_state
+            )
+            if action_name is None:
+                return None
+
+            if not self.handlers.get(action_name):
+                logger.debug(f"No handler found for action {action_name}")
+                return None
+
+            return action_name
+
+        except Exception as e:
+            logger.error(f"Failed to select action: {e}")
+            return None
+        
             
     def _check_action_timing(self, agent_id: str, current_block: int) -> bool:
         """Check if enough blocks have passed since last action"""

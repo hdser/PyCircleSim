@@ -2,6 +2,7 @@ from typing import Dict, Any, Optional
 import random
 from eth_pydantic_types import HexBytes
 from ape_ethereum import Ethereum
+from src.framework.core import SimulationContext
 from src.protocols.handler_strategies.base import BaseStrategy
 
 
@@ -23,6 +24,7 @@ def agent_balances(agent_addr: str, agent_manager, client) -> dict:
     """
     all_accounts = agent_manager.address_to_agent.keys()
     
+    
     # Create lists for token IDs and accounts using comprehensions
     token_ids = [client.toTokenId(addr) for addr in all_accounts]
     accounts = [agent_addr] * len(all_accounts)
@@ -39,13 +41,17 @@ def agent_balances(agent_addr: str, agent_manager, client) -> dict:
 #--------------------------------------------------------------------------------
 
 class BurnStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
 
         if not sender:
             return {}
+        
+        client = context.get_client('ringshub')
+        if not client:
+            return None
 
-        balances = agent_balances(sender, agent_manager, client)
+        balances = agent_balances(sender, context.agent_manager, client)
         #for ids, _ in balances.iterrows():
         #    addr = Ethereum.decode_address(ids)
         #    if client.isTrusted()
@@ -66,8 +72,8 @@ class BurnStrategy(BaseStrategy):
 
 
 class CalculateIssuanceWithCheckStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -81,15 +87,19 @@ class CalculateIssuanceWithCheckStrategy(BaseStrategy):
 
 
 class GroupMintStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
 
-        sender = self.get_sender(agent)
+        sender = self.get_sender(context)
         if not sender:
             return {}
 
 
+        client = context.get_client('ringshub')
+        if not client:
+            return None
+
         groups = []
-        all_accounts = agent_manager.address_to_agent.keys()
+        all_accounts = context.agent_manager.address_to_agent.keys()
         for addr in all_accounts:
             if client.isGroup(addr) and addr != sender:
                 groups.append(addr)
@@ -123,8 +133,8 @@ class GroupMintStrategy(BaseStrategy):
 
 
 class MigrateStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -142,8 +152,8 @@ class MigrateStrategy(BaseStrategy):
 
 
 class OperateFlowMatrixStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -163,12 +173,16 @@ class OperateFlowMatrixStrategy(BaseStrategy):
 
 
 class PersonalMintStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        client = context.get_client('ringshub')
+        if not client:
+            return None
+        
         mintable_accounts = []
-        for address in agent.accounts.keys():
+        for address in context.agent.accounts.keys():
             if client.isHuman(address) and not client.stopped(address):
                 issuance, start_period, _ = client.calculateIssuance(address)
-                if issuance != 0 and chain.blocks.head.timestamp >= start_period:
+                if issuance != 0 and context.chain.blocks.head.timestamp >= start_period:
                     mintable_accounts.append(address)
         
         if not mintable_accounts:
@@ -180,8 +194,12 @@ class PersonalMintStrategy(BaseStrategy):
 
 
 class RegisterCustomGroupStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        client = context.get_client('ringshub')
+        if not client:
+            return None
+        
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -203,23 +221,26 @@ class RegisterCustomGroupStrategy(BaseStrategy):
 
 
 class RegisterGroupStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        client = context.get_client('ringshub')
+        if not client:
+            return None
         
         addresses = []
-        for addr in agent.accounts.keys():
+        for addr in context.agent.accounts.keys():
             if not client.isGroup(addr) and not client.isHuman(addr) and not client.isOrganization(addr):
                 addresses.append(addr)
 
         if addresses:
             creator_address = random.choice(addresses)
         else:
-            if len(agent.accounts) <= agent.profile.target_account_count:
-                creator_address, _ = agent.create_account()
-                agent_manager.address_to_agent[creator_address] = agent.agent_id
+            if len(context.agent.accounts) <= context.agent.profile.target_account_count:
+                creator_address, _ = context.agent.create_account()
+                context.agent_manager.address_to_agent[creator_address] = context.agent.agent_id
             else:
                 return {}
 
-        group_number = getattr(agent, 'group_count', 0) + 1
+        group_number = getattr(context.agent, 'group_count', 0) + 1
         return {
             'sender': creator_address,
             '_name': f"RingsGroup{creator_address[:4]}{group_number}",
@@ -231,19 +252,23 @@ class RegisterGroupStrategy(BaseStrategy):
 
 
 class RegisterHumanStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
 
+        client = context.get_client('ringshub')
+        if not client:
+            return None
+        
         addresses = []
-        for addr in agent.accounts.keys():
+        for addr in context.agent.accounts.keys():
             if not client.isGroup(addr) and not client.isHuman(addr) and not client.isOrganization(addr):
                 addresses.append(addr)
 
         if addresses:
             address = random.choice(addresses)
         else:
-            if len(agent.accounts) <= agent.profile.target_account_count:
-                address, _ = agent.create_account()
-                agent_manager.address_to_agent[address] = agent.agent_id
+            if len(context.agent.accounts) <= context.agent.profile.target_account_count:
+                address, _ = context.agent.create_account()
+                context.agent_manager.address_to_agent[address] = context.agent.agent_id
             else:
                 return {}
 
@@ -254,8 +279,8 @@ class RegisterHumanStrategy(BaseStrategy):
         }
 
 class RegisterOrganizationStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -271,8 +296,8 @@ class RegisterOrganizationStrategy(BaseStrategy):
 
 
 class SafeBatchTransferFromStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -294,18 +319,22 @@ class SafeBatchTransferFromStrategy(BaseStrategy):
 
 
 class SafeTransferFromStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        trusted_addresses = agent.state.get('trusted_addresses', set())
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        trusted_addresses = context.agent.state.get('trusted_addresses', set())
         if not trusted_addresses:
             return {}
 
-        sender = self.get_sender(agent)
+        sender = self.get_sender(context)
         if not sender:
             return {}
+        
+        rings_client = context.get_client('ringshub')
+        if not rings_client:
+            return None
 
         receiver = random.choice(list(trusted_addresses))
-        id = client.toTokenId(sender)
-        balance = client.balanceOf(sender, id)
+        id = rings_client.toTokenId(sender)
+        balance = rings_client.balanceOf(sender, id)
 
         if balance == 0:
             return {}
@@ -325,8 +354,8 @@ class SafeTransferFromStrategy(BaseStrategy):
 
 
 class SetAdvancedUsageFlagStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -340,8 +369,8 @@ class SetAdvancedUsageFlagStrategy(BaseStrategy):
 
 
 class SetApprovalForAllStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -357,8 +386,8 @@ class SetApprovalForAllStrategy(BaseStrategy):
 
 
 class StopStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -370,17 +399,21 @@ class StopStrategy(BaseStrategy):
 
 
 class TrustStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         # Parameters
-        block_timestamp = chain.blocks.head.timestamp
+        block_timestamp = context.chain.blocks.head.timestamp
         expiry_delta = 365 * 24 * 60 * 60
 
-        truster = self.get_sender(agent)
+        truster = self.get_sender(context)
 
-        all_accounts = agent_manager.address_to_agent.keys()
+        rings_client = context.get_client('ringshub')
+        if not rings_client:
+            return None
+
+        all_accounts = context.agent_manager.address_to_agent.keys()
         potential_trustees = []
         for addr in all_accounts:
-            if (client.isHuman(addr) or client.isGroup(addr)) and addr != truster and not client.isTrusted(truster,addr):
+            if (rings_client.isHuman(addr) or rings_client.isGroup(addr)) and addr != truster and not rings_client.isTrusted(truster,addr):
                 potential_trustees.append(addr)
         
         if not potential_trustees:
@@ -397,13 +430,17 @@ class TrustStrategy(BaseStrategy):
 
 
 class WrapStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return {}
             
-        id = client.toTokenId(sender) 
-        balance = client.balanceOf(sender, id)
+        rings_client = context.get_client('ringshub')
+        if not rings_client:
+            return None
+        
+        id = rings_client.toTokenId(sender) 
+        balance = rings_client.balanceOf(sender, id)
         if balance == 0:
             return {}
             

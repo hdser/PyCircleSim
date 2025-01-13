@@ -8,17 +8,21 @@ block_time: 5            # Default seconds per block
 
 
 state_variables:
-  inflationDayZero:
-    type: uint256
-    slot: 0
-  avatars:
-    type: mapping(address => address)
-    slot: 26
-    iterable: true
-  _uri:
-    type: string
-    slot: 20
+  CirclesHub:  # Contract identifier matching contract_configs
+    address: "0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8"  # Optional override
+    variables:
+      inflationDayZero:
+        type: uint256
+        slot: 0
+      avatars:
+        type: mapping(address => address)
+        slot: 26
+        iterable: true
+      _uri:
+        type: string
+        slot: 20
 
+        
 strategies:
   circleshub: 'basic'  # or 'sybil'
   wxdai: 'basic'

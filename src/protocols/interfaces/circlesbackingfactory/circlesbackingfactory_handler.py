@@ -2,16 +2,16 @@ import random
 import importlib
 from typing import Dict, Any, Optional
 from eth_pydantic_types import HexBytes
-from src.framework.core import SimulationContext
-from src.protocols.interfaces.wxdai.wxdai_client import WXDAIClient
+from src.framework.core.context import SimulationContext
+from src.protocols.interfaces.circlesbackingfactory.circlesbackingfactory_client import CirclesBackingFactoryClient
 
 
-class ApproveBaseHandler:
-    """Base handler class for approve action."""
+class CreateLBPBaseHandler:
+    """Base handler class for createLBP action."""
     
     def __init__(
         self,
-        client: WXDAIClient,
+        client: CirclesBackingFactoryClient,
         chain,
         logger,
         strategy_name: str = "basic"
@@ -29,15 +29,19 @@ class ApproveBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
-            'guy': None,  # type: address
+            'personalCRC': None,  # type: address
             
-            'wad': None,  # type: uint256
+            'personalCRCAmount': None,  # type: uint256
+            
+            'backingAsset': None,  # type: address
+            
+            'backingAssetAmount': None,  # type: uint256
             
         }
 
@@ -47,31 +51,35 @@ class ApproveBaseHandler:
             if not execution_params:
                 return False
                 
-            return self.client.approve(
+            return self.client.createLBP(
                 
-                guy=execution_params.get("guy"),
+                personalCRC=execution_params.get("personalCRC"),
                 
-                wad=execution_params.get("wad"),
+                personalCRCAmount=execution_params.get("personalCRCAmount"),
+                
+                backingAsset=execution_params.get("backingAsset"),
+                
+                backingAssetAmount=execution_params.get("backingAssetAmount"),
                 
                 sender=execution_params.get("sender"),
                 value=execution_params.get("value", 0)
             )
 
         except Exception as e:
-            self.logger.error(f"approve action failed: {e}", exc_info=True)
+            self.logger.error(f"createLBP action failed: {e}", exc_info=True)
             return False
 
-class ApproveHandler(ApproveBaseHandler):
+class CreateLBPHandler(CreateLBPBaseHandler):
     """Concrete handler implementation"""
     pass
 
 
-class TransferFromBaseHandler:
-    """Base handler class for transferFrom action."""
+class ExitLBPBaseHandler:
+    """Base handler class for exitLBP action."""
     
     def __init__(
         self,
-        client: WXDAIClient,
+        client: CirclesBackingFactoryClient,
         chain,
         logger,
         strategy_name: str = "basic"
@@ -89,17 +97,15 @@ class TransferFromBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
-            'src': None,  # type: address
+            'lbp': None,  # type: address
             
-            'dst': None,  # type: address
-            
-            'wad': None,  # type: uint256
+            'bptAmount': None,  # type: uint256
             
         }
 
@@ -109,33 +115,31 @@ class TransferFromBaseHandler:
             if not execution_params:
                 return False
                 
-            return self.client.transferFrom(
+            return self.client.exitLBP(
                 
-                src=execution_params.get("src"),
+                lbp=execution_params.get("lbp"),
                 
-                dst=execution_params.get("dst"),
-                
-                wad=execution_params.get("wad"),
+                bptAmount=execution_params.get("bptAmount"),
                 
                 sender=execution_params.get("sender"),
                 value=execution_params.get("value", 0)
             )
 
         except Exception as e:
-            self.logger.error(f"transferFrom action failed: {e}", exc_info=True)
+            self.logger.error(f"exitLBP action failed: {e}", exc_info=True)
             return False
 
-class TransferFromHandler(TransferFromBaseHandler):
+class ExitLBPHandler(ExitLBPBaseHandler):
     """Concrete handler implementation"""
     pass
 
 
-class WithdrawBaseHandler:
-    """Base handler class for withdraw action."""
+class GetPersonalCirclesBaseHandler:
+    """Base handler class for getPersonalCircles action."""
     
     def __init__(
         self,
-        client: WXDAIClient,
+        client: CirclesBackingFactoryClient,
         chain,
         logger,
         strategy_name: str = "basic"
@@ -153,13 +157,13 @@ class WithdrawBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
-            'wad': None,  # type: uint256
+            'avatar': None,  # type: address
             
         }
 
@@ -169,29 +173,29 @@ class WithdrawBaseHandler:
             if not execution_params:
                 return False
                 
-            return self.client.withdraw(
+            return self.client.getPersonalCircles(
                 
-                wad=execution_params.get("wad"),
+                avatar=execution_params.get("avatar"),
                 
                 sender=execution_params.get("sender"),
                 value=execution_params.get("value", 0)
             )
 
         except Exception as e:
-            self.logger.error(f"withdraw action failed: {e}", exc_info=True)
+            self.logger.error(f"getPersonalCircles action failed: {e}", exc_info=True)
             return False
 
-class WithdrawHandler(WithdrawBaseHandler):
+class GetPersonalCirclesHandler(GetPersonalCirclesBaseHandler):
     """Concrete handler implementation"""
     pass
 
 
-class TransferBaseHandler:
-    """Base handler class for transfer action."""
+class OnERC1155ReceivedBaseHandler:
+    """Base handler class for onERC1155Received action."""
     
     def __init__(
         self,
-        client: WXDAIClient,
+        client: CirclesBackingFactoryClient,
         chain,
         logger,
         strategy_name: str = "basic"
@@ -209,15 +213,21 @@ class TransferBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
-            'dst': None,  # type: address
+            'operator': None,  # type: address
             
-            'wad': None,  # type: uint256
+            'from_': None,  # type: address
+            
+            'id': None,  # type: uint256
+            
+            'value': None,  # type: uint256
+            
+            'data': None,  # type: bytes
             
         }
 
@@ -227,31 +237,37 @@ class TransferBaseHandler:
             if not execution_params:
                 return False
                 
-            return self.client.transfer(
+            return self.client.onERC1155Received(
                 
-                dst=execution_params.get("dst"),
+                operator=execution_params.get("operator"),
                 
-                wad=execution_params.get("wad"),
+                from_=execution_params.get("from_"),
+                
+                id=execution_params.get("id"),
+                
+                value=execution_params.get("value"),
+                
+                data=execution_params.get("data"),
                 
                 sender=execution_params.get("sender"),
                 value=execution_params.get("value", 0)
             )
 
         except Exception as e:
-            self.logger.error(f"transfer action failed: {e}", exc_info=True)
+            self.logger.error(f"onERC1155Received action failed: {e}", exc_info=True)
             return False
 
-class TransferHandler(TransferBaseHandler):
+class OnERC1155ReceivedHandler(OnERC1155ReceivedBaseHandler):
     """Concrete handler implementation"""
     pass
 
 
-class DepositBaseHandler:
-    """Base handler class for deposit action."""
+class SetReleaseTimestampBaseHandler:
+    """Base handler class for setReleaseTimestamp action."""
     
     def __init__(
         self,
-        client: WXDAIClient,
+        client: CirclesBackingFactoryClient,
         chain,
         logger,
         strategy_name: str = "basic"
@@ -269,11 +285,13 @@ class DepositBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
+            
+            'timestamp': None,  # type: uint32
             
         }
 
@@ -283,17 +301,79 @@ class DepositBaseHandler:
             if not execution_params:
                 return False
                 
-            return self.client.deposit(
+            return self.client.setReleaseTimestamp(
+                
+                timestamp=execution_params.get("timestamp"),
                 
                 sender=execution_params.get("sender"),
                 value=execution_params.get("value", 0)
             )
 
         except Exception as e:
-            self.logger.error(f"deposit action failed: {e}", exc_info=True)
+            self.logger.error(f"setReleaseTimestamp action failed: {e}", exc_info=True)
             return False
 
-class DepositHandler(DepositBaseHandler):
+class SetReleaseTimestampHandler(SetReleaseTimestampBaseHandler):
+    """Concrete handler implementation"""
+    pass
+
+
+class SetSupportedBackingAssetStatusBaseHandler:
+    """Base handler class for setSupportedBackingAssetStatus action."""
+    
+    def __init__(
+        self,
+        client: CirclesBackingFactoryClient,
+        chain,
+        logger,
+        strategy_name: str = "basic"
+    ):
+        self.client = client
+        self.chain = chain
+        self.logger = logger
+        
+        try:
+            module_path = f"src.protocols.handler_strategies.{client.__class__.__name__.lower().replace('client', '')}.{strategy_name}_strategies"
+            strategy_module = importlib.import_module(module_path)
+            strategy_class = getattr(strategy_module, f"{self.__class__.__name__.replace('Handler', 'Strategy').replace('Base', '')}")
+            self.strategy = strategy_class()
+        except (ImportError, AttributeError) as e:
+            self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
+            self.strategy = self
+
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
+        """Default parameter generation if no strategy is loaded"""
+        return {
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
+            'value': 0,
+            
+            'backingAsset': None,  # type: address
+            
+            'status': None,  # type: bool
+            
+        }
+
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        try:
+            execution_params = params if params else self.strategy.get_params(context)
+            if not execution_params:
+                return False
+                
+            return self.client.setSupportedBackingAssetStatus(
+                
+                backingAsset=execution_params.get("backingAsset"),
+                
+                status=execution_params.get("status"),
+                
+                sender=execution_params.get("sender"),
+                value=execution_params.get("value", 0)
+            )
+
+        except Exception as e:
+            self.logger.error(f"setSupportedBackingAssetStatus action failed: {e}", exc_info=True)
+            return False
+
+class SetSupportedBackingAssetStatusHandler(SetSupportedBackingAssetStatusBaseHandler):
     """Concrete handler implementation"""
     pass
 

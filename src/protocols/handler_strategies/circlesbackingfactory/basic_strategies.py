@@ -1,9 +1,9 @@
 from typing import Dict, Any, Optional
 from src.protocols.handler_strategies.base import BaseStrategy
-from src.framework.core import SimulationContext
+from src.framework.core.context import SimulationContext
 
 
-class ApproveStrategy(BaseStrategy):
+class CreateLBPStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
@@ -13,14 +13,18 @@ class ApproveStrategy(BaseStrategy):
             'sender': sender,
             'value': 0
             
-            ,'guy': None
+            ,'personalCRC': None
             
-            ,'wad': None
+            ,'personalCRCAmount': None
+            
+            ,'backingAsset': None
+            
+            ,'backingAssetAmount': None
             
         }
 
 
-class TransferFromStrategy(BaseStrategy):
+class ExitLBPStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
@@ -30,16 +34,14 @@ class TransferFromStrategy(BaseStrategy):
             'sender': sender,
             'value': 0
             
-            ,'src': None
+            ,'lbp': None
             
-            ,'dst': None
-            
-            ,'wad': None
+            ,'bptAmount': None
             
         }
 
 
-class WithdrawStrategy(BaseStrategy):
+class GetPersonalCirclesStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
@@ -49,12 +51,12 @@ class WithdrawStrategy(BaseStrategy):
             'sender': sender,
             'value': 0
             
-            ,'wad': None
+            ,'avatar': None
             
         }
 
 
-class TransferStrategy(BaseStrategy):
+class OnERC1155ReceivedStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
@@ -64,14 +66,20 @@ class TransferStrategy(BaseStrategy):
             'sender': sender,
             'value': 0
             
-            ,'dst': None
+            ,'operator': None
             
-            ,'wad': None
+            ,'from_': None
+            
+            ,'id': None
+            
+            ,'value': None
+            
+            ,'data': None
             
         }
 
 
-class DepositStrategy(BaseStrategy):
+class SetReleaseTimestampStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
@@ -79,7 +87,26 @@ class DepositStrategy(BaseStrategy):
             
         return {
             'sender': sender,
-            'value': int(10**18)
+            'value': 0
+            
+            ,'timestamp': None
+            
+        }
+
+
+class SetSupportedBackingAssetStatusStrategy(BaseStrategy):
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
+        if not sender:
+            return None
+            
+        return {
+            'sender': sender,
+            'value': 0
+            
+            ,'backingAsset': None
+            
+            ,'status': None
             
         }
 

@@ -1,0 +1,664 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "admin",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "usdcInteger",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "BackingInFavorDissalowed",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            }
+        ],
+        "name": "CirclesBackingDeploymentFailed",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NotAdmin",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "required",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "received",
+                "type": "uint256"
+            }
+        ],
+        "name": "NotExactlyRequiredCRCAmount",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "OnlyCirclesBacking",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "OnlyHub",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "OnlyHumanAvatarsAreSupported",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "OnlyTwoTokenLBPSupported",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "PersonalCirclesApprovalIsMissing",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "requestedAsset",
+                "type": "address"
+            }
+        ],
+        "name": "UnsupportedBackingAsset",
+        "type": "error"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "circlesBackingInstance",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "lbp",
+                "type": "address"
+            }
+        ],
+        "name": "CirclesBackingCompleted",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "circlesBackingInstance",
+                "type": "address"
+            }
+        ],
+        "name": "CirclesBackingDeployed",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "circlesBackingInstance",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "backingAsset",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "personalCirclesAddress",
+                "type": "address"
+            }
+        ],
+        "name": "CirclesBackingInitiated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "circlesBackingInstance",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "lbp",
+                "type": "address"
+            }
+        ],
+        "name": "LBPDeployed",
+        "type": "event"
+    },
+    {
+        "inputs": [],
+        "name": "ADMIN",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "CRC_AMOUNT",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "GET_UID_CONTRACT",
+        "outputs": [
+            {
+                "internalType": "contract IGetUid",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "HUB_V2",
+        "outputs": [
+            {
+                "internalType": "contract IHub",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "LBP_FACTORY",
+        "outputs": [
+            {
+                "internalType": "contract INoProtocolFeeLiquidityBootstrappingPoolFactory",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "LIFT_ERC20",
+        "outputs": [
+            {
+                "internalType": "contract ILiftERC20",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "TRADE_AMOUNT",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "USDC",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "USDC_DECIMALS",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "VALID_TO",
+        "outputs": [
+            {
+                "internalType": "uint32",
+                "name": "",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "VAULT",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "circlesBacking",
+                "type": "address"
+            }
+        ],
+        "name": "backerOf",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            }
+        ],
+        "name": "circlesBackingOf",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "circlesBacking",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            }
+        ],
+        "name": "computeAddress",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "predictedAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "personalCRC",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "personalCRCAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "backingAsset",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "backingAssetAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "createLBP",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "lbp",
+                "type": "address"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "poolId",
+                "type": "bytes32"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "contract IERC20[]",
+                        "name": "assets",
+                        "type": "address[]"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "maxAmountsIn",
+                        "type": "uint256[]"
+                    },
+                    {
+                        "internalType": "bytes",
+                        "name": "userData",
+                        "type": "bytes"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "fromInternalBalance",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct IVault.JoinPoolRequest",
+                "name": "request",
+                "type": "tuple"
+            },
+            {
+                "internalType": "address",
+                "name": "vault",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "lbp",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "bptAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "exitLBP",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_circlesBackingInstance",
+                "type": "address"
+            }
+        ],
+        "name": "getAppData",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "appDataString",
+                "type": "string"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "appDataHash",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "avatar",
+                "type": "address"
+            }
+        ],
+        "name": "getPersonalCircles",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "inflationaryCircles",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            }
+        ],
+        "name": "isActiveLBP",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "operator",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "id",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+            }
+        ],
+        "name": "onERC1155Received",
+        "outputs": [
+            {
+                "internalType": "bytes4",
+                "name": "",
+                "type": "bytes4"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "postAppData",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "preAppData",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "releaseTimestamp",
+        "outputs": [
+            {
+                "internalType": "uint32",
+                "name": "",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint32",
+                "name": "timestamp",
+                "type": "uint32"
+            }
+        ],
+        "name": "setReleaseTimestamp",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "backingAsset",
+                "type": "address"
+            },
+            {
+                "internalType": "bool",
+                "name": "status",
+                "type": "bool"
+            }
+        ],
+        "name": "setSupportedBackingAssetStatus",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "supportedAsset",
+                "type": "address"
+            }
+        ],
+        "name": "supportedBackingAssets",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

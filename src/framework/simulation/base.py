@@ -71,11 +71,21 @@ class BaseSimulationConfig:
 
         # Validate state variables if present
         if 'state_variables' in self.network_config:
-            for name, settings in self.network_config['state_variables'].items():
-                if 'type' not in settings:
-                    raise ValueError(f"Missing type for state variable {name}")
-                if 'slot' not in settings:
-                    raise ValueError(f"Missing slot for state variable {name}")
+            self._validate_state_config(self.network_config['state_variables'])
+
+                
+    def _validate_state_config(self, state_config: Dict) -> None:
+        """Validate state variable configuration"""
+        for contract_id, config in state_config.items():
+            if 'variables' not in config:
+                raise ValueError(f"Missing 'variables' section for contract {contract_id}")
+                
+            for var_name, var_config in config['variables'].items():
+                if 'type' not in var_config:
+                    raise ValueError(f"Missing type for variable {var_name} in contract {contract_id}")
+                if 'slot' not in var_config:
+                    raise ValueError(f"Missing slot for variable {var_name} in contract {contract_id}")
+
 
     @property
     def state_variables(self) -> Dict[str, Dict[str, Any]]:
@@ -132,6 +142,16 @@ class BaseSimulation(ABC):
         self.collector = self._initialize_collector()
         self.agent_manager = self._initialize_agent_manager()
         self.clients = self._initialize_clients()
+
+        # Initialize contract states
+        self.contract_states = self._initialize_contract_states(config, contract_configs)
+        
+        # Put decoded states into initial_state for backward compatibility
+        self.initial_state = {
+            contract_id: state_data['state'] 
+            for contract_id, state_data in self.contract_states.items()
+        }
+
         self.builder = self._initialize_builder()
         self.evolver = self._initialize_evolver()
 
@@ -139,18 +159,59 @@ class BaseSimulation(ABC):
         self.iteration_stats: List[Dict[str, Any]] = []
 
         # Initialize state decoder if we have state variables configured
-        self.initial_state = {}
+        #self.initial_state = {}
 
-        if config.state_variables:
-            try:
-                # Use first contract address by default - specific simulations can override
-                contract_address = next(iter(contract_configs.values()))['address']
-                decoder = StateDecoder(contract_address)
-                self.initial_state = decoder.decode_state(config.state_variables)
-                logger.info(f"Decoded initial state variables: {self.initial_state.keys()}")
-            except Exception as e:
-                logger.error(f"Failed to decode initial state: {e}")
+        #if config.state_variables:
+        #    try:
+        #        # Use first contract address by default - specific simulations can override
+        #        contract_address = next(iter(contract_configs.values()))['address']
+        #        decoder = StateDecoder(contract_address)
+        #        self.initial_state = decoder.decode_state(config.state_variables)
+        #        logger.info(f"Decoded initial state variables: {self.initial_state.keys()}")
+        #    except Exception as e:
+        #        logger.error(f"Failed to decode initial state: {e}")
                 # Continue with empty initial state rather than failing
+
+
+    def _initialize_contract_states(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Initialize contract states from configuration"""
+        initialized_states = {}
+
+        if not config.state_variables:
+            return initialized_states
+
+        for contract_id, state_config in config.state_variables.items():
+            try:
+                # Get contract address - from state config or contract_configs
+                if 'address' in state_config:
+                    contract_address = state_config['address']
+                elif contract_id in contract_configs:
+                    contract_address = contract_configs[contract_id]['address']
+                else:
+                    logger.error(f"No address found for contract {contract_id}")
+                    continue
+
+                # Verify contract exists
+                if not contract_address:
+                    logger.error(f"Invalid address for contract {contract_id}")
+                    continue
+
+                # Initialize decoder and decode state
+                decoder = StateDecoder(contract_address)
+                decoded_state = decoder.decode_state(state_config['variables'])
+                
+                initialized_states[contract_id] = {
+                    'address': contract_address,
+                    'state': decoded_state
+                }
+                
+                logger.info(f"Decoded state for {contract_id} ({contract_address}): {decoded_state.keys()}")
+
+            except Exception as e:
+                logger.error(f"Failed to decode state for contract {contract_id}: {e}")
+                continue
+
+        return initialized_states
 
     def get_initial_state(self) -> Dict[str, Any]:
         """Get initial state for agents"""
@@ -232,6 +293,7 @@ class BaseSimulation(ABC):
             gas_limits=self.config.network_config.get('gas_limits'),
             strategy_config=self.strategy_config
         )
+        evolver.initialize_contract_states(self.contract_states)
         return evolver
 
     @abstractmethod

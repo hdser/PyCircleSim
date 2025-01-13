@@ -4,6 +4,8 @@ from eth_pydantic_types import HexBytes
 from src.framework.agents import AgentManager, BaseAgent
 from src.framework.data import DataCollector
 from src.framework.logging import get_logger
+from src.framework.core.context import SimulationContext
+import importlib
 
 logger = get_logger(__name__)
 
@@ -23,6 +25,12 @@ class NetworkBuilder:
         self.batch_size = batch_size
         self.agent_manager = agent_manager
         self.collector = collector
+        self.network_state = {
+            'current_block': 0,
+            'current_time': 0,
+            'contract_states': {},
+            'running_state': {}
+        }
 
     def build_large_network(
         self,
@@ -31,17 +39,10 @@ class NetworkBuilder:
         initial_state: Optional[Dict[str, Any]] = None,
         initial_actions: Optional[List[Dict[str, Any]]] = None
     ) -> bool:
-        """
-        Build initial network state
-        
-        Args:
-            target_size: Target network size
-            profile_distribution: Distribution of agent profiles
-            initial_state: Initial state parameters
-            initial_actions: List of initial actions to execute
-        """
+        """Build initial network state"""
         try:
             logger.info(f"Creating {target_size} agents with distribution: {profile_distribution}")
+            
             # Create agents
             created_agents = self.agent_manager.create_agents(profile_distribution)
             if len(created_agents) != target_size:
@@ -51,23 +52,18 @@ class NetworkBuilder:
             # Create accounts for each agent based on their profile
             for agent in created_agents:
                 self._ensure_agent_accounts(agent)
-                # Initialize empty trusted addresses set
                 agent.state['trusted_addresses'] = set()
 
             # Set initial network state
             if initial_state:
+                self.network_state['contract_states'] = initial_state
                 if not self._set_initial_state(created_agents, initial_state):
                     return False
 
-            # Execute initial actions in single block
+            # Execute initial actions
             if initial_actions:
                 if not self._execute_initial_actions(created_agents, initial_actions):
                     return False
-
-          #  # Set initial network state
-          #  if initial_state:
-          #      if not self._set_initial_state(created_agents, initial_state):
-          #          return False
                     
             return True
             
@@ -80,7 +76,6 @@ class NetworkBuilder:
         target_accounts = agent.profile.target_account_count
         current_accounts = len(agent.accounts)
         
-        # Create additional accounts if needed  
         for _ in range(current_accounts, target_accounts):
             agent.create_account()
 
@@ -96,6 +91,12 @@ class NetworkBuilder:
         for agent in agents:
             self._ensure_agent_accounts(agent)
             
+        # Update network state with current block/time
+        self.network_state.update({
+            'current_block': chain.blocks.head.number,
+            'current_time': chain.blocks.head.timestamp,
+        })
+
         # Then execute actions
         for action_spec in actions:
             action_type = action_spec["action"]
@@ -104,11 +105,20 @@ class NetworkBuilder:
                 continue
 
             for agent in agents:
-                params = self._prepare_action_params(agent, action_spec)
+                # Create context for this action
+                context = SimulationContext(
+                    agent=agent,
+                    agent_manager=self.agent_manager,
+                    clients=self.clients,
+                    chain=chain,
+                    network_state=self.network_state
+                )
+
+                params = self._prepare_action_params(context, action_spec)
                 if not params:
-                    # If param_function returned None (or an empty dict), skip
                     continue
-                success = handler.execute(agent, self.agent_manager, params)
+
+                success = handler.execute(context, params)
                 total_executed += 1
                 if not success:
                     total_failures += 1
@@ -130,21 +140,6 @@ class NetworkBuilder:
             logger.error(f"Failed to set initial state: {e}")
             return False
 
-    def _select_agents_for_action(
-        self,
-        agents: List[BaseAgent], 
-        action_spec: Dict[str, Any]
-    ) -> List[BaseAgent]:
-        """Select agents that should execute this action"""
-        profile = action_spec.get("profile")
-        count = action_spec.get("count", len(agents))
-        
-        filtered = agents
-        if profile:
-            filtered = [a for a in agents if a.profile.name == profile]
-            
-        return filtered[:count]
-
     def _get_handler_for_action(self, action_type: str):
         """Get appropriate handler for action type"""
         try:
@@ -154,7 +149,7 @@ class NetworkBuilder:
 
             # Import handler
             mod_path = action_meta.module_path.replace("/", ".").replace(".py", "")
-            module = __import__(mod_path, fromlist=[action_meta.handler_class])
+            module = importlib.import_module(mod_path)
             handler_class = getattr(module, action_meta.handler_class)
 
             # Initialize handler with appropriate client
@@ -168,7 +163,7 @@ class NetworkBuilder:
 
     def _prepare_action_params(
         self,
-        agent: BaseAgent,
+        context: SimulationContext,
         action_spec: Dict[str, Any]  
     ) -> Dict[str, Any]:
         """Prepare params handling both static and dynamic parameters"""
@@ -177,13 +172,16 @@ class NetworkBuilder:
             if key == "param_function":
                 continue
             if callable(value):
-                params[key] = value(agent)
+                params[key] = value(context.agent)
             else:
                 params[key] = value
 
         if "param_function" in action_spec:
-            params.update(action_spec["param_function"](agent, self.agent_manager.get_all_agents()))
+            params.update(action_spec["param_function"](
+                context.agent, 
+                context.agent_manager.get_all_agents()
+            ))
             
-        if "sender" not in params and agent.accounts:
-            params["sender"] = next(iter(agent.accounts.keys()))
+        if "sender" not in params and context.agent.accounts:
+            params["sender"] = next(iter(context.agent.accounts.keys()))
         return params

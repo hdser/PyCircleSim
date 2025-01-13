@@ -1,10 +1,11 @@
 from typing import Dict, Any, Optional
 from src.protocols.handler_strategies.base import BaseStrategy
+from src.framework.core import SimulationContext
 from ape_ethereum import Ethereum
 
 class BurnStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -22,8 +23,8 @@ class BurnStrategy(BaseStrategy):
 
 
 class CalculateIssuanceWithCheckStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -37,8 +38,8 @@ class CalculateIssuanceWithCheckStrategy(BaseStrategy):
 
 
 class GroupMintStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -58,8 +59,8 @@ class GroupMintStrategy(BaseStrategy):
 
 
 class MigrateStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -77,8 +78,8 @@ class MigrateStrategy(BaseStrategy):
 
 
 class OperateFlowMatrixStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -98,8 +99,8 @@ class OperateFlowMatrixStrategy(BaseStrategy):
 
 
 class PersonalMintStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -111,8 +112,8 @@ class PersonalMintStrategy(BaseStrategy):
 
 
 class RegisterCustomGroupStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -134,8 +135,8 @@ class RegisterCustomGroupStrategy(BaseStrategy):
 
 
 class RegisterGroupStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -155,8 +156,8 @@ class RegisterGroupStrategy(BaseStrategy):
 
 
 class RegisterHumanStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -172,8 +173,8 @@ class RegisterHumanStrategy(BaseStrategy):
 
 
 class RegisterOrganizationStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -189,8 +190,8 @@ class RegisterOrganizationStrategy(BaseStrategy):
 
 
 class SafeBatchTransferFromStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -212,8 +213,8 @@ class SafeBatchTransferFromStrategy(BaseStrategy):
 
 
 class SafeTransferFromStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -235,8 +236,8 @@ class SafeTransferFromStrategy(BaseStrategy):
 
 
 class SetAdvancedUsageFlagStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -250,8 +251,8 @@ class SetAdvancedUsageFlagStrategy(BaseStrategy):
 
 
 class SetApprovalForAllStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -267,8 +268,8 @@ class SetApprovalForAllStrategy(BaseStrategy):
 
 
 class StopStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
             
@@ -280,8 +281,8 @@ class StopStrategy(BaseStrategy):
 
 
 class TrustStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         
         if not sender:
             return None
@@ -298,15 +299,21 @@ class TrustStrategy(BaseStrategy):
 
 
 class WrapStrategy(BaseStrategy):
-    def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(agent)
-
-       # print(Ethereum.provider.get_storage('0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8',1))
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
         if not sender:
             return None
 
-        id = client.toTokenId(sender) 
-        balance = client.balanceOf(sender, id)
+        # Get the specific client we need
+        circles_client = context.get_client('circleshub')
+        if not circles_client:
+            return None
+
+        inflation_day_zero = context.get_contract_state('CirclesHub', 'inflationDayZero')
+        avatars_list = context.get_contract_state('CirclesHub', 'avatars', [])
+
+        id = circles_client.toTokenId(sender) 
+        balance = circles_client.balanceOf(sender, id)
         if balance == 0:
             return {}
             
