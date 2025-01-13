@@ -6,8 +6,21 @@ iterations: 100              # Default number of iterations
 blocks_per_iteration: 10  # Default blocks per iteration
 block_time: 5            # Default seconds per block
 
+
+state_variables:
+  inflationDayZero:
+    type: uint256
+    slot: 0
+  avatars:
+    type: mapping(address => address)
+    slot: 26
+    iterable: true
+  _uri:
+    type: string
+    slot: 20
+
 strategies:
-  ringshub: 'basic'  # or 'sybil'
+  circleshub: 'basic'  # or 'sybil'
   wxdai: 'basic'
   balancerv3vault: null
 

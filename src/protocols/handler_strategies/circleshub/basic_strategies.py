@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional
 from src.protocols.handler_strategies.base import BaseStrategy
-
+from ape_ethereum import Ethereum
 
 class BurnStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
@@ -282,6 +282,7 @@ class StopStrategy(BaseStrategy):
 class TrustStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
+        
         if not sender:
             return None
             
@@ -299,6 +300,8 @@ class TrustStrategy(BaseStrategy):
 class WrapStrategy(BaseStrategy):
     def get_params(self, agent, agent_manager, client, chain) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(agent)
+
+       # print(Ethereum.provider.get_storage('0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8',1))
         if not sender:
             return None
 

@@ -42,7 +42,6 @@ class NetworkBuilder:
         """
         try:
             logger.info(f"Creating {target_size} agents with distribution: {profile_distribution}")
-            
             # Create agents
             created_agents = self.agent_manager.create_agents(profile_distribution)
             if len(created_agents) != target_size:
@@ -65,10 +64,10 @@ class NetworkBuilder:
                 if not self._execute_initial_actions(created_agents, initial_actions):
                     return False
 
-            # Set initial network state
-            if initial_state:
-                if not self._set_initial_state(created_agents, initial_state):
-                    return False
+          #  # Set initial network state
+          #  if initial_state:
+          #      if not self._set_initial_state(created_agents, initial_state):
+          #          return False
                     
             return True
             

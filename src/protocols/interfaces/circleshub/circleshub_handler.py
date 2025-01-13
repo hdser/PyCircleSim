@@ -1052,7 +1052,7 @@ class WrapBaseHandler:
             execution_params = params if params else self.strategy.get_params(agent, agent_manager, self.client, self.chain)
             if not execution_params:
                 return False
-                
+            
             return self.client.wrap(
                 
                 _avatar=execution_params.get("_avatar"),

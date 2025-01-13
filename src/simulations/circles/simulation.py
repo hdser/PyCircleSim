@@ -20,6 +20,8 @@ class CirclesSimulationConfig(BaseSimulationConfig):
 
     def _validate_config(self):
         """Validate Rings-specific configuration"""
+        super()._validate_config()
+
         if 'strategies' not in self.network_config:
             self.network_config['strategies'] = {
                 'circles': 'basic',
@@ -88,8 +90,16 @@ class CirclesSimulation(BaseSimulation):
         return []
 
     def get_initial_state(self) -> Dict[str, Any]:
-        """Get initial state for agents before simulation starts"""
-        return {}
+        """Get initial state including decoded contract state"""
+        state = super().get_initial_state()
+        
+        # Add simulation-specific state
+        state.update({
+            'trusted_addresses': set(),
+            'group_count': 0
+        })
+        
+        return state
 
     def get_simulation_description(self) -> str:
         """A short description of this simulation run"""

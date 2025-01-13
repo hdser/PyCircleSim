@@ -12,6 +12,8 @@ from src.framework.data import DataCollector
 from src.framework.agents import AgentManager
 from src.framework.core import NetworkBuilder, NetworkEvolver
 from src.framework.logging import get_logger
+from src.framework.state.decoder import StateDecoder
+
 
 logger = get_logger(__name__)
 
@@ -59,10 +61,26 @@ class BaseSimulationConfig:
             if value is not None:
                 self.network_config[key] = value
 
-    @abstractmethod
     def _validate_config(self):
         """Validate configuration specifics"""
-        pass
+        # Validate basic params remain the same
+        required_params = ['size', 'batch_size', 'iterations']
+        for param in required_params:
+            if param not in self.network_config:
+                raise ValueError(f"Missing required parameter: {param}")
+
+        # Validate state variables if present
+        if 'state_variables' in self.network_config:
+            for name, settings in self.network_config['state_variables'].items():
+                if 'type' not in settings:
+                    raise ValueError(f"Missing type for state variable {name}")
+                if 'slot' not in settings:
+                    raise ValueError(f"Missing slot for state variable {name}")
+
+    @property
+    def state_variables(self) -> Dict[str, Dict[str, Any]]:
+        """Get state variable configuration"""
+        return self.network_config.get('state_variables', {})
 
     @property
     def network_size(self) -> int:
@@ -119,6 +137,25 @@ class BaseSimulation(ABC):
 
         # Tracking
         self.iteration_stats: List[Dict[str, Any]] = []
+
+        # Initialize state decoder if we have state variables configured
+        self.initial_state = {}
+
+        if config.state_variables:
+            try:
+                # Use first contract address by default - specific simulations can override
+                contract_address = next(iter(contract_configs.values()))['address']
+                decoder = StateDecoder(contract_address)
+                self.initial_state = decoder.decode_state(config.state_variables)
+                logger.info(f"Decoded initial state variables: {self.initial_state.keys()}")
+            except Exception as e:
+                logger.error(f"Failed to decode initial state: {e}")
+                # Continue with empty initial state rather than failing
+
+    def get_initial_state(self) -> Dict[str, Any]:
+        """Get initial state for agents"""
+        # Override in specific simulations to use decoded state
+        return self.initial_state
 
     def _initialize_collector(self) -> Optional[DataCollector]:
         """Initialize data collector if not in fast mode"""
@@ -202,10 +239,6 @@ class BaseSimulation(ABC):
         """Get list of initial actions to perform when building network"""
         pass
 
-    @abstractmethod
-    def get_initial_state(self) -> Dict[str, Any]:
-        """Get initial state for agents"""
-        pass
 
     @abstractmethod
     def get_simulation_description(self) -> str:

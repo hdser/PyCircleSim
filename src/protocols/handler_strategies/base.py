@@ -5,9 +5,9 @@ import random
 class BaseStrategy(ABC):
     """Base class for all parameter generation strategies"""
     
-    def __init__(self):
+    def __init__(self, initial_state: Optional[Dict[str, Any]] = None):
         """Initialize strategy"""
-        pass
+        self.initial_state = initial_state or {}
 
     @abstractmethod
     def get_params(self, agent, client, chain) -> Optional[Dict[str, Any]]:
