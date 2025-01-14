@@ -328,13 +328,13 @@ class SafeTransferFromStrategy(BaseStrategy):
         if not sender:
             return {}
         
-        rings_client = context.get_client('ringshub')
-        if not rings_client:
+        client = context.get_client('ringshub')
+        if not client:
             return None
 
         receiver = random.choice(list(trusted_addresses))
-        id = rings_client.toTokenId(sender)
-        balance = rings_client.balanceOf(sender, id)
+        id = client.toTokenId(sender)
+        balance = client.balanceOf(sender, id)
 
         if balance == 0:
             return {}
@@ -406,14 +406,14 @@ class TrustStrategy(BaseStrategy):
 
         truster = self.get_sender(context)
 
-        rings_client = context.get_client('ringshub')
-        if not rings_client:
+        client = context.get_client('ringshub')
+        if not client:
             return None
 
         all_accounts = context.agent_manager.address_to_agent.keys()
         potential_trustees = []
         for addr in all_accounts:
-            if (rings_client.isHuman(addr) or rings_client.isGroup(addr)) and addr != truster and not rings_client.isTrusted(truster,addr):
+            if (client.isHuman(addr) or client.isGroup(addr)) and addr != truster and not client.isTrusted(truster,addr):
                 potential_trustees.append(addr)
         
         if not potential_trustees:
@@ -435,12 +435,12 @@ class WrapStrategy(BaseStrategy):
         if not sender:
             return {}
             
-        rings_client = context.get_client('ringshub')
-        if not rings_client:
+        client = context.get_client('ringshub')
+        if not client:
             return None
         
-        id = rings_client.toTokenId(sender) 
-        balance = rings_client.balanceOf(sender, id)
+        id = client.toTokenId(sender) 
+        balance = client.balanceOf(sender, id)
         if balance == 0:
             return {}
             

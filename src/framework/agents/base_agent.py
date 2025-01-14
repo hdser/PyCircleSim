@@ -66,12 +66,13 @@ class BaseAgent:
         
         self.creation_time = datetime.now()
         
-    def create_account(self) -> Tuple[str, bytes]:
+    def create_account(self, preset_addr: Optional[str]=None) -> Tuple[str, bytes]:
         """Create a new blockchain account or use preset addresses"""
         # If using preset addresses and haven't reached target count, return None
-        if self.profile.preset_addresses:
+        if preset_addr:
+            self.accounts[preset_addr] = bytes()
             logger.debug(f"Using preset addresses for agent {self.agent_id}")
-            return None, None
+            return preset_addr, bytes()
             
         try:
             private_key = secrets.token_bytes(32)

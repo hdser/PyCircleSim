@@ -50,10 +50,15 @@ class AgentManager:
             self.data_collector.record_agent(agent)
             
         # Now create address
-        address, _ = agent.create_account()
-        
-        self.agents[agent_id] = agent
-        self.address_to_agent[address] = agent_id
+        if agent.profile.preset_addresses:
+            for preset_addr in agent.profile.preset_addresses:
+                address, _ = agent.create_account(preset_addr)
+                self.agents[agent_id] = agent
+                self.address_to_agent[address] = agent_id
+        else:
+            address, _ = agent.create_account()
+            self.agents[agent_id] = agent
+            self.address_to_agent[address] = agent_id
         
 
         return agent
