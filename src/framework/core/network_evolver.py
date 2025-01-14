@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List, Tuple
 from datetime import datetime
 import random
 from ape import chain
@@ -141,9 +141,7 @@ class NetworkEvolver():
             for agent in all_agents:
                 if not self._check_action_timing(agent.agent_id, self.network_state['current_block']):
                     continue
-                
-                start = time.time()
-                print('----------- ')
+
                 # Pass all clients to context
                 context = SimulationContext(
                     agent=agent,
@@ -163,11 +161,8 @@ class NetworkEvolver():
                 if not handler:
                     continue
                     
-                
-               
                 stats['total_actions'] += 1
                 success = handler.execute(context)
-                print(f'-----------{action_name} time taken: ',time.time() - start)
                 if success:
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
@@ -177,6 +172,8 @@ class NetworkEvolver():
         except Exception as e:
             logger.error(f"Network evolution failed: {e}")
             return stats
+        
+    
         
     def _select_action(self, context: SimulationContext) -> Optional[str]:
         """Select an action for the agent to perform"""

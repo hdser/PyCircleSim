@@ -5,6 +5,7 @@ from eth_pydantic_types import HexBytes
 from ape import Contract, chain
 from src.framework.data import DataCollector
 from src.framework.logging import get_logger
+from ape_ethereum.multicall import Transaction
 
 logger = get_logger(__name__)
 
@@ -689,5 +690,96 @@ class CirclesHubClient:
         except Exception as e:
             logger.error(f"wrap failed: {e}")
             return False
+        
+
+    def multicallCase1(self, all_calls: Dict[str, Dict[str, Any]]) -> bool:
+        """
+        Perform a single multicall. `all_calls` is something like:
+          {
+            "tx_params": {"sender": <...,> "value": 0},
+            "circleshub_registerGroup": {
+              "_mint": "...",
+              "_treasury": "...",
+              ...
+            },
+            "circleshub_trust": {
+              "_trustReceiver": "...",
+              "_expiry": 123456,
+              ...
+            },
+            ...
+          }
+        """
+        print("#################################")
+        if not all_calls:
+            logger.warning("No subcalls provided to multicallCase1()")
+            return False
+
+        # 1) Extract tx_params, removing the special dict so it won't be treated as a subcall
+        tx_params = all_calls.pop("tx_params", {})
+        sender = tx_params.get("sender")
+        default_value = tx_params.get("value", 0)
+
+        if not sender:
+            logger.error("No 'sender' specified in tx_params, cannot proceed.")
+            return False
+
+        # 2) Create the multicall transaction
+        txn = Transaction()
+
+        # 3) For each remaining key => subcall
+        #    E.g. "circleshub_registerGroup" or "circleshub_trust"
+        for action_name, call_params in all_calls.items():
+            base_method = action_name.split('_', 1)[1]  # e.g. "registerGroup" or "trust"
+            method = getattr(self.contract, base_method, None)
+
+            # Confirm we found a callable method (i.e. not an event)
+            if not method or not callable(method):
+                logger.error(
+                    f"Method '{base_method}' not found or is an event in CirclesHub contract."
+                )
+                continue
+
+            # This subcall could define its own 'value', else use the default
+            subcall_value = call_params.get("value", default_value)
+
+            # Build the argument list for the subcall
+            arglist = []
+            # We ignore keys: 'sender', 'value' if present inside the subcall
+            for k in call_params.keys():
+                if k in ("sender", "value"):
+                    continue
+                arglist.append(call_params[k])
+
+
+            logger.info(
+                f"Adding subcall {action_name} => {base_method}"
+                f" with args={arglist}, value={subcall_value}"
+            )
+
+            # Add to the multicall Transaction
+            # allowFailure=True => if one subcall reverts, we keep going
+            txn.add(method, *arglist, allowFailure=True, value=subcall_value)
+
+        # 4) Execute the multicall transaction once
+        try:
+            receipt = txn(sender=sender)
+            # receipt.return_data is the subcall results
+            logger.info(f"MulticallCase1 return_data: {receipt.return_value}")
+        except Exception as exc:
+            logger.error(f"multicallCase1 transaction failed at top-level: {exc}")
+            return False
+
+        # 5) Optionally record the overall transaction in the data collector
+        if self.collector:
+            self.collector.record_transaction_events(receipt)
+
+        logger.info(
+            f"multicallCase1 completed with {len(all_calls)} subcalls, "
+            f"block={receipt.block_number}"
+        )
+        return True
+
+
     
     

@@ -33,7 +33,9 @@ from .circleshub_handler import (
     
     TrustHandler,
     
-    WrapHandler
+    WrapHandler,
+
+    MulticallCase1Handler
     
 )
 
@@ -72,6 +74,8 @@ __all__ = [
     
     'TrustHandler',
     
-    'WrapHandler'
+    'WrapHandler',
+
+    "MulticallCase1Handler"
     
 ]

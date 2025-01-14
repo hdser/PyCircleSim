@@ -1,13 +1,11 @@
-# src/framework/simulation/base.py
-
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Type
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 import yaml
 from abc import ABC, abstractmethod
 
-from ape import networks, chain
+from ape import chain
 from src.framework.data import DataCollector
 from src.framework.agents import AgentManager
 from src.framework.core import NetworkBuilder, NetworkEvolver
@@ -364,6 +362,7 @@ class BaseSimulation(ABC):
         except Exception as e:
             logger.error(f"Error building initial network: {e}")
             return False
+        
 
     def _run_iterations(self) -> bool:
         """Run simulation iterations"""

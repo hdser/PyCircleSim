@@ -9,8 +9,8 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
-  circles_newuser: 0
-  test: 1
+  circles_newuser: 10
+  test: 10
 
 # Agent profiles and their actions
 profiles:
@@ -72,6 +72,10 @@ profiles:
           min_collateral_ratio: 1.5
           max_mint_per_day: 1000.0
 
+      - action: "circleshub_MulticallCase1"
+        probability: 0.9
+        cooldown_blocks: 1
+
     #  - action: "circleshub_SafeTransferFrom"
     #    probability: 0.3
     #    cooldown_blocks: 1
@@ -132,6 +136,10 @@ profiles:
         constraints:
           min_collateral_ratio: 1.5
           max_mint_per_day: 1000.0
+
+      - action: "circleshub_MulticallCase1"
+        probability: 0.9
+        cooldown_blocks: 1
 
     #  - action: "circleshub_SafeTransferFrom"
     #    probability: 0.8

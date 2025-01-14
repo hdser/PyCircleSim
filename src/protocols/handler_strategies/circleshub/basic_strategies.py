@@ -467,3 +467,65 @@ class WrapStrategy(BaseStrategy):
         }
             
 
+class MulticallCase1Strategy(BaseStrategy):
+    """
+    Example strategy that returns a dict of subcalls:
+    { "circleshub_RegisterCustomGroup": {...}, "circleshub_Trust": {...}, ... }
+
+    Each key is an 'action_name' like "circleshub_SomeFunction".
+    Each value is the normal parameter dict you would pass for that action.
+    """
+
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        client = context.get_client('circleshub')
+        if not client:
+            return None
+        
+        sender = self.get_sender(context)
+        if not sender:
+            return None
+        # Example subcall #1: "circleshub_RegisterCustomGroup"
+        subcall1_params = {
+            '_mint': "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60",  
+            '_name': f"Group_{random.randint(1000,9999)}",
+            '_symbol': f"GRP_{random.randint(1000,9999)}",
+            '_metadataDigest': b"\x00"
+        }
+        
+        # Example subcall #2: "circleshub_Trust"
+        # For a trust subcall, you might pick a random trustee:
+        trustee = sender  # trivial example, obviously normally a different address
+        expiry = context.chain.blocks.head.timestamp + 365*24*60*60
+
+        truster = sender
+        potential_trustees = context.get_or_cache(
+            f'potential_trustees_{truster}',
+            lambda: [
+                addr for addr in context.agent_manager.address_to_agent.keys()
+                if addr != truster and not client.isTrusted(truster, addr)
+            ]
+        )
+        
+        if not potential_trustees:
+            return {}
+        
+        trustee = random.choice(potential_trustees)
+
+        subcall2_params = {
+            '_trustReceiver': trustee,
+            '_expiry': expiry
+        }
+
+        trustee = random.choice(potential_trustees)
+        subcall3_params = {
+            '_trustReceiver': trustee,
+            '_expiry': expiry
+        }
+
+        # Return them under their respective action-names
+        return {
+            "tx_params": {"sender": sender, "value": 0},
+            "circleshub_registerGroup": subcall1_params,
+            "circleshub_trust": subcall2_params,
+            # Optionally add more subcalls
+        }

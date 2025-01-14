@@ -2,6 +2,8 @@ from enum import Enum, auto
 
 class ActionType(Enum):
     """Available actions derived from protocol handlers"""
+
+    circleshub_MulticallCase1 = auto()
     
     circleshub_Burn = auto()
     

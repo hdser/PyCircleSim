@@ -29,10 +29,10 @@ class BurnBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_id': None,  # type: uint256
@@ -93,10 +93,10 @@ class CalculateIssuanceWithCheckBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_human': None,  # type: address
@@ -149,10 +149,10 @@ class GroupMintBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_group': None,  # type: address
@@ -217,10 +217,10 @@ class MigrateBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_owner': None,  # type: address
@@ -281,10 +281,10 @@ class OperateFlowMatrixBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_flowVertices': None,  # type: address[]
@@ -349,10 +349,10 @@ class PersonalMintBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
         }
@@ -401,10 +401,10 @@ class RegisterCustomGroupBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_mint': None,  # type: address
@@ -473,10 +473,10 @@ class RegisterGroupBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_mint': None,  # type: address
@@ -541,10 +541,10 @@ class RegisterHumanBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_inviter': None,  # type: address
@@ -601,10 +601,10 @@ class RegisterOrganizationBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_name': None,  # type: string
@@ -661,10 +661,10 @@ class SafeBatchTransferFromBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_from': None,  # type: address
@@ -733,10 +733,10 @@ class SafeTransferFromBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_from': None,  # type: address
@@ -805,10 +805,10 @@ class SetAdvancedUsageFlagBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_flag': None,  # type: bytes32
@@ -861,10 +861,10 @@ class SetApprovalForAllBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_operator': None,  # type: address
@@ -921,10 +921,10 @@ class StopBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
         }
@@ -973,10 +973,10 @@ class TrustBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_trustReceiver': None,  # type: address
@@ -1033,10 +1033,10 @@ class WrapBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
         return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
+            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
             'value': 0,
             
             '_avatar': None,  # type: address
@@ -1073,3 +1073,57 @@ class WrapHandler(WrapBaseHandler):
     """Concrete handler implementation"""
     pass
 
+
+class MulticallCase1BaseHandler:
+    """Base handler class for 'MulticallCase1' action (a batched set of subcalls)."""
+
+    def __init__(
+        self,
+        client: CirclesHubClient,
+        chain,
+        logger,
+        strategy_name: str = "basic"):
+        self.client = client
+        self.chain = chain
+        self.logger = logger
+        
+        # Dynamically load a strategy class named "MulticallCase1Strategy" if it exists
+        try:
+            module_path = f"src.protocols.handler_strategies.{client.__class__.__name__.lower().replace('client','')}.{strategy_name}_strategies"
+            strategy_module = importlib.import_module(module_path)
+            # e.g. "MulticallCase1Handler" => "MulticallCase1Strategy"
+            base_name = self.__class__.__name__.replace('Handler', 'Strategy').replace('Base', '')
+            strategy_class = getattr(strategy_module, base_name)
+            self.strategy = strategy_class()
+        except (ImportError, AttributeError) as e:
+            self.logger.error(f"Failed to load strategy {strategy_name} for {self.__class__.__name__}: {e}")
+            self.strategy = self
+
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
+        """
+        If no strategy is loaded, we could provide some fallback.
+        But typically you'll rely on the strategy to define subcalls.
+        """
+        return {}
+
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        The key step: gather subcalls dict from strategy, then call self.client.multicallCase1().
+        """
+        try:
+            execution_params = params if params else self.strategy.get_params(context)
+            if not execution_params:
+                return False
+            # execution_params is like:
+            #   {
+            #       "circleshub_RegisterCustomGroup": {...},
+            #       "circleshub_Trust": {...}
+            #   }
+            return self.client.multicallCase1(execution_params)
+        except Exception as e:
+            self.logger.error(f"MulticallCase1 action failed: {e}", exc_info=True)
+            return False
+
+class MulticallCase1Handler(MulticallCase1BaseHandler):
+    """Concrete handler implementation."""
+    pass
