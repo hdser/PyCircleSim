@@ -88,21 +88,27 @@ class GroupMintStrategy(BaseStrategy):
         if not client:
             return None
     
-        groups = [addr for addr in context.agent_manager.address_to_agent.keys() if client.isGroup(addr)]
+        groups = context.get_filtered_addresses(
+            client.isGroup,
+            cache_key='groups_list'
+        )
         if not groups:
             return {}
         group = random.choice(groups)
 
-        addresses = [[addr,group_addr] 
-                     for addr in context.agent.accounts.keys() 
-                     for group_addr in groups 
-                     if (client.isHuman(addr) and client.isTrusted(group_addr,addr))]
-        if not addresses:
+        valid_senders = context.get_or_cache(
+            f'valid_senders_for_{group}',
+            lambda: [
+                addr for addr in context.agent.accounts.keys()
+                if client.isHuman(addr) and client.isTrusted(group, addr)
+            ]
+        )
+        if not valid_senders:
             return None
-        [sender, group] = random.choice(addresses)
-            
-   
+        
+        sender = random.choice(valid_senders)
         collateral_avatar = sender
+            
 
         collateral_id = client.toTokenId(collateral_avatar)
         balance = client.balanceOf(collateral_avatar, collateral_id)
@@ -169,11 +175,14 @@ class PersonalMintStrategy(BaseStrategy):
         if not client:
             return {}
         
-        addresses = [addr for addr in context.agent.accounts.keys() if client.isHuman(addr)]
-        if not addresses:
+        valid_senders = context.get_filtered_addresses(
+            lambda addr: client.isHuman(addr),
+            cache_key=f'human_addresses'
+        )
+        if not valid_senders:
             return {}
     
-        sender = random.choice(addresses)
+        sender = random.choice(valid_senders)
         
             
         return {
@@ -209,13 +218,14 @@ class RegisterGroupStrategy(BaseStrategy):
         if not client:
             return {}
         
-        addresses = [addr for addr in list(context.agent.accounts.keys()) 
-                                 if not client.isHuman(addr) and not client.isGroup(addr) and not client.isOrganization(addr)
-                                ]
-        if not addresses:
+        unregistered = context.get_filtered_addresses(
+            lambda addr: not (client.isHuman(addr) or client.isGroup(addr) or client.isOrganization(addr)),
+            cache_key=f'unregistered_addresses_{context.agent.agent_id}'
+        )
+        if not unregistered:
             return {}
         
-        creator_address = random.choice(addresses)
+        creator_address = random.choice(unregistered)
         group_number = getattr(context.agent, 'group_count', 0) + 1
         mint_policy = "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60"
 
@@ -234,24 +244,32 @@ class RegisterHumanStrategy(BaseStrategy):
         if not client:
             return None
         
-        addresses = [addr for addr in list(context.agent.accounts.keys()) 
-                                 if (client.isHuman(addr) or client.isGroup(addr)) and (client.balanceOf(addr,client.toTokenId(addr))>96e18)
-                                ]
-        if not addresses:
+        inviters = context.get_filtered_addresses(
+            lambda addr: (client.isHuman(addr) or client.isGroup(addr)) and 
+                        (client.balanceOf(addr, client.toTokenId(addr)) > 96e18),
+            cache_key=f'potential_inviters'
+        )
+        if not inviters:
             return {}
         
-        inviter = random.choice(addresses)
+        inviter = random.choice(inviters)
         
 
-        address = next(
-            (
+        unregistered_trusted = context.get_or_cache(
+            f'unregistered_trusted_{inviter}',
+            lambda: [
                 addr for addr in context.agent_manager.address_to_agent.keys()
-                if not client.isHuman(addr) and not client.isGroup(addr) and not client.isOrganization(addr) and client.isTrusted(inviter,addr)
-            ),
-            None  
+                if not client.isHuman(addr) and 
+                not client.isGroup(addr) and 
+                not client.isOrganization(addr) and 
+                client.isTrusted(inviter, addr)
+            ]
         )
-        if not address:
+        
+        if not unregistered_trusted:
             return {}
+        
+        address = random.choice(unregistered_trusted)
         
 
         return {
@@ -392,25 +410,27 @@ class TrustStrategy(BaseStrategy):
             return None
 
         
-        trusters = [addr for addr in list(context.agent.accounts.keys()) if (client.isHuman(addr) or client.isGroup(addr))]
-
+        trusters = context.get_filtered_addresses(
+            lambda addr: client.isHuman(addr) or client.isGroup(addr),
+            cache_key=f'potential_trusters'
+        )
         if not trusters:
             return {}
         
         truster = random.choice(trusters)
 
-        all_accounts = list(context.agent_manager.address_to_agent.keys())
-
-        trustee = next(
-            (
-                addr for addr in all_accounts
+        potential_trustees = context.get_or_cache(
+            f'potential_trustees_{truster}',
+            lambda: [
+                addr for addr in context.agent_manager.address_to_agent.keys()
                 if addr != truster and not client.isTrusted(truster, addr)
-            ),
-            None  
+            ]
         )
         
-        if not trustee:
+        if not potential_trustees:
             return {}
+        
+        trustee = random.choice(potential_trustees)
 
         
         return {

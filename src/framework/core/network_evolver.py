@@ -26,6 +26,7 @@ class NetworkEvolver():
         self.collector = collector
         self.gas_limits = gas_limits
         self.strategy_config = strategy_config
+        self._iteration_cache = {}
         
         # Track last action times
         self.last_action_times: Dict[str, int] = {}
@@ -120,6 +121,8 @@ class NetworkEvolver():
             return False
             
     def evolve_network(self, iteration: int) -> Dict[str, int]:
+        self._iteration_cache.clear()
+
         stats = {
             'total_actions': 0,
             'successful_actions': 0,
@@ -134,18 +137,22 @@ class NetworkEvolver():
                 'current_block': chain.blocks.head.number,
                 'current_time': chain.blocks.head.timestamp,
             })
-
+            import time
             for agent in all_agents:
                 if not self._check_action_timing(agent.agent_id, self.network_state['current_block']):
                     continue
-                    
+                
+                start = time.time()
+                print('----------- ')
                 # Pass all clients to context
                 context = SimulationContext(
                     agent=agent,
                     agent_manager=self.agent_manager,
                     clients=self.clients,
                     chain=chain,
-                    network_state=self.network_state
+                    network_state=self.network_state,
+                    iteration=iteration,
+                    iteration_cache=self._iteration_cache
                 )
                 
                 action_name = self._select_action(context)
@@ -156,8 +163,11 @@ class NetworkEvolver():
                 if not handler:
                     continue
                     
+                
+               
                 stats['total_actions'] += 1
                 success = handler.execute(context)
+                print(f'-----------{action_name} time taken: ',time.time() - start)
                 if success:
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1

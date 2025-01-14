@@ -28,7 +28,7 @@ class ColorFormatter(logging.Formatter):
         
         return super().format(record)
 
-def setup_logger(name: str, log_file: Optional[str] = None) -> logging.Logger:
+def setup_logger(name: str, level: Optional[str] = logging.INFO, log_file: Optional[str] = None) -> logging.Logger:
     """Set up a logger with consistent formatting"""
     # Remove existing handlers from the root logger
     root = logging.getLogger()
@@ -43,7 +43,7 @@ def setup_logger(name: str, log_file: Optional[str] = None) -> logging.Logger:
         for handler in logger.handlers[:]:
             logger.removeHandler(handler)
     
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
     
     # Create formatters
     formatter = ColorFormatter(
@@ -68,6 +68,6 @@ def setup_logger(name: str, log_file: Optional[str] = None) -> logging.Logger:
     return logger
 
 # Create a function to get a logger instance
-def get_logger(name: str, log_file: Optional[str] = None) -> logging.Logger:
+def get_logger(name: str, level: Optional[str] = logging.INFO, log_file: Optional[str] = None) -> logging.Logger:
     """Get a logger with consistent formatting"""
-    return setup_logger(name, log_file)
+    return setup_logger(name, level, log_file)

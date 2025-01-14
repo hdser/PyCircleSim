@@ -28,39 +28,13 @@ class CirclesSimulationConfig(BaseSimulationConfig):
                 'wxdai': 'basic'
             }
 
-        if 'trust_density' not in self.network_config:
-            self.network_config['trust_density'] = 0.1
-
-        required_params = ['size', 'trust_density', 'batch_size', 'iterations']
-        for param in required_params:
-            if param not in self.network_config:
-                raise ValueError(f"Missing required parameter: {param}")
 
     def get_agent_distribution(self) -> Dict[str, int]:
         """Get distribution of agent types"""
-        raw_dist = self.agent_config.get('agent_distribution', {})
-        if not raw_dist:
-            raw_dist = {
-                'honest_user': 10,
-                'group_creator': 1,
-                'sybil_attacker': 2,
-                'trust_hub': 5
-            }
-
-        # Calculate actual numbers
-        distribution = {}
-        remaining = self.network_size
-        
-        total_weight = sum(raw_dist.values())
-        for profile, weight in raw_dist.items():
-            if profile == list(raw_dist.keys())[-1]:
-                # Assign all remaining to the last profile
-                distribution[profile] = remaining
-            else:
-                count = int(self.network_size * weight / total_weight)
-                distribution[profile] = count
-                remaining -= count
-
+        distribution = self.agent_config.get('agent_distribution', {})
+        if not distribution:
+            raise ValueError("No agent distribution configured")
+            
         return distribution
 
 
@@ -111,7 +85,6 @@ class CirclesSimulation(BaseSimulation):
             'start_time': self.simulation_start_time.isoformat(),
             'config': {
                 'network_size': self.config.network_size,
-                'trust_density': self.config.network_config['trust_density'],
                 'batch_size': self.config.batch_size,
                 'iterations': self.config.iterations,
                 'blocks_per_iteration': self.config.blocks_per_iteration,

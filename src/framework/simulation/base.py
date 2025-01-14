@@ -45,7 +45,6 @@ class BaseSimulationConfig:
     def _set_default_values(self):
         """Set default values for common parameters"""
         defaults = {
-            'size': 20,
             'batch_size': 10,
             'iterations': 10,
             'blocks_per_iteration': 100,
@@ -64,14 +63,14 @@ class BaseSimulationConfig:
     def _validate_config(self):
         """Validate configuration specifics"""
         # Validate basic params remain the same
-        required_params = ['size', 'batch_size', 'iterations']
+        required_params = ['batch_size', 'iterations']
         for param in required_params:
             if param not in self.network_config:
                 raise ValueError(f"Missing required parameter: {param}")
 
-        # Validate state variables if present
-        if 'state_variables' in self.network_config:
-            self._validate_state_config(self.network_config['state_variables'])
+        # Validate agent distribution exists
+        if 'agent_distribution' not in self.agent_config:
+            raise ValueError("Missing 'agent_distribution' in agent config")
 
                 
     def _validate_state_config(self, state_config: Dict) -> None:
@@ -94,7 +93,11 @@ class BaseSimulationConfig:
 
     @property
     def network_size(self) -> int:
-        return self.network_config['size']
+        """Calculate total network size from agent distribution"""
+        distribution = self.agent_config.get('agent_distribution', {})
+        if not distribution:
+            raise ValueError("No agent distribution configured")
+        return sum(distribution.values())
 
     @property
     def batch_size(self) -> int:

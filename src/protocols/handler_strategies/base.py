@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Callable
 from src.framework.core import SimulationContext
 import random
 
@@ -20,3 +20,4 @@ class BaseStrategy(ABC):
         if not context.agent.accounts:
             return None
         return random.choice(list(context.agent.accounts.keys()))
+    

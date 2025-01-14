@@ -1,10 +1,8 @@
-# Base network parameters (no nested 'network' key)
-size: 12             # Default network size
-trust_density: 0.5         # Default trust density
-batch_size: 10           # Default processing batch size
-iterations: 100              # Default number of iterations
-blocks_per_iteration: 10  # Default blocks per iteration
-block_time: 5            # Default seconds per block
+# Base network parameters
+batch_size: 10           
+iterations: 1000              
+blocks_per_iteration: 10  
+block_time: 5            
 
 
 state_variables:
@@ -29,17 +27,5 @@ strategies:
   balancerv3vault: null
 
 
-# Gas configuration
-gas_limits:
-  registerHuman: 500000
-  trust: 300000
-  registerGroup: 1000000
-
 # Database configuration
 db_path: "rings_simulation.duckdb"
-
-# Trust parameters
-trust:
-  duration_days: 365
-  min_connections: 3
-  max_connections: 100000

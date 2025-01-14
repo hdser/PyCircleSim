@@ -19,6 +19,14 @@ class BalanceUpdate:
     timestamp: datetime
     block: int
 
+@dataclass
+class ActionState:
+    """Track state for a specific action sequence"""
+    sequence_index: int = 0
+    remaining_repeats: int = 0
+    last_block: int = 0
+    daily_count: int = 0
+
 class BaseAgent:
     """
     Base agent class providing core functionality for network simulation.
@@ -43,14 +51,6 @@ class BaseAgent:
             for address in self.profile.preset_addresses:
                 self.accounts[address] = bytes()  # Empty bytes since we'll impersonate
                 
-            # Record if collector exists
-          #  if self.collector and self.collector.current_run_id:
-          #      for i, address in enumerate(self.accounts.keys()):
-          #          self.collector.record_agent_address(
-          #              self.agent_id,
-          #              address,
-          #              is_primary=(i == 0)
-          #          )
         
         # Generic state management
         self.state: Dict[str, Any] = {
@@ -60,28 +60,52 @@ class BaseAgent:
         }
         
         # Action tracking
-        self.last_actions: Dict[str, int] = {}  # action_name -> last block
+        self.action_history: List[Tuple[str, str, int]] = []  # List of (action, address, block)
+        self.address_states: Dict[str, Dict[str, ActionState]] = {}  # address -> {action -> state}
+        self.sequence_states: Dict[str, ActionState] = {} # Per-address sequence state
+        
+        
+        # Daily tracking
         self.daily_action_counts: Dict[str, int] = {}  # date -> count
-        self.action_history: List[Tuple[str, int]] = []  # List of (action, block)
         
         self.creation_time = datetime.now()
         
+        # Initialize states for preset addresses
+        for address in self.accounts:
+            self._initialize_address_state(address)
+
+    def _initialize_address_state(self, address: str):
+        """Initialize tracking state for a new address"""
+        # Initialize action states
+        self.address_states[address] = {
+            action: ActionState()
+            for action in self.profile.action_configs.keys()
+        }
+        
+        # Initialize sequence state if needed
+        if self.profile.actions_sequence:
+            self.sequence_states[address] = ActionState()
+            # Set initial repeats for first action
+            action, repeats = self.profile.actions_sequence[0]
+            self.sequence_states[address].remaining_repeats = repeats
+        
     def create_account(self, preset_addr: Optional[str]=None) -> Tuple[str, bytes]:
         """Create a new blockchain account or use preset addresses"""
-        # If using preset addresses and haven't reached target count, return None
-        if preset_addr:
-            self.accounts[preset_addr] = bytes()
-            logger.debug(f"Using preset addresses for agent {self.agent_id}")
-            return preset_addr, bytes()
-            
         try:
+            if preset_addr:
+                self.accounts[preset_addr] = bytes()
+                self._initialize_address_state(preset_addr)
+                logger.debug(f"Using preset address {preset_addr} for agent {self.agent_id}")
+                return preset_addr, bytes()
+            
             private_key = secrets.token_bytes(32)
             account = Account.from_key(private_key)
             
             # Store account info
             self.accounts[account.address] = private_key
+            self._initialize_address_state(account.address)
             
-            # Fund account if needed and not using preset addresses
+            # Fund account
             networks.provider.set_balance(account.address, int(10000e18))
             
             # Record if collector exists
@@ -98,31 +122,33 @@ class BaseAgent:
             logger.error(f"Failed to create account: {e}")
             raise
 
-    def create_account2(self) -> Tuple[str, bytes]:
-        """Create a new blockchain account"""
-        try:
-            private_key = secrets.token_bytes(32)
-            account = Account.from_key(private_key)
+    def _get_next_sequence_action(self, address: str, current_block: int) -> Optional[Tuple[str, str, Dict]]:
+        """Get next action in sequence for an address"""
+        if not self.profile.actions_sequence:
+            return None
             
-            # Store account info
-            self.accounts[account.address] = private_key
+        sequence_state = self.sequence_states[address]
+        
+        # If we've completed current action's repeats
+        if sequence_state.remaining_repeats <= 0:
+            # Move to next action in sequence
+            sequence_state.sequence_index = (sequence_state.sequence_index + 1) % len(self.profile.actions_sequence)
+            action_name, repeats = self.profile.actions_sequence[sequence_state.sequence_index]
+            sequence_state.remaining_repeats = repeats
+        
+        # Get current action details
+        action_name, _ = self.profile.actions_sequence[sequence_state.sequence_index]
+        
+        # Check if we can perform this action
+        if not self.can_perform_action(action_name, current_block, {}):
+            return None
             
-            # Fund account if needed
-            networks.provider.set_balance(account.address, int(10000e18))
-            
-            # Record if collector exists
-            if self.collector and self.collector.current_run_id:
-                self.collector.record_agent_address(
-                    self.agent_id,
-                    account.address,
-                    is_primary=(len(self.accounts) == 1)
-                )
-                
-            return account.address, private_key
-            
-        except Exception as e:
-            logger.error(f"Failed to create account: {e}")
-            raise
+        # Update state and get parameters
+        sequence_state.remaining_repeats -= 1
+        sequence_state.last_block = current_block
+        
+        params = self._get_base_params(action_name, address)
+        return action_name, address, params
             
     def get_accounts(self) -> List[str]:
         """Get all controlled addresses"""
@@ -145,49 +171,63 @@ class BaseAgent:
         if self.daily_action_counts.get(today, 0) >= self.profile.max_daily_actions:
             return None, "", {}
             
-        # Get available actions based on configuration
+        # If we have a sequence defined, use it
+        if self.profile.actions_sequence:
+            # Try each address until we find a valid action
+            for address in self.accounts:
+                result = self._get_next_sequence_action(address, current_block)
+                if result:
+                    return result
+            return None, "", {}
+        
+        # Otherwise use probability-based selection
         available_actions = []
-        for action_name in self.profile.action_configs.keys():
-            last_block = 0 if action_name not in self.last_actions else self.last_actions[action_name]
-            if self.profile.can_perform_action(action_name, current_block, last_block):
-                available_actions.append((action_name, self.profile.action_configs[action_name].probability))
+        for action_name, config in self.profile.action_configs.items():
+            for address in self.accounts:
+                action_state = self.address_states[address].get(action_name)
+                if action_state and self._can_perform_action(action_name, address, current_block):
+                    available_actions.append((action_name, address, config.probability))
                 
         if not available_actions:
             return None, "", {}
             
-        # Select action based on probabilities
-        action_name = random.choices(
-            [a[0] for a in available_actions],
-            weights=[a[1] for a in available_actions]
-        )[0]
+        # Weight selection by probability
+        action_weights = [x[2] for x in available_actions]
+        action_name, address, _ = random.choices(available_actions, weights=action_weights)[0]
         
-        # Select acting account
-        account_tuple = self.get_random_account()
-        if not account_tuple:
-            return None, "", {}
+        # Get parameters
+        params = self._get_base_params(action_name, address)
+        return action_name, address, params
+    
+    def _can_perform_action(self, action_name: str, address: str, current_block: int) -> bool:
+        """Check if an action can be performed by an address"""
+        action_config = self.profile.get_action_config(action_name)
+        if not action_config:
+            return False
             
-        acting_address, _ = account_tuple
-        
-        # Get action parameters
-        params = self._get_base_params(action_name, acting_address)
-        
-        return action_name, acting_address, params
+        action_state = self.address_states[address].get(action_name)
+        if not action_state:
+            return False
+            
+        # Check cooldown
+        blocks_passed = current_block - action_state.last_block
+        if blocks_passed < action_config.cooldown_blocks:
+            return False
+            
+        return True
         
     def can_perform_action(self, action_name: str, current_block: int, network_state: Dict) -> bool:
-        """Check if action can be performed based on basic constraints"""
+        """Check if action can be performed based on constraints"""
         try:
             action = self.profile.get_action_config(action_name)
             if not action:
                 return False
                 
-            # Check cooldown
-            last_action = self.last_actions.get(action_name, 0)
-            if not self.profile.can_perform_action(action_name, current_block, last_action):
-                return False
-                
-            # Check if all base requirements are met
-            # Specific requirements should be checked by handlers
-            return True
+            # For each address, check if action can be performed
+            return any(
+                self._can_perform_action(action_name, addr, current_block)
+                for addr in self.accounts
+            )
             
         except Exception as e:
             logger.error(f"Error checking action eligibility: {e}")
@@ -201,17 +241,23 @@ class BaseAgent:
             
         return {
             'sender': acting_address,
-         #   'max_value': action.max_value,
-            'risk_tolerance': self.profile.risk_tolerance
         }
         
-    def record_action(self, action_name: str, block_number: int, success: bool):
-        """Record action execution"""
+    def record_action(self, action_name: str, address: str, block_number: int, success: bool):
+        """Record action execution with enhanced tracking"""
         if success:
-            self.last_actions[action_name] = block_number
+            # Update action state
+            if address in self.address_states and action_name in self.address_states[address]:
+                action_state = self.address_states[address][action_name]
+                action_state.last_block = block_number
+                action_state.daily_count += 1
+            
+            # Update daily counts
             today = datetime.now().date().isoformat()
             self.daily_action_counts[today] = self.daily_action_counts.get(today, 0) + 1
-            self.action_history.append((action_name, block_number))
+            
+            # Record in history
+            self.action_history.append((action_name, address, block_number))
             
     def update_state(self, key: str, value: Any):
         """Update agent's internal state"""

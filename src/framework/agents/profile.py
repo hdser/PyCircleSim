@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 
 @dataclass 
 class BaseConfig:
@@ -39,6 +39,7 @@ class AgentProfile:
     preferred_networks: List[str]
     preset_addresses: Optional[List[str]]
     action_configs: Dict[str, ActionConfig]
+    actions_sequence: Optional[List[Tuple[str, int]]] = None
 
     @classmethod
     def from_dict(cls, name: str, config: Dict) -> 'AgentProfile':
@@ -51,6 +52,13 @@ class AgentProfile:
             action_type = action['action']
             action_configs[action_type] = ActionConfig.from_dict(action_type, action)
 
+        # Parse action sequence if present
+        actions_sequence = None
+        if 'actions_sequence' in base_config:
+            actions_sequence = [
+                (action, count) for action, count in base_config['actions_sequence']
+            ]
+
         return cls(
             name=name,
             description=config.get('description', ''),
@@ -59,7 +67,8 @@ class AgentProfile:
             risk_tolerance=base_config.get('risk_tolerance', 0.5),
             preferred_networks=base_config.get('preferred_networks', []),
             preset_addresses=base_config.get('preset_addresses', None),
-            action_configs=action_configs
+            action_configs=action_configs,
+            actions_sequence=actions_sequence
         )
 
     def get_action_config(self, action_name: str) -> Optional[ActionConfig]:

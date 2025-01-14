@@ -9,7 +9,8 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
-  circles_newuser: 4
+  circles_newuser: 0
+  test: 1
 
 # Agent profiles and their actions
 profiles:
@@ -71,20 +72,19 @@ profiles:
           min_collateral_ratio: 1.5
           max_mint_per_day: 1000.0
 
-      - action: "circleshub_SafeTransferFrom"
-        probability: 0.3
-        cooldown_blocks: 1
-        max_value: 10.0
-        constraints:
-          preferred_targets: "trusted_accounts"
+    #  - action: "circleshub_SafeTransferFrom"
+    #    probability: 0.3
+    #    cooldown_blocks: 1
+    #    max_value: 10.0
+    #    constraints:
+    #      preferred_targets: "trusted_accounts"
 
 
   circles_newuser:
     description: "Regular network participant with standard behavior"
     base_config:
-      target_account_count: 10  # Number of accounts this agent controls
+      target_account_count: 100  # Number of accounts this agent controls
       max_daily_actions: 20    # Maximum actions per day
-      risk_tolerance: 0.3      # Risk factor 0-1
       preferred_networks: ["gnosis"]  # Preferred networks
       
     available_actions:
@@ -133,10 +133,42 @@ profiles:
           min_collateral_ratio: 1.5
           max_mint_per_day: 1000.0
 
-      - action: "circleshub_SafeTransferFrom"
-        probability: 0.8
+    #  - action: "circleshub_SafeTransferFrom"
+    #    probability: 0.8
+    #    cooldown_blocks: 1
+    #    max_value: 10.0
+    #    constraints:
+    #      preferred_targets: "trusted_accounts"
+
+  test:
+    description: "Regular network participant with standard behavior"
+    base_config:
+      target_account_count: 1  # Number of accounts this agent controls
+      max_daily_actions: 20    # Maximum actions per day
+      preferred_networks: ["gnosis"]  # Preferred networks
+      actions_sequence: [
+        ["circleshub_PersonalMint", 3],
+        ["circleshub_Trust", 2],
+        ["circleshub_Wrap", 1]
+      ]
+      
+    available_actions:
+      - action: "circleshub_Trust"
+        probability: 1
+        cooldown_blocks: 1
+
+      - action: "circleshub_PersonalMint"
+        probability: 1
+        cooldown_blocks: 2
+        constraints:
+          max_executions: 100
+
+      - action: "circleshub_Wrap"
+        probability: 1
         cooldown_blocks: 1
         max_value: 10.0
         constraints:
-          preferred_targets: "trusted_accounts"
+          min_balance: 1.0
+
+
 

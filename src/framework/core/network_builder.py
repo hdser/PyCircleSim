@@ -111,7 +111,9 @@ class NetworkBuilder:
                     agent_manager=self.agent_manager,
                     clients=self.clients,
                     chain=chain,
-                    network_state=self.network_state
+                    network_state=self.network_state,
+                    iteration=0,
+                    iteration_cache={}
                 )
 
                 params = self._prepare_action_params(context, action_spec)
