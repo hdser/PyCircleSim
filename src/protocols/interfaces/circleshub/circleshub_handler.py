@@ -1114,11 +1114,6 @@ class MulticallCase1BaseHandler:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
-            # execution_params is like:
-            #   {
-            #       "circleshub_RegisterCustomGroup": {...},
-            #       "circleshub_Trust": {...}
-            #   }
             return self.client.multicallCase1(execution_params)
         except Exception as e:
             self.logger.error(f"MulticallCase1 action failed: {e}", exc_info=True)

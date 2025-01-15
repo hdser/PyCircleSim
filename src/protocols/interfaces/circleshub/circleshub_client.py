@@ -710,7 +710,6 @@ class CirclesHubClient:
             ...
           }
         """
-        print("#################################")
         if not all_calls:
             logger.warning("No subcalls provided to multicallCase1()")
             return False
@@ -764,8 +763,14 @@ class CirclesHubClient:
         # 4) Execute the multicall transaction once
         try:
             receipt = txn(sender=sender)
-            # receipt.return_data is the subcall results
-            logger.info(f"MulticallCase1 return_data: {receipt.return_value}")
+            subcall_results = receipt.return_value  
+            for i, result in enumerate(subcall_results):
+                success = result.success
+                data = result.returnData
+                if success:
+                    logger.info(f"Subcall #{i} succeeded")
+                else:
+                    logger.warning(f"Subcall #{i} FAILED, revertData={data.hex()}")
         except Exception as exc:
             logger.error(f"multicallCase1 transaction failed at top-level: {exc}")
             return False
