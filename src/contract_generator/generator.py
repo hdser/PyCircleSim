@@ -88,6 +88,31 @@ class ContractFunction:
             return f"List[{self._get_python_type(base_type)}]"
             
         return type_map.get(sol_type, 'Any')
+    
+    def get_renamed_param_defs(self) -> str:
+        """Get parameter definitions with renamed conflicting parameters"""
+        params = []
+        for i, inp in enumerate(self.inputs):
+            param_name = self._get_safe_param_name(inp['name'] if inp['name'] else f"param{i}")
+            param_type = self._get_python_type(inp['type'])
+            params.append(f"{param_name}: {param_type}")
+        return ", ".join(params)
+
+    def get_safe_params(self) -> str:
+        """Get parameters with potential renames resolved"""
+        params = []
+        for i, inp in enumerate(self.inputs):
+            param_name = self._get_safe_param_name(inp['name'] if inp['name'] else f"param{i}")
+            params.append(param_name)
+        return ", ".join(params)
+
+    def _get_safe_param_name(self, name: str) -> str:
+        """Get a safe parameter name avoiding conflicts"""
+        if name == 'sender':
+            return 'account'
+        if name in self.PYTHON_KEYWORDS:
+            return f"{name}_"
+        return name
 
 class ContractEvent:
     def __init__(self, abi_entry: Dict):
@@ -136,8 +161,12 @@ class ContractGenerator:
         else:
             self.contract_name = name
 
+        # Initialize Jinja environment
         self.env = Environment(loader=FileSystemLoader(templates_dir))
+        
+        # Add our custom filters
         self.env.filters['camel_case'] = to_camel_case
+        self.env.filters['safe_param_name'] = self._safe_param_name  # Add the new filter
 
         with open(abi_path) as f:
             self.abi = json.load(f)
@@ -145,6 +174,15 @@ class ContractGenerator:
         self.functions = []
         self.events = []
         self._parse_abi()
+
+    @staticmethod
+    def _safe_param_name(name: str) -> str:
+        """Template filter to make parameter names safe"""
+        if name == 'sender':
+            return 'account'
+        if name in ['from', 'to', 'in', 'import', 'class', 'def', 'return', 'pass']:
+            return f"{name}_"
+        return name
 
     def _parse_abi(self):
         for entry in self.abi:

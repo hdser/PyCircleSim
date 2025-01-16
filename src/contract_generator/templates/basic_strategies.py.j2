@@ -9,11 +9,26 @@ class {{ func.name|camel_case }}Strategy(BaseStrategy):
         if not sender:
             return None
             
+        {% for inp in func.inputs %}
+        {% if inp.type.startswith('tuple') %}
+        # Initialize {{ inp.name }} tuple fields
+        {{ inp.name }} = {
+            {% for component in inp.components %}
+            '{{ component.name }}': None,  # {{ component.type }}
+            {% endfor %}
+        }
+        {% endif %}
+        {% endfor %}
+
         return {
             'sender': sender,
             'value': 0
             {% for inp in func.inputs %}
+            {% if inp.type.startswith('tuple') %}
+            ,'{{ inp.name }}': {{ inp.name }}
+            {% else %}
             ,'{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': None
+            {% endif %}
             {% endfor %}
         }
 

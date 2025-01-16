@@ -1,6 +1,6 @@
 # Base network parameters
 batch_size: 10           
-iterations: 1000              
+iterations: 100              
 blocks_per_iteration: 10  
 block_time: 5            
 
@@ -28,4 +28,4 @@ strategies:
 
 
 # Database configuration
-db_path: "rings_simulation.duckdb"
+db_path: "simulation.duckdb"

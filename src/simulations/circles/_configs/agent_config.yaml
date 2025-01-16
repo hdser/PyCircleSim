@@ -72,9 +72,9 @@ profiles:
           min_collateral_ratio: 1.5
           max_mint_per_day: 1000.0
 
-      - action: "circleshub_MulticallCase1"
-        probability: 0.9
-        cooldown_blocks: 1
+    #  - action: "circleshub_MulticallCase1"
+    #    probability: 0.9
+    #    cooldown_blocks: 1
 
     #  - action: "circleshub_SafeTransferFrom"
     #    probability: 0.3
@@ -137,9 +137,9 @@ profiles:
           min_collateral_ratio: 1.5
           max_mint_per_day: 1000.0
 
-      - action: "circleshub_MulticallCase1"
-        probability: 0.9
-        cooldown_blocks: 1
+    #  - action: "circleshub_MulticallCase1"
+    #    probability: 0.9
+    #    cooldown_blocks: 1
 
     #  - action: "circleshub_SafeTransferFrom"
     #    probability: 0.8

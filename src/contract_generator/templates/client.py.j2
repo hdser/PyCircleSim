@@ -31,18 +31,31 @@ class {{ contract_name }}Client:
     {% for func in functions %}
     {% if func.is_view %}
     def {{ func.name }}(self, {{ func.get_python_param_defs() }}) -> {{ func.get_python_return_type() }}:
-        """{{ func.name }} implementation"""
+        """{{ func.name }} implementation
+        {% for inp in func.inputs %}
+        Args:
+            {{ inp.name }}: {{ inp.type }} - Contract parameter
+        {% endfor %}
+        """
         try:
             return self.contract.{{ func.name }}({{ func.get_python_params() }})
         except Exception as e:
             logger.error(f"{{ func.name }} failed: {e}")
             return None
     {% else %}
-    def {{ func.name }}(self, sender: str, value: int{% if func.get_python_param_defs() %}, {{ func.get_python_param_defs() }}{% endif %}) -> bool:
-        """{{ func.name }} implementation"""
+    def {{ func.name }}(self, sender: str, value: int{% if func.get_python_param_defs() %}, {{ func.get_renamed_param_defs() }}{% endif %}) -> bool:
+        """{{ func.name }} implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            {% for inp in func.inputs %}
+            {{ inp.name|safe_param_name }}: {{ inp.type }} - Contract parameter
+            {% endfor %}
+        """
         try:
             tx = self.contract.{{ func.name }}(
-                {% if func.get_python_params() %}{{ func.get_python_params() }}, {% endif %}
+                {% if func.get_python_params() %}{{ func.get_safe_params() }}, {% endif %}
                 sender=sender,
                 value=value
             )
