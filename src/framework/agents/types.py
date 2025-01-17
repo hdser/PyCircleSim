@@ -2,8 +2,34 @@ from enum import Enum, auto
 
 class ActionType(Enum):
     """Available actions derived from protocol handlers"""
-
-    circleshub_MulticallCase1 = auto()
+    
+    balancerv2vault_BatchSwap = auto()
+    
+    balancerv2vault_DeregisterTokens = auto()
+    
+    balancerv2vault_ExitPool = auto()
+    
+    balancerv2vault_FlashLoan = auto()
+    
+    balancerv2vault_JoinPool = auto()
+    
+    balancerv2vault_ManagePoolBalance = auto()
+    
+    balancerv2vault_ManageUserBalance = auto()
+    
+    balancerv2vault_QueryBatchSwap = auto()
+    
+    balancerv2vault_RegisterPool = auto()
+    
+    balancerv2vault_RegisterTokens = auto()
+    
+    balancerv2vault_SetAuthorizer = auto()
+    
+    balancerv2vault_SetPaused = auto()
+    
+    balancerv2vault_SetRelayerApproval = auto()
+    
+    balancerv2vault_Swap = auto()
     
     circleshub_Burn = auto()
     
@@ -12,6 +38,8 @@ class ActionType(Enum):
     circleshub_GroupMint = auto()
     
     circleshub_Migrate = auto()
+    
+    circleshub_MulticallCase1 = auto()
     
     circleshub_OperateFlowMatrix = auto()
     

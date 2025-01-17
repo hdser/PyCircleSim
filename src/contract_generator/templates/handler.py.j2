@@ -31,27 +31,49 @@ class {{ func.name|camel_case }}BaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             {% for inp in func.inputs %}
-            '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': None,  # type: {{ inp.type }}
+            {% if inp.name == "sender" %}
+            ,'sender_account': None  # type: {{ inp.type }} (renamed from 'sender')
+            {% elif inp.name == "value" %}
+            ,'amount_value': None  # type: {{ inp.type }} (renamed from 'value')
+            {% else %}
+            ,'{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': None  # type: {{ inp.type }}
+            {% endif %}
             {% endfor %}
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
-                
-            return self.client.{{ func.name }}(
-                {% for orig_name, safe_name in func.get_input_names() %}
-                {{ safe_name }}=execution_params.get("{{ safe_name }}"),
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
+                {% for inp in func.inputs %}
+                {% if inp.name == "sender" %}
+                'sender_': execution_params.get("sender_account"),  # Contract's sender parameter
+                {% elif inp.name == "value" %}
+                'value_': execution_params.get("amount_value"),  # Contract's value parameter
+                {% else %}
+                '{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}': execution_params.get("{{ inp.name }}{% if inp.name in ["from", "to", "in", "import", "class", "def", "return", "pass"] %}_{% endif %}"),
+                {% endif %}
                 {% endfor %}
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
-            )
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0)
+            }
+                
+            return self.client.{{ func.name }}(**function_args)
 
         except Exception as e:
             self.logger.error(f"{{ func.name }} action failed: {e}", exc_info=True)

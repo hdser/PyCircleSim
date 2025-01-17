@@ -11,6 +11,7 @@ from src.framework.simulation.base import BaseSimulation, BaseSimulationConfig
 from src.framework.logging import get_logger
 from src.protocols.interfaces.circleshub import CirclesHubClient
 from src.protocols.interfaces.wxdai import WXDAIClient
+from src.protocols.interfaces.balancerv2vault import BalancerV2VaultClient
 
 logger = get_logger(__name__)
 
@@ -54,6 +55,13 @@ class CirclesSimulation(BaseSimulation):
             'client_class': WXDAIClient,
             'module_name': 'wxdai',
             'abi_folder': 'tokens',
+            'strategy': 'basic'
+        },
+         'wxdai': {
+            'address': '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
+            'client_class': BalancerV2VaultClient,
+            'module_name': 'balancerv2vault',
+            'abi_folder': 'balancer_v2',
             'strategy': 'basic'
         }
     }

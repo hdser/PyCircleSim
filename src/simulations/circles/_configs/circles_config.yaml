@@ -16,6 +16,10 @@ state_variables:
         type: mapping(address => address)
         slot: 26
         iterable: true
+      trustMarkers:
+        type: mapping(address => mapping(address => struct TypeDefinitions.TrustMarker))
+        slot: 29
+        iterable: true
       _uri:
         type: string
         slot: 20

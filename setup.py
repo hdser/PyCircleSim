@@ -13,10 +13,17 @@ setup(
         "requests>=2.32.3",
         "jinja2>=3.1.5",
         "black>=24.10.0",
+        "colorama==0.4.6",
+        "panel>=1.3.0",         
+        "holoviews>=1.18.0",    
+        "param>=2.0.0",         
+        "bokeh>=3.3.0",  
+        "hvplot>=0.11.2",
     ],
     entry_points={
         'console_scripts': [
             'rings-sim=scripts.rings:cli',
+            'sim-explorer=app.app:main',
         ],
     },
 )
