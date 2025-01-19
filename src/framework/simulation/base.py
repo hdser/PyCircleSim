@@ -159,20 +159,6 @@ class BaseSimulation(ABC):
         # Tracking
         self.iteration_stats: List[Dict[str, Any]] = []
 
-        # Initialize state decoder if we have state variables configured
-        #self.initial_state = {}
-
-        #if config.state_variables:
-        #    try:
-        #        # Use first contract address by default - specific simulations can override
-        #        contract_address = next(iter(contract_configs.values()))['address']
-        #        decoder = StateDecoder(contract_address)
-        #        self.initial_state = decoder.decode_state(config.state_variables)
-        #        logger.info(f"Decoded initial state variables: {self.initial_state.keys()}")
-        #    except Exception as e:
-        #        logger.error(f"Failed to decode initial state: {e}")
-                # Continue with empty initial state rather than failing
-
 
     def _initialize_contract_states(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         """Initialize contract states from configuration"""
@@ -206,6 +192,10 @@ class BaseSimulation(ABC):
                     'state': decoded_state
                 }
                 
+                import json
+                with open("sample.json", "w") as outfile:
+                    json.dump(decoded_state, outfile)
+
                 logger.info(f"Decoded state for {contract_id} ({contract_address}): {decoded_state.keys()}")
 
             except Exception as e:

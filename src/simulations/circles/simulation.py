@@ -66,21 +66,112 @@ class CirclesSimulation(BaseSimulation):
         }
     }
 
+    def _compute_initial_balances(self) -> Dict[str, Dict[int, int]]:
+        """
+        Compute balances for all avatars based on trustMarkers state.
+        Returns Dict[avatar_address, Dict[token_id, balance]]
+        """
+        circles_state = self.initial_state.get('CirclesHub', {})
+        
+        trustMarkers = circles_state.get('trustMarkers', {})
+        avatars = circles_state.get('avatars', [])
 
+        if not trustMarkers and not avatars:
+            logger.info(f"Current state keys: {self.initial_state.keys()}")
+            logger.info(f"CirclesHub state content: {circles_state}")
+            logger.warning("No trustMarkers or avatars state found for balance computation")
+            return {}
+
+        client = self.clients.get('circleshub')
+        if not client:
+            logger.warning("No CirclesHub client found for balance computation")
+            return {}
+
+        # Build lists for batch call
+        accounts_list = []
+        ids_list = []
+        mapping = []  # To track address->tokenId mapping
+        unique_pairs = set()  # Track unique (address, token_id) pairs
+
+        # First get all token IDs
+        token_ids = {}  # address -> token_id mapping
+        for avatar in avatars:
+            try:
+                token_ids[avatar] = client.toTokenId(avatar)
+            except Exception as e:
+                logger.debug(f"Skipping avatar {avatar} token creation: {e}")
+
+        # For each avatar, check their balance of tokens they trust
+        for avatar in avatars:
+            # Check their own token balance
+            if avatar in token_ids:
+                pair = (avatar, token_ids[avatar])
+                if pair not in unique_pairs:
+                    accounts_list.append(avatar)
+                    ids_list.append(token_ids[avatar])
+                    mapping.append(pair)
+                    unique_pairs.add(pair)
+
+            # Check tokens from trust relationships
+            trusted = trustMarkers.get(avatar, {})
+            for trustee, _ in trusted:
+                if trustee in token_ids:
+                    pair = (avatar, token_ids[trustee])
+                    if pair not in unique_pairs:
+                        accounts_list.append(avatar)
+                        ids_list.append(token_ids[trustee])
+                        mapping.append(pair)
+                        unique_pairs.add(pair)
+
+        if not accounts_list:
+            logger.warning("No accounts found to check balances")
+            return {}
+
+        try:
+            # Get balances in batch
+            balances = client.balanceOfBatch(accounts_list, ids_list)
+            
+            # Create result dict with nested structure
+            result = {}
+            for (address, token_id), balance in zip(mapping, balances):
+                if balance > 0:  # Filter zero balances
+                    if address not in result:
+                        result[address] = {}
+                    result[address][token_id] = balance
+
+            logger.info(f"Successfully computed balances for {len(result)} addresses")
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to compute balances: {e}")
+            return {}
+        
     def get_initial_actions(self) -> List[Dict[str, Any]]:
         """Get initial actions to be performed on network build"""
         return []
 
     def get_initial_state(self) -> Dict[str, Any]:
         """Get initial state including decoded contract state"""
+        # First get the base state
         state = super().get_initial_state()
         
         # Add simulation-specific state
         state.update({
             'trusted_addresses': set(),
-            'group_count': 0
+            'group_count': 0,
+            'token_balances': {}  # Initialize empty balances
         })
-        
+
+        # Only compute balances once if configured
+        if self.config.network_config.get('compute_initial_balances', False):
+            logger.info("Computing initial balances...")
+            balances = self._compute_initial_balances()
+            if balances:
+                state['token_balances'] = balances
+                non_zero_balances = sum(len(tokens) for tokens in balances.values())
+                logger.info(f"Added {non_zero_balances} non-zero balances to initial state")
+
+        print(state['token_balances'])
         return state
 
     def get_simulation_description(self) -> str:

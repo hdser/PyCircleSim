@@ -3,7 +3,7 @@ batch_size: 10
 iterations: 100              
 blocks_per_iteration: 10  
 block_time: 5            
-
+compute_initial_balances: true
 
 state_variables:
   CirclesHub:  # Contract identifier matching contract_configs
