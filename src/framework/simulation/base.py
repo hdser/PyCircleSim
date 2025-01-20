@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from ape import chain
 from src.framework.data import DataCollector
 from src.framework.agents import AgentManager
-from src.framework.core import NetworkBuilder, NetworkEvolver
+from src.framework.core import NetworkBuilder, NetworkEvolver, SimulationContext
 from src.framework.logging import get_logger
 from src.framework.state.decoder import StateDecoder
 
@@ -268,12 +268,14 @@ class BaseSimulation(ABC):
 
     def _initialize_builder(self) -> NetworkBuilder:
         """Initialize network builder"""
-        return NetworkBuilder(
+        builder = NetworkBuilder(
             clients=self.clients,
             batch_size=self.config.batch_size,
             agent_manager=self.agent_manager,
             collector=self.collector
         )
+        builder.set_simulation(self)
+        return builder
 
     def _initialize_evolver(self) -> NetworkEvolver:
         """Initialize network evolver with strategies"""
@@ -285,6 +287,7 @@ class BaseSimulation(ABC):
             strategy_config=self.strategy_config
         )
         evolver.initialize_contract_states(self.contract_states)
+        evolver.set_simulation(self)
         return evolver
 
     @abstractmethod
@@ -399,3 +402,10 @@ class BaseSimulation(ABC):
             'current_block': chain.blocks.head.number,
             'action_counts': action_counts
         }
+    
+    def _update_simulation_state(self, context: SimulationContext, action_name: str, params: Dict[str, Any]) -> None:
+        """
+        Generic method to update simulation state after successful action execution.
+        Override this in specific simulation implementations.
+        """
+        pass

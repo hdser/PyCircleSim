@@ -23,8 +23,8 @@ profiles:
       preferred_networks: ["gnosis"]  # Preferred networks
       preset_addresses: 
         - "0xD11713721353Eda1df56433642aD7bB14a77CF60"
-        #- "0xA6247834B41771022498F63CAE8820fFEE208265"
-       # - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
+        - "0xA6247834B41771022498F63CAE8820fFEE208265"
+        - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
       #  - "0x14c16ce62d26fd51582a646e2e30a3267b1e6d7e"
        
       
@@ -41,7 +41,7 @@ profiles:
         cooldown_blocks: 1
 
       - action: "circleshub_RegisterHuman"
-        probability: .5
+        probability: 1
         cooldown_blocks: 1
         constraints:
           max_accounts_per_day: 5
@@ -82,12 +82,12 @@ profiles:
     #    probability: 0.9
     #    cooldown_blocks: 1
 
-    #  - action: "circleshub_SafeTransferFrom"
-    #    probability: 0.3
-    #    cooldown_blocks: 1
-    #    max_value: 10.0
-    #    constraints:
-    #      preferred_targets: "trusted_accounts"
+      - action: "circleshub_SafeTransferFrom"
+        probability: 0.9
+        cooldown_blocks: 1
+        max_value: 10.0
+        constraints:
+          preferred_targets: "trusted_accounts"
 
 
   circles_newuser:
@@ -147,12 +147,12 @@ profiles:
     #    probability: 0.9
     #    cooldown_blocks: 1
 
-    #  - action: "circleshub_SafeTransferFrom"
-    #    probability: 0.8
-    #    cooldown_blocks: 1
-    #    max_value: 10.0
-    #    constraints:
-    #      preferred_targets: "trusted_accounts"
+      - action: "circleshub_SafeTransferFrom"
+        probability: 0.8
+        cooldown_blocks: 1
+        max_value: 10.0
+        constraints:
+          preferred_targets: "trusted_accounts"
 
   test:
     description: "Regular network participant with standard behavior"

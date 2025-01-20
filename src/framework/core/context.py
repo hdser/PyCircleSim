@@ -22,6 +22,7 @@ class SimulationContext:
         clients: Dict[str, Any],
         chain: Any,
         network_state: Dict[str, Any],
+        simulation: 'BaseSimulation', 
         iteration: int,
         iteration_cache: Dict[str, Any]
     ):
@@ -30,6 +31,7 @@ class SimulationContext:
         self.clients = clients
         self.chain = chain
         self.network_state = network_state
+        self.simulation = simulation
         self.iteration = iteration
         self._cache = iteration_cache
 

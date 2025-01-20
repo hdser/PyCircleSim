@@ -43,6 +43,10 @@ class NetworkEvolver():
         self.handlers = {}
         self._initialize_handlers()
 
+    def set_simulation(self, simulation: 'BaseSimulation'):
+        """Set the simulation instance"""
+        self.simulation = simulation
+
     def initialize_contract_states(self, contract_states: Dict[str, Dict[str, Any]]):
         """Initialize per-contract state data"""
         self.network_state['contract_states'] = contract_states
@@ -149,6 +153,7 @@ class NetworkEvolver():
                     clients=self.clients,
                     chain=chain,
                     network_state=self.network_state,
+                    simulation=self.simulation,
                     iteration=iteration,
                     iteration_cache=self._iteration_cache
                 )
@@ -161,11 +166,18 @@ class NetworkEvolver():
                 if not handler:
                     continue
                     
+                 # Get complete parameters from the strategy
+                execution_params = handler.strategy.get_params(context)
+                if not execution_params:
+                    continue
+
                 stats['total_actions'] += 1
                 success = handler.execute(context)
                 if success:
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
+                    
+                    context.simulation._update_simulation_state(context, action_name, execution_params)
 
             return stats
             

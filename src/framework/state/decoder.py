@@ -103,49 +103,57 @@ class StateDecoder:
         self,
         var: StateVariable, 
         block_identifier: Optional[int] = None
-    ) -> Dict[str, List[Tuple[str, int]]]:
+    ) -> Dict[str, Dict[str, int]]:
         """
-        Decode the trust markers double mapping
-        Returns dict of truster -> [(trustee, expiry), ...]
+        Decode the trust markers double mapping into a dictionary-of-dictionaries:
+            {
+            <truster_address>: {
+                <trustee_address>: <expiry_int>,
+                ...
+            },
+            ...
+            }
+
+        We ignore the 'previous' field from the on-chain struct and only store `expiry`.
         """
-        results = {}
-        
-        # Get avatars to check trusters
+        results: Dict[str, Dict[str, int]] = {}
+
+        # Decode the avatars list first so we know which "trusters" to iterate
         avatars = self._decode_avatar_mapping(
             StateVariable(name='avatars', type='mapping(address => address)', slot=26, iterable=True),
             block_identifier
         )
+        # We also append the SENTINEL so the iteration code below matches your existing pattern:
         avatars.append(self.SENTINEL)
-        
+
         for truster in avatars:
-            trust_list = []
-            
-            # First check the sentinel marker for this truster
+            # 1) Read the sentinel marker for this truster
             sentinel_marker = self._read_trust_marker(var.slot, truster, self.SENTINEL, block_identifier)
-            logger.debug(f"Sentinel marker for {truster}: {sentinel_marker}")
-            
+
+            # If the sentinel marker has zero_address as "previous", that means no trust list
             if sentinel_marker.previous == self.ZERO_ADDRESS:
-                logger.debug(f"No trust list for {truster}")
-                continue  # No trust list initialized
-                
-            # Follow the linked list starting from the sentinel's previous
+                continue
+
+            # 2) Follow the linked list starting from sentinel_marker.previous
             current = sentinel_marker.previous
-            visited = set()  # Track visited addresses to prevent infinite loops
-            
+            visited = set()
+
             while current != self.SENTINEL and current not in visited:
                 visited.add(current)
                 current_marker = self._read_trust_marker(var.slot, truster, current, block_identifier)
-                logger.debug(f"Current marker for {truster}->{current}: {current_marker}")
                 
-                if current_marker.expiry > 0:  # Only include non-expired trust relationships
-                    trust_list.append((current, current_marker.expiry))
-                    
+                # If expiry > 0, record it
+                if current_marker.expiry > 0:
+                    if truster not in results:
+                        results[truster] = {}
+                    # Store trustee => expiry
+                    results[truster][current] = current_marker.expiry
+
+                # Move to the next in the linked list
                 current = current_marker.previous
-                
-            if trust_list:
-                results[truster] = trust_list
-                
+
         return results
+
 
     def _read_trust_marker(self, base_slot: int, truster: str, trustee: str, block_identifier: Optional[int] = None) -> TrustMarker:
         """

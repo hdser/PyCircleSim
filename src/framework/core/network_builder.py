@@ -32,6 +32,10 @@ class NetworkBuilder:
             'running_state': {}
         }
 
+    def set_simulation(self, simulation: 'BaseSimulation'):
+        """Set the simulation instance"""
+        self.simulation = simulation
+
     def build_large_network(
         self,
         target_size: int,
@@ -112,6 +116,7 @@ class NetworkBuilder:
                     clients=self.clients,
                     chain=chain,
                     network_state=self.network_state,
+                    simulation=self.simulation,
                     iteration=0,
                     iteration_cache={}
                 )
