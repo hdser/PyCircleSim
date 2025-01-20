@@ -357,6 +357,31 @@ class BaseSimulation(ABC):
             return False
         
 
+    def _record_current_state(self):
+        """Record current state in the data collector"""
+        if not self.collector:
+            return
+            
+        try:
+            # Get current state data from evolver's network_state
+            state_data = {
+                'contract_states': self.contract_states,
+                'network_state': {
+                    k: v for k, v in self.evolver.network_state.items() 
+                    if k != 'contract_states'  # Avoid duplicate data
+                }
+            }
+            
+            # Record in collector
+            self.collector.record_state(
+                block_number=chain.blocks.head.number,
+                block_timestamp=datetime.fromtimestamp(chain.blocks.head.timestamp),
+                state_data=state_data
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to record state: {e}", exc_info=True)
+
     def _run_iterations(self) -> bool:
         """Run simulation iterations"""
         logger.info(f"Running {self.config.iterations} iterations")
@@ -371,6 +396,9 @@ class BaseSimulation(ABC):
                 
             stats = self.evolver.evolve_network(i + 1)
             self.iteration_stats.append(stats)
+
+            self._record_current_state()
+
             self._log_iteration_summary(i + 1, stats)
             
         return True

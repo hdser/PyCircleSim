@@ -1,7 +1,7 @@
 import duckdb
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 import json
 from ape import Contract
 from collections import defaultdict
@@ -87,6 +87,7 @@ class DataCollector(BaseDataCollector):
                 "agent_addresses.up.sql",  # Depends on agents and simulation_runs
                 "network_stats.up.sql",    # Depends on simulation_runs
                 "events.up.sql",
+                "state.up.sql",
              #   "events_indexes.up.sql"
             ]
             
@@ -100,6 +101,42 @@ class DataCollector(BaseDataCollector):
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
             raise
+
+
+    def record_state(self, block_number: int, block_timestamp: datetime, state_data: Dict[str, Any]):
+        """Record simulation state at a given block"""
+        if not self._current_run_id:
+            raise ValueError("No active simulation run")
+            
+        try:
+            sql = self._read_sql_file("queries/insert_state.sql")
+            self.con.execute(sql, [
+                self._current_run_id,
+                block_number,
+                block_timestamp,
+                state_data
+            ])
+            self.con.commit()
+            logger.debug(f"Recorded state at block {block_number}")
+            
+        except Exception as e:
+            logger.error(f"Failed to record state: {e}")
+            raise
+
+    def get_state_history(self, run_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get state history for a simulation run"""
+        try:
+            sql = self._read_sql_file("queries/get_state_history.sql")
+            run_id = run_id or self._current_run_id
+            if not run_id:
+                raise ValueError("No simulation run specified")
+                
+            result = self.con.execute(sql, [run_id]).fetchdf()
+            return result.to_dict('records')
+            
+        except Exception as e:
+            logger.error(f"Failed to get state history: {e}")
+            return []
 
     def _validate_ethereum_address(self, address: str) -> bool:
         """Validate Ethereum address format."""

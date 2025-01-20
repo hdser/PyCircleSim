@@ -77,6 +77,17 @@ class BaseDataCollector(ABC):
         """Get network graph data"""
         pass
 
+    @abstractmethod
+    def record_state(self, block_number: int, block_timestamp: datetime, state_data: Dict[str, Any]):
+        """Record simulation state at a given block"""
+        pass
+
+    @abstractmethod
+    def get_state_history(self, run_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get state history for a simulation run"""
+        pass
+
+
     @abstractmethod 
     def export_to_csv(self, output_dir: str = "analysis_results"):
         """Export data to CSV"""
@@ -96,3 +107,4 @@ class BaseDataCollector(ABC):
     def _get_unique_timestamp(self, base_timestamp: datetime, table_name: str) -> datetime:
         """Get unique timestamp for database operations"""
         pass
+
