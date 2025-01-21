@@ -153,20 +153,92 @@ class OperateFlowMatrixStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
+        client = context.get_client('circleshub')
+        if not client:
+            return None
+
+        addresses = [addr for addr in list(context.agent_manager.address_to_agent.keys()) if addr != sender]
+        if not addresses:
+            return {}
+        receiver = random.choice(addresses)
+
+        # Get flow analysis results
+        cutoff = str(1000000)
+        _, _, simplified_edge_flows, _ = self._analyze_flow(context, sender, receiver, cutoff)
+        
+        # Transform addresses to sorted unique list for flow vertices
+        address_set = set()
+        address_set.add(sender.lower())
+        address_set.add(receiver.lower())
+        
+        # Add all addresses from edges and tokens
+        for edge, token_flows in simplified_edge_flows.items():
+            from_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[0])
+            to_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[1])
             
-            ,'_flowVertices': None
+            address_set.add(from_addr.lower())
+            address_set.add(to_addr.lower())
             
-            ,'_flow': None
+            # Add addresses for all token owners in this edge
+            for token_id in token_flows.keys():
+                token_addr = context.graph_manager.data_ingestion.get_address_for_id(token_id)
+                address_set.add(token_addr.lower())
+
+        # Sort addresses
+        flow_vertices = sorted(list(address_set))
+        
+        # Create lookup map
+        lookup_map = {addr: idx for idx, addr in enumerate(flow_vertices)}
+
+        # Create flow edges and coordinates
+        flow_edges = []
+        coordinates = []
+        
+        for edge, token_flows in simplified_edge_flows.items():
+            from_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[0])
+            to_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[1])
             
-            ,'_streams': None
-            
-            ,'_packedCoordinates': None
-            
+            # Handle all token flows for this edge
+            for token_id, flow_value in token_flows.items():
+                token_addr = context.graph_manager.data_ingestion.get_address_for_id(token_id)
+                
+                # Convert flow to proper units
+                amount = int(flow_value * 1e15)
+                
+                # Add flow edge
+                flow_edges.append({
+                    'streamSinkId': 1 if to_addr.lower() == receiver.lower() else 0,
+                    'amount': amount
+                })
+                
+                # Add coordinates for (tokenOwner, sender, receiver)
+                coordinates.extend([
+                    lookup_map[token_addr.lower()],
+                    lookup_map[from_addr.lower()],
+                    lookup_map[to_addr.lower()]
+                ])
+
+        # Pack coordinates into bytes
+        packed_coordinates = bytes([
+            b for coord in coordinates
+            for b in [(coord >> 8) & 0xff, coord & 0xff]
+        ])
+
+        # Create stream object
+        stream = {
+            'sourceCoordinate': lookup_map[sender.lower()],
+            'flowEdgeIds': [i for i, edge in enumerate(flow_edges) if edge['streamSinkId'] == 1],
+            'data': bytes()
         }
 
+        return {
+            'sender': sender,
+            'value': 0,
+            '_flowVertices': flow_vertices,
+            '_flow': flow_edges,
+            '_streams': [stream],
+            '_packedCoordinates': packed_coordinates
+        }
 
 
 class PersonalMintStrategy(BaseStrategy):
@@ -343,10 +415,6 @@ class SafeTransferFromStrategy(BaseStrategy):
         if amount == 0:
             return {}
 
-        sender = '0x42cEDde51198D1773590311E2A340DC06B24cB37'
-        receiver = '0x14c16ce62d26fd51582a646e2e30a3267b1e6d7e'
-        tokenid = 499950623275108955190615340282081639491279259873
-        amount = 10000000000000000000
         return {
             'sender': sender,
             '_from': sender,
@@ -381,10 +449,8 @@ class SetApprovalForAllStrategy(BaseStrategy):
         return {
             'sender': sender,
             'value': 0
-            
-            ,'_operator': None
-            
-            ,'_approved': None
+            ,'_operator': sender
+            ,'_approved': True
             
         }
 
@@ -495,7 +561,6 @@ class MulticallPathfinderTransferStrategy(BaseStrategy):
         
         i=0
         for edge, token_flow in simplified_edge_flows.items():
-                print(edge,token_flow)
                 from_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[0])
                 to_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[1])
                 token_graph_id, token_flow_redux = list(token_flow.items())[0]
@@ -515,7 +580,6 @@ class MulticallPathfinderTransferStrategy(BaseStrategy):
         if 'circleshub_safeTransferFrom_0' not in multicall_data.keys():
             return {}
         
-        print('==-=-=-',multicall_data)
         return multicall_data
 
 

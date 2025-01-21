@@ -739,8 +739,6 @@ class CirclesHubClient:
                 f"Adding subcall {action_name} => {base_method}"
                 f" with args={arglist}, value={subcall_value}"
             )
-            from ape_ethereum import Ethereum
-            print(Ethereum.decode_address(arglist[2]))
 
             # Add to the multicall Transaction
             # allowFailure=True => if one subcall reverts, we keep going
