@@ -757,6 +757,7 @@ class SafeTransferFromBaseHandler:
             if not execution_params:
                 return False
                 
+            print(execution_params)
             return self.client.safeTransferFrom(
                 
                 _from=execution_params.get("_from"),
@@ -1072,6 +1073,71 @@ class WrapBaseHandler:
 class WrapHandler(WrapBaseHandler):
     """Concrete handler implementation"""
     pass
+
+
+
+
+
+
+
+
+
+
+
+class MulticallPathfinderTransferBaseHandler:
+    """Base handler class for 'MulticallCase1' action (a batched set of subcalls)."""
+
+    def __init__(
+        self,
+        client: CirclesHubClient,
+        chain,
+        logger,
+        strategy_name: str = "basic"):
+        self.client = client
+        self.chain = chain
+        self.logger = logger
+        
+        # Dynamically load a strategy class named "MulticallCase1Strategy" if it exists
+        try:
+            module_path = f"src.protocols.handler_strategies.{client.__class__.__name__.lower().replace('client','')}.{strategy_name}_strategies"
+            strategy_module = importlib.import_module(module_path)
+            base_name = self.__class__.__name__.replace('Handler', 'Strategy').replace('Base', '')
+            strategy_class = getattr(strategy_module, base_name)
+            self.strategy = strategy_class()
+        except (ImportError, AttributeError) as e:
+            self.logger.error(f"Failed to load strategy {strategy_name} for {self.__class__.__name__}: {e}")
+            self.strategy = self
+
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
+        """
+        If no strategy is loaded, we could provide some fallback.
+        But typically you'll rely on the strategy to define subcalls.
+        """
+        return {}
+
+            
+    def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        The key step: gather subcalls dict from strategy, then call self.client.multicallCase1().
+        """
+        try:
+            execution_params = params if params else self.strategy.get_params(context)
+            if not execution_params:
+                return False
+            return self.client.multicallPathfinderTransfer(execution_params)
+        except Exception as e:
+            self.logger.error(f"MulticallPathfinderTransfer action failed: {e}", exc_info=True)
+            return False
+
+class MulticallPathfinderTransferHandler(MulticallPathfinderTransferBaseHandler):
+    """Concrete handler implementation."""
+    pass
+
+
+
+
+
+
 
 
 class MulticallCase1BaseHandler:

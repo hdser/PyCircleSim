@@ -343,6 +343,10 @@ class SafeTransferFromStrategy(BaseStrategy):
         if amount == 0:
             return {}
 
+        sender = '0x42cEDde51198D1773590311E2A340DC06B24cB37'
+        receiver = '0x14c16ce62d26fd51582a646e2e30a3267b1e6d7e'
+        tokenid = 499950623275108955190615340282081639491279259873
+        amount = 10000000000000000000
         return {
             'sender': sender,
             '_from': sender,
@@ -466,6 +470,55 @@ class WrapStrategy(BaseStrategy):
             "_type": 0
         }
             
+
+class MulticallPathfinderTransferStrategy(BaseStrategy):
+    def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        client = context.get_client('circleshub')
+        if not client:
+            return None
+        
+        sender = self.get_sender(context)
+        if not sender:
+            return None
+        
+        addresses = [addr for addr in list(context.agent_manager.address_to_agent.keys()) if addr != sender]
+        if not addresses:
+            return {}
+        receiver = random.choice(addresses)
+
+        multicall_data = {
+            "tx_params": {"sender": sender, "value": 0}
+        }
+
+        cutoff = str(10000)
+        _, _, simplified_edge_flows, _ = self._analyze_flow(context, sender, receiver, cutoff)
+        
+        i=0
+        for edge, token_flow in simplified_edge_flows.items():
+                print(edge,token_flow)
+                from_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[0])
+                to_addr = context.graph_manager.data_ingestion.get_address_for_id(edge[1])
+                token_graph_id, token_flow_redux = list(token_flow.items())[0]
+                token_addr = context.graph_manager.data_ingestion.get_address_for_id(token_graph_id)
+                token_id = client.toTokenId(token_addr)
+                token_flow = int(token_flow_redux * 1e15)
+            
+                multicall_data[f'circleshub_safeTransferFrom_{i}'] = {
+                    '_from': from_addr,
+                    '_to': to_addr,
+                    '_id': token_id,
+                    '_value': token_flow,
+                    '_data': b"",
+                }
+                i+=1
+
+        if 'circleshub_safeTransferFrom_0' not in multicall_data.keys():
+            return {}
+        
+        print('==-=-=-',multicall_data)
+        return multicall_data
+
+
 
 class MulticallCase1Strategy(BaseStrategy):
     """

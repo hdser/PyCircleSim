@@ -35,7 +35,9 @@ from .circleshub_handler import (
     
     WrapHandler,
 
-    MulticallCase1Handler
+    MulticallCase1Handler,
+
+    MulticallPathfinderTransferHandler
     
 )
 
@@ -76,6 +78,8 @@ __all__ = [
     
     'WrapHandler',
 
-    "MulticallCase1Handler"
+    "MulticallCase1Handler",
+
+    "MulticallPathfinderTransferHandler"
     
 ]

@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import yaml
-from src.framework.agents.action_registry import ActionRegistry
+from ....framework.agents.action_registry import ActionRegistry
 from src.framework.logging import get_logger
 
 logger = get_logger(__name__)

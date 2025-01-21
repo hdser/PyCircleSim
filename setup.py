@@ -2,8 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name="rings_network",
-    version="0.1",
+    version="0.2",
     packages=find_packages(),
+    python_requires='>=3.8,<3.11',
     install_requires=[
         "eth-ape[recommended-plugins]",
         "pandas",
@@ -19,6 +20,8 @@ setup(
         "param>=2.0.0",         
         "bokeh>=3.3.0",  
         "hvplot>=0.11.2",
+        "networkx==3.3",
+        "ortools==9.11.4210"
     ],
     entry_points={
         'console_scripts': [

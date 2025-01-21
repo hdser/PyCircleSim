@@ -1,5 +1,3 @@
-# simulation.py
-
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from datetime import datetime
@@ -12,6 +10,9 @@ from src.framework.logging import get_logger
 from src.protocols.interfaces.circleshub import CirclesHubClient
 from src.protocols.interfaces.wxdai import WXDAIClient
 from src.protocols.interfaces.balancerv2vault import BalancerV2VaultClient
+
+from src.framework.state.graph_converter import StateToGraphConverter
+from src.pathfinder import GraphManager
 import logging
 
 logger = get_logger(__name__, logging.DEBUG)
@@ -58,7 +59,7 @@ class CirclesSimulation(BaseSimulation):
             'abi_folder': 'tokens',
             'strategy': 'basic'
         },
-         'wxdai': {
+        'wxdai': {
             'address': '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
             'client_class': BalancerV2VaultClient,
             'module_name': 'balancerv2vault',
@@ -67,14 +68,40 @@ class CirclesSimulation(BaseSimulation):
         }
     }
 
+    def _rebuild_graph(self, context: 'SimulationContext') -> None:
+        """Rebuild graph from current state"""
+        try:
+            circles_state = context.network_state['contract_states']['CirclesHub']['state']
+            client = context.get_client('circleshub')
+            
+            if not client:
+                return
+
+            # Convert state to dataframes using our converter
+            converter = StateToGraphConverter()
+            df_trusts, df_balances = converter.convert_state_to_dataframes(
+                state=circles_state,
+                current_time=context.chain.blocks.head.timestamp            
+            )
+
+            # Create or update graph manager
+            context.graph_manager = GraphManager(
+                (df_trusts, df_balances),
+                graph_type='ortools'
+            )
+                
+        except Exception as e:
+            logger.error(f"Failed to rebuild graph: {e}", exc_info=True)
+
     def _compute_initial_balances(self) -> Dict[str, Dict[int, int]]:
         """
         Compute balances for all avatars based on the trustMarkers state.
         Returns: dict of { avatar_address : { token_id: balance } }.
         """
+        # We read from self.initial_state['CirclesHub'], which is set up in get_initial_state()
         circles_state = self.initial_state.get('CirclesHub', {})
         
-        # Now we expect trustMarkers to be a dict-of-dicts: {truster: {trustee: expiry}, ...}
+        # trustMarkers is dict-of-dicts: {truster: {trustee: expiry}, ...}
         trustMarkers: Dict[str, Dict[str, int]] = circles_state.get('trustMarkers', {})
         avatars: List[str] = circles_state.get('avatars', [])
 
@@ -89,10 +116,10 @@ class CirclesSimulation(BaseSimulation):
             logger.warning("No CirclesHub client found for balance computation")
             return {}
 
-        # We'll gather (account, tokenID) pairs in bulk to call balanceOfBatch.
+        # We'll gather (account, tokenID) pairs in bulk for balanceOfBatch
         accounts_list = []
         ids_list = []
-        mapping = []  # parallel structure to remember which (account, tokenID) was appended
+        mapping = []
         unique_pairs = set()
 
         # 1) Convert each avatar to a tokenId if possible
@@ -103,11 +130,8 @@ class CirclesSimulation(BaseSimulation):
             except Exception as e:
                 logger.debug(f"Skipping avatar {avatar} token creation: {e}")
 
-        # 2) For each avatar, get the balances for:
-        #    - Their own tokenId
-        #    - The tokenIds of all trustees they trust
+        # 2) For each avatar: check their own token, and tokens of those they trust
         for avatar in avatars:
-            # if we have a token ID for avatar, track that for balanceOf
             if avatar in token_ids:
                 pair = (avatar, token_ids[avatar])
                 if pair not in unique_pairs:
@@ -116,10 +140,9 @@ class CirclesSimulation(BaseSimulation):
                     mapping.append(pair)
                     unique_pairs.add(pair)
 
-            # Also check all trustees (dict-of-dicts, so `trustMarkers[avatar]` is {trustee: expiry}
+            # Check all trustees
             trusted_map = trustMarkers.get(avatar, {})
             for trustee, expiry in trusted_map.items():
-                # If trustee is known => get token ID
                 if trustee in token_ids:
                     pair = (avatar, token_ids[trustee])
                     if pair not in unique_pairs:
@@ -133,7 +156,7 @@ class CirclesSimulation(BaseSimulation):
             return {}
 
         try:
-            # 3) Use client to fetch all balances in batch
+            # 3) Use client to fetch all balances in one batch
             balances = client.balanceOfBatch(accounts_list, ids_list)
             
             # 4) Build results
@@ -151,35 +174,45 @@ class CirclesSimulation(BaseSimulation):
             logger.error(f"Failed to compute balances: {e}")
             return {}
 
-
-    
     def get_initial_actions(self) -> List[Dict[str, Any]]:
         """Get initial actions to be performed on network build"""
         return []
 
     def get_initial_state(self) -> Dict[str, Any]:
-        """Get initial state including decoded contract state"""
-        # First get the base state
-        state = super().get_initial_state()
-        
-        # Add simulation-specific state
-        state.update({
-            'trusted_addresses': set(),
-            'group_count': 0,
-            'token_balances': {}  # Initialize empty balances
-        })
+        """
+        Get initial state including decoded contract state. 
+        Now we ensure token_balances is stored inside CirclesHub, 
+        instead of at the top level.
+        """
+        # 1) Start with the parent's decoded state
+        base_state = super().get_initial_state()
 
-        # Only compute balances once if configured
+        # 2) If CirclesHub is missing, create it
+        if 'CirclesHub' not in base_state:
+            base_state['CirclesHub'] = {}
+        circles_hub_state = base_state['CirclesHub']
+
+        # 3) Ensure we have sub-keys
+        circles_hub_state.setdefault('avatars', [])
+        circles_hub_state.setdefault('trustMarkers', {})
+        circles_hub_state.setdefault('token_balances', {})
+
+        # 4) Add simulation-specific top-level state
+        base_state['trusted_addresses'] = set()
+        base_state['group_count'] = 0
+
+        # 5) Optionally compute initial balances if configured
         if self.config.network_config.get('compute_initial_balances', False):
             logger.info("Computing initial balances...")
             balances = self._compute_initial_balances()
             if balances:
-                state['token_balances'] = balances
+                circles_hub_state['token_balances'] = balances
                 non_zero_balances = sum(len(tokens) for tokens in balances.values())
                 logger.info(f"Added {non_zero_balances} non-zero balances to initial state")
 
-        print(state['token_balances'])
-        return state
+        # 6) Put the updated CirclesHub state back into base_state
+        base_state['CirclesHub'] = circles_hub_state
+        return base_state
 
     def get_simulation_description(self) -> str:
         """A short description of this simulation run"""
@@ -204,7 +237,7 @@ class CirclesSimulation(BaseSimulation):
             },
             'chain_id': networks.provider.chain_id
         }
-    
+
     def _update_simulation_state(self, context: 'SimulationContext', action_name: str, params: Dict[str, Any]) -> None:
         """
         Update simulation state after a successful action execution.
@@ -214,11 +247,12 @@ class CirclesSimulation(BaseSimulation):
             if not client:
                 return
 
+            # Access our CirclesHub state from context
             circles_state = context.network_state['contract_states']['CirclesHub']['state']
-            
+
             logger.debug(f"Action: {action_name}")
 
-            # Example: registering a Human or Group adds that address to 'avatars'
+            # 1) If registering a Human or Group => add to 'avatars'
             if action_name in ['circleshub_RegisterHuman', 'circleshub_RegisterGroup']:
                 address = params.get('sender')
                 if address:
@@ -228,16 +262,15 @@ class CirclesSimulation(BaseSimulation):
                         circles_state['avatars'].append(address)
                     logger.debug(f"avatars now has {len(circles_state['avatars'])} addresses")
 
+            # 2) If 'Trust' => update trustMarkers
             elif action_name == 'circleshub_Trust':
                 truster = params.get('sender')
                 trustee = params.get('_trustReceiver')
                 expiry = params.get('_expiry')
                 
                 if truster and trustee and expiry:
-                    # Ensure we have a dict-of-dicts for trustMarkers
                     if not isinstance(circles_state.get('trustMarkers'), dict):
                         circles_state['trustMarkers'] = {}
-
                     if truster not in circles_state['trustMarkers']:
                         circles_state['trustMarkers'][truster] = {}
 
@@ -246,15 +279,14 @@ class CirclesSimulation(BaseSimulation):
                         f"Updated trustMarkers for truster={truster}, trustee={trustee}, expiry={expiry}"
                     )
 
-            # Update token balances if this action affects them
+            # 3) If this action can affect balances, update them
             if action_name in [
                 'circleshub_PersonalMint',
                 'circleshub_GroupMint',
                 'circleshub_SafeTransferFrom',
-                'circleshub_Burn'
+                'circleshub_Burn',
+                'circleshub_MulticallPathfinderTransfer',
             ]:
-
-                # Gather involved addresses from params
                 addresses = set()
                 from_addr = params.get('_from')
                 to_addr = params.get('_to')
@@ -265,7 +297,6 @@ class CirclesSimulation(BaseSimulation):
                 if to_addr:
                     addresses.add(to_addr)
                 if not addresses and sender:
-                    # Fallback if only 'sender' is relevant
                     addresses.add(sender)
 
                 logger.debug(f"Involved addresses: {addresses}")
@@ -278,8 +309,6 @@ class CirclesSimulation(BaseSimulation):
             logger.error(f"Failed to update simulation state: {str(e)}", exc_info=True)
             logger.debug("Current state structure:", circles_state)
 
-
-
     def _update_token_balances(
         self, 
         context: 'SimulationContext', 
@@ -287,11 +316,9 @@ class CirclesSimulation(BaseSimulation):
         token_id: Optional[int] = None
     ) -> None:
         """
-        Update token balances for the given addresses.
-
-        Logic:
-        - If `token_id` is provided, we only fetch that ID for each address.
-        - If `token_id` is None, we compute the token ID via client.toTokenId(address).
+        Update token balances for the given addresses in CirclesHub.
+        If `token_id` is specified, we only query that ID for each address.
+        Otherwise, we derive the ID via client.toTokenId(address).
         """
         client = context.get_client('circleshub')
         if not client:
@@ -300,56 +327,54 @@ class CirclesSimulation(BaseSimulation):
         circles_state = context.network_state['contract_states']['CirclesHub']['state']
         token_balances = circles_state.setdefault('token_balances', {})
 
-        # No addresses => nothing to do
         if not addresses:
             return
 
         accounts_list = []
         ids_list = []
-        mapping = []  # (address, tokenID) for parallel with the balances
+        mapping = []
 
         try:
-            # 1) If we have a specific _id from the action/event:
             if token_id is not None:
+                # 1) If specific _id is given, apply it for each address
                 for addr in addresses:
-                    # Make sure 'addr' is a string address
                     if isinstance(addr, str):
                         accounts_list.append(addr)
                         ids_list.append(token_id)
                         mapping.append((addr, token_id))
-
-            # 2) Otherwise, compute token ID from each address
             else:
+                # 2) Otherwise compute the token ID from each address
                 for addr in addresses:
                     if not isinstance(addr, str):
                         continue
 
                     try:
                         derived_id = client.toTokenId(addr)
-                    except Exception as e:
-                        logger.debug(f"Skipping token ID for {addr}: {e}")
-                        continue
-
-                    if derived_id is not None:
                         accounts_list.append(addr)
                         ids_list.append(derived_id)
                         mapping.append((addr, derived_id))
+                    except Exception as e:
+                        logger.debug(f"Error getting token ID for {addr}: {e}")
+                        continue
 
-            # If we ended up with pairs to query
             if accounts_list:
-                logger.debug(f"balanceOfBatch -> accounts={accounts_list}, ids={ids_list}")
+                logger.debug(f"Querying balances for accounts={accounts_list}, ids={ids_list}")
                 balances = client.balanceOfBatch(accounts_list, ids_list)
 
-                # Update in-memory 'token_balances'
                 for (address, t_id), bal in zip(mapping, balances):
                     if bal > 0:
-                        token_balances.setdefault(address, {})[t_id] = bal
+                        if address not in token_balances:
+                            token_balances[address] = {}
+                        token_balances[address][t_id] = bal
+                        logger.debug(f"Updated balance for {address} token {t_id}: {bal}")
                     else:
-                        # Clean up zero balances
+                        # Clean up zero
                         if address in token_balances and t_id in token_balances[address]:
                             del token_balances[address][t_id]
                             if not token_balances[address]:
                                 del token_balances[address]
+
+                #logger.debug(f"Updated token balances: {token_balances}")
 
         except Exception as e:
             logger.error(f"Failed to update token balances: {e}", exc_info=True)

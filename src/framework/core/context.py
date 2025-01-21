@@ -4,6 +4,8 @@ from src.framework.agents import AgentManager, BaseAgent
 import time
 from src.framework.logging import get_logger
 import logging
+from src.pathfinder import GraphManager
+from datetime import datetime
 
 logger = get_logger(__name__,logging.DEBUG)
 
@@ -34,6 +36,20 @@ class SimulationContext:
         self.simulation = simulation
         self.iteration = iteration
         self._cache = iteration_cache
+        self.graph_manager: Optional[GraphManager] = None
+        self._last_graph_rebuild: Optional[datetime] = None
+
+        
+    def rebuild_graph(self) -> None:
+        """Rebuild graph if needed"""
+        if not hasattr(self.simulation, '_rebuild_graph'):
+            return
+            
+        current_time = datetime.now()
+        if (not self._last_graph_rebuild or 
+            (current_time - self._last_graph_rebuild).total_seconds() > 1):  # Rate limit rebuilds
+            self.simulation._rebuild_graph(self)
+            self._last_graph_rebuild = current_time
 
     def get_client(self, contract_id: str) -> Any:
         """Get client for specific contract"""

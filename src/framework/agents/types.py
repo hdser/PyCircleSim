@@ -41,6 +41,8 @@ class ActionType(Enum):
     
     circleshub_MulticallCase1 = auto()
     
+    circleshub_MulticallPathfinderTransfer = auto()
+    
     circleshub_OperateFlowMatrix = auto()
     
     circleshub_PersonalMint = auto()

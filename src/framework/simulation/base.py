@@ -160,6 +160,44 @@ class BaseSimulation(ABC):
         self.iteration_stats: List[Dict[str, Any]] = []
 
 
+    def _initialize_contract_states2(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Initialize contract states from configuration"""
+        initialized_states = {}
+
+        if not config.state_variables:
+            return initialized_states
+
+        for contract_id, state_config in config.state_variables.items():
+            try:
+                # Get contract address - from state config or contract_configs
+                if 'address' in state_config:
+                    contract_address = state_config['address']
+                elif contract_id in contract_configs:
+                    contract_address = contract_configs[contract_id]['address']
+                else:
+                    logger.error(f"No address found for contract {contract_id}")
+                    continue
+
+                # Initialize decoder and decode state
+                decoder = StateDecoder(contract_address)
+                decoded_state = decoder.decode_state(state_config['variables'])
+
+                # For CirclesHub, also include token balances from initial state
+                if contract_id == 'CirclesHub':
+                    initial_state = self.get_initial_state()
+                    decoded_state['token_balances'] = initial_state.get('token_balances', {})
+                
+                initialized_states[contract_id] = {
+                    'address': contract_address,
+                    'state': decoded_state
+                }
+
+            except Exception as e:
+                logger.error(f"Failed to decode state for contract {contract_id}: {e}")
+                continue
+
+        return initialized_states
+
     def _initialize_contract_states(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         """Initialize contract states from configuration"""
         initialized_states = {}
@@ -192,9 +230,9 @@ class BaseSimulation(ABC):
                     'state': decoded_state
                 }
                 
-                import json
-                with open("sample.json", "w") as outfile:
-                    json.dump(decoded_state, outfile)
+                #import json
+                #with open("sample.json", "w") as outfile:
+                #    json.dump(decoded_state, outfile)
 
                 logger.info(f"Decoded state for {contract_id} ({contract_address}): {decoded_state.keys()}")
 

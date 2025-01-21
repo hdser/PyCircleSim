@@ -172,7 +172,7 @@ class NetworkEvolver():
                     continue
 
                 stats['total_actions'] += 1
-                success = handler.execute(context)
+                success = handler.execute(context,execution_params)
                 if success:
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
