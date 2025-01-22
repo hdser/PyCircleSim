@@ -165,8 +165,11 @@ class CirclesSimulation(BaseSimulation):
                 if balance > 0:
                     if address not in result:
                         result[address] = {}
-                    result[address][token_id] = balance
+                    #result[address][token_id] = balance
+                    datetime_object = datetime.fromtimestamp(chain.blocks.head.timestamp)
+                    result[address][token_id] = {'balance': balance, 'last_day_updated': datetime_object.date()}
 
+            print(result)
             logger.info(f"Successfully computed balances for {len(result)} addresses")
             return result
 
@@ -360,12 +363,14 @@ class CirclesSimulation(BaseSimulation):
             if accounts_list:
                 logger.debug(f"Querying balances for accounts={accounts_list}, ids={ids_list}")
                 balances = client.balanceOfBatch(accounts_list, ids_list)
+                date_object = datetime.fromtimestamp(context.chain.blocks.head.timestamp).date()
 
                 for (address, t_id), bal in zip(mapping, balances):
                     if bal > 0:
                         if address not in token_balances:
                             token_balances[address] = {}
-                        token_balances[address][t_id] = bal
+                        #token_balances[address][t_id] = bal
+                        token_balances[address][t_id] = {'balance': bal, 'last_day_updated': date_object}
                         logger.debug(f"Updated balance for {address} token {t_id}: {bal}")
                     else:
                         # Clean up zero
