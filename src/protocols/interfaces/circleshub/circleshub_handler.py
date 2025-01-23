@@ -58,7 +58,8 @@ class BurnBaseHandler:
                 _data=execution_params.get("_data"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -114,7 +115,8 @@ class CalculateIssuanceWithCheckBaseHandler:
                 _human=execution_params.get("_human"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -182,7 +184,8 @@ class GroupMintBaseHandler:
                 _data=execution_params.get("_data"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -246,7 +249,8 @@ class MigrateBaseHandler:
                 _amounts=execution_params.get("_amounts"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -314,7 +318,8 @@ class OperateFlowMatrixBaseHandler:
                 _packedCoordinates=execution_params.get("_packedCoordinates"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -366,7 +371,8 @@ class PersonalMintBaseHandler:
             return self.client.personalMint(
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -438,7 +444,8 @@ class RegisterCustomGroupBaseHandler:
                 _metadataDigest=execution_params.get("_metadataDigest"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -506,7 +513,8 @@ class RegisterGroupBaseHandler:
                 _metadataDigest=execution_params.get("_metadataDigest"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -566,7 +574,8 @@ class RegisterHumanBaseHandler:
                 _metadataDigest=execution_params.get("_metadataDigest"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -626,7 +635,8 @@ class RegisterOrganizationBaseHandler:
                 _metadataDigest=execution_params.get("_metadataDigest"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -698,7 +708,8 @@ class SafeBatchTransferFromBaseHandler:
                 _data=execution_params.get("_data"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -771,7 +782,8 @@ class SafeTransferFromBaseHandler:
                 _data=execution_params.get("_data"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -827,7 +839,8 @@ class SetAdvancedUsageFlagBaseHandler:
                 _flag=execution_params.get("_flag"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -887,7 +900,8 @@ class SetApprovalForAllBaseHandler:
                 _approved=execution_params.get("_approved"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -939,7 +953,8 @@ class StopBaseHandler:
             return self.client.stop(
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -999,7 +1014,8 @@ class TrustBaseHandler:
                 _expiry=execution_params.get("_expiry"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:
@@ -1063,7 +1079,8 @@ class WrapBaseHandler:
                 _type=execution_params.get("_type"),
                 
                 sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
+                value=execution_params.get("value", 0),
+                context=context
             )
 
         except Exception as e:

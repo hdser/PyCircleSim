@@ -167,7 +167,7 @@ class CirclesHubClient:
     
     
     
-    def burn(self, sender: str, value: int, _id: int, _amount: int, _data: bytes) -> bool:
+    def burn(self, sender: str, value: int, _id: int, _amount: int, _data: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """burn implementation"""
         try:
             tx = self.contract.burn(
@@ -176,8 +176,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"burn failed: {e}")
@@ -195,7 +201,7 @@ class CirclesHubClient:
     
     
     
-    def calculateIssuanceWithCheck(self, sender: str, value: int, _human: str) -> bool:
+    def calculateIssuanceWithCheck(self, sender: str, value: int, _human: str,  context: Optional['SimulationContext'] = None) -> bool:
         """calculateIssuanceWithCheck implementation"""
         try:
             tx = self.contract.calculateIssuanceWithCheck(
@@ -204,8 +210,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"calculateIssuanceWithCheck failed: {e}")
@@ -243,7 +255,7 @@ class CirclesHubClient:
     
     
     
-    def groupMint(self, sender: str, value: int, _group: str, _collateralAvatars: List[str], _amounts: List[int], _data: bytes) -> bool:
+    def groupMint(self, sender: str, value: int, _group: str, _collateralAvatars: List[str], _amounts: List[int], _data: bytes,  context: Optional['SimulationContext'] = None) -> bool:
         """groupMint implementation"""
         try:
             tx = self.contract.groupMint(
@@ -252,8 +264,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"groupMint failed: {e}")
@@ -341,7 +359,7 @@ class CirclesHubClient:
     
     
     
-    def migrate(self, sender: str, value: int, _owner: str, _avatars: List[str], _amounts: List[int]) -> bool:
+    def migrate(self, sender: str, value: int, _owner: str, _avatars: List[str], _amounts: List[int], context: Optional['SimulationContext'] = None) -> bool:
         """migrate implementation"""
         try:
             tx = self.contract.migrate(
@@ -350,8 +368,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"migrate failed: {e}")
@@ -379,7 +403,7 @@ class CirclesHubClient:
     
     
     
-    def operateFlowMatrix(self, sender: str, value: int, _flowVertices: List[str], _flow: List[Any], _streams: List[Any], _packedCoordinates: bytes) -> bool:
+    def operateFlowMatrix(self, sender: str, value: int, _flowVertices: List[str], _flow: List[Any], _streams: List[Any], _packedCoordinates: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """operateFlowMatrix implementation"""
         try:
             tx = self.contract.operateFlowMatrix(
@@ -388,8 +412,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"operateFlowMatrix failed: {e}")
@@ -397,7 +427,7 @@ class CirclesHubClient:
     
     
     
-    def personalMint(self, sender: str, value: int) -> bool:
+    def personalMint(self, sender: str, value: int, context: Optional['SimulationContext'] = None) -> bool:
         """personalMint implementation"""
         try:
             tx = self.contract.personalMint(
@@ -406,8 +436,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"personalMint failed: {e}")
@@ -415,7 +451,7 @@ class CirclesHubClient:
     
     
     
-    def registerCustomGroup(self, sender: str, value: int, _mint: str, _treasury: str, _name: str, _symbol: str, _metadataDigest: bytes) -> bool:
+    def registerCustomGroup(self, sender: str, value: int, _mint: str, _treasury: str, _name: str, _symbol: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """registerCustomGroup implementation"""
         try:
             tx = self.contract.registerCustomGroup(
@@ -424,8 +460,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerCustomGroup failed: {e}")
@@ -433,7 +475,7 @@ class CirclesHubClient:
     
     
     
-    def registerGroup(self, sender: str, value: int, _mint: str, _name: str, _symbol: str, _metadataDigest: bytes) -> bool:
+    def registerGroup(self, sender: str, value: int, _mint: str, _name: str, _symbol: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """registerGroup implementation"""
         try:
             tx = self.contract.registerGroup(
@@ -442,8 +484,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerGroup failed: {e}")
@@ -451,7 +499,7 @@ class CirclesHubClient:
     
     
     
-    def registerHuman(self, sender: str, value: int, _inviter: str, _metadataDigest: bytes) -> bool:
+    def registerHuman(self, sender: str, value: int, _inviter: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """registerHuman implementation"""
         try:
             tx = self.contract.registerHuman(
@@ -460,8 +508,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerHuman failed: {e}")
@@ -469,7 +523,7 @@ class CirclesHubClient:
     
     
     
-    def registerOrganization(self, sender: str, value: int, _name: str, _metadataDigest: bytes) -> bool:
+    def registerOrganization(self, sender: str, value: int, _name: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """registerOrganization implementation"""
         try:
             tx = self.contract.registerOrganization(
@@ -478,8 +532,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerOrganization failed: {e}")
@@ -487,7 +547,7 @@ class CirclesHubClient:
     
     
     
-    def safeBatchTransferFrom(self, sender: str, value: int, _from: str, _to: str, _ids: List[int], _values: List[int], _data: bytes) -> bool:
+    def safeBatchTransferFrom(self, sender: str, value: int, _from: str, _to: str, _ids: List[int], _values: List[int], _data: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """safeBatchTransferFrom implementation"""
         try:
             tx = self.contract.safeBatchTransferFrom(
@@ -496,8 +556,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"safeBatchTransferFrom failed: {e}")
@@ -505,7 +571,7 @@ class CirclesHubClient:
     
     
     
-    def safeTransferFrom(self, sender: str, value: int, _from: str, _to: str, _id: int, _value: int, _data: bytes) -> bool:
+    def safeTransferFrom(self, sender: str, value: int, _from: str, _to: str, _id: int, _value: int, _data: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """safeTransferFrom implementation"""
         try:
             tx = self.contract.safeTransferFrom(
@@ -514,8 +580,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"safeTransferFrom failed: {e}")
@@ -523,7 +595,7 @@ class CirclesHubClient:
     
     
     
-    def setAdvancedUsageFlag(self, sender: str, value: int, _flag: bytes) -> bool:
+    def setAdvancedUsageFlag(self, sender: str, value: int, _flag: bytes, context: Optional['SimulationContext'] = None) -> bool:
         """setAdvancedUsageFlag implementation"""
         try:
             tx = self.contract.setAdvancedUsageFlag(
@@ -532,8 +604,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"setAdvancedUsageFlag failed: {e}")
@@ -541,7 +619,7 @@ class CirclesHubClient:
     
     
     
-    def setApprovalForAll(self, sender: str, value: int, _operator: str, _approved: bool) -> bool:
+    def setApprovalForAll(self, sender: str, value: int, _operator: str, _approved: bool, context: Optional['SimulationContext'] = None) -> bool:
         """setApprovalForAll implementation"""
         try:
             tx = self.contract.setApprovalForAll(
@@ -550,8 +628,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"setApprovalForAll failed: {e}")
@@ -559,7 +643,7 @@ class CirclesHubClient:
     
     
     
-    def stop(self, sender: str, value: int) -> bool:
+    def stop(self, sender: str, value: int, context: Optional['SimulationContext'] = None) -> bool:
         """stop implementation"""
         try:
             tx = self.contract.stop(
@@ -568,8 +652,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"stop failed: {e}")
@@ -637,7 +727,7 @@ class CirclesHubClient:
     
     
     
-    def trust(self, sender: str, value: int, _trustReceiver: str, _expiry: int) -> bool:
+    def trust(self, sender: str, value: int, _trustReceiver: str, _expiry: int, context: Optional['SimulationContext'] = None) -> bool:
         """trust implementation"""
         try:
             tx = self.contract.trust(
@@ -646,8 +736,15 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
+
             return success
         except Exception as e:
             logger.error(f"trust failed: {e}")
@@ -675,7 +772,7 @@ class CirclesHubClient:
     
     
     
-    def wrap(self, sender: str, value: int, _avatar: str, _amount: int, _type: Any) -> bool:
+    def wrap(self, sender: str, value: int, _avatar: str, _amount: int, _type: Any, context: Optional['SimulationContext'] = None) -> bool:
         """wrap implementation"""
         try:
             tx = self.contract.wrap(
@@ -684,8 +781,14 @@ class CirclesHubClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"wrap failed: {e}")

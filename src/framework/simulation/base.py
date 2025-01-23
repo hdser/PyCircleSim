@@ -4,6 +4,8 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import yaml
 from abc import ABC, abstractmethod
+from ethpm_types.abi import EventABI
+import json
 
 from ape import chain
 from src.framework.data import DataCollector
@@ -139,6 +141,9 @@ class BaseSimulation(ABC):
         self.simulation_start_time = datetime.now()
         self.strategy_config = self.config.network_config.get('strategies', {})
 
+        # Load all ABIs first so they're available for everything else
+        self.abis = self._load_contract_abis()
+
         # Initialize infrastructure
         self.collector = self._initialize_collector()
         self.agent_manager = self._initialize_agent_manager()
@@ -160,43 +165,34 @@ class BaseSimulation(ABC):
         self.iteration_stats: List[Dict[str, Any]] = []
 
 
-    def _initialize_contract_states2(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Initialize contract states from configuration"""
-        initialized_states = {}
-
-        if not config.state_variables:
-            return initialized_states
-
-        for contract_id, state_config in config.state_variables.items():
+    def _load_contract_abis(self) -> List[EventABI]:
+        """Load all contract ABIs from config and convert to EventABI objects"""
+        all_abis = []
+        for name, cfg in self.contract_configs.items():
             try:
-                # Get contract address - from state config or contract_configs
-                if 'address' in state_config:
-                    contract_address = state_config['address']
-                elif contract_id in contract_configs:
-                    contract_address = contract_configs[contract_id]['address']
+                abi_path = (self.project_root / "src" / "protocols" / 
+                           "abis" / cfg['abi_folder'] / f"{cfg['address']}.json")
+                if abi_path.exists():
+                    with open(abi_path) as f:
+                        contract_abi = json.load(f)
+                        # Filter for event ABIs and convert to EventABI objects
+                        event_abis = [
+                            EventABI(
+                                name=item['name'],
+                                inputs=item.get('inputs', []),
+                                anonymous=item.get('anonymous', False)
+                            )
+                            for item in contract_abi 
+                            if item.get('type') == 'event'
+                        ]
+                        all_abis.extend(event_abis)
+                        logger.info(f"Loaded {len(event_abis)} events from ABI for {name}")
                 else:
-                    logger.error(f"No address found for contract {contract_id}")
-                    continue
-
-                # Initialize decoder and decode state
-                decoder = StateDecoder(contract_address)
-                decoded_state = decoder.decode_state(state_config['variables'])
-
-                # For CirclesHub, also include token balances from initial state
-                if contract_id == 'CirclesHub':
-                    initial_state = self.get_initial_state()
-                    decoded_state['token_balances'] = initial_state.get('token_balances', {})
-                
-                initialized_states[contract_id] = {
-                    'address': contract_address,
-                    'state': decoded_state
-                }
-
+                    logger.warning(f"ABI file not found: {abi_path}")
             except Exception as e:
-                logger.error(f"Failed to decode state for contract {contract_id}: {e}")
-                continue
-
-        return initialized_states
+                logger.error(f"Failed to load ABI for {name}: {e}")
+                
+        return all_abis
 
     def _initialize_contract_states(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         """Initialize contract states from configuration"""
@@ -252,7 +248,8 @@ class BaseSimulation(ABC):
         if self.fast_mode:
             return None
         return DataCollector(
-            self.config.network_config.get('db_path', 'simulation.duckdb')
+            self.config.network_config.get('db_path', 'simulation.duckdb'),
+            abis=self.abis 
         )
 
     def _initialize_agent_manager(self) -> AgentManager:
@@ -468,10 +465,14 @@ class BaseSimulation(ABC):
             'current_block': chain.blocks.head.number,
             'action_counts': action_counts
         }
-    
-    def _update_simulation_state(self, context: SimulationContext, action_name: str, params: Dict[str, Any]) -> None:
+
+    def update_state_from_transaction(self, tx, context: 'SimulationContext') -> None:
         """
-        Generic method to update simulation state after successful action execution.
-        Override this in specific simulation implementations.
+        Generic method to update simulation state based on transaction data.
+        Override in specific simulations to implement custom state tracking.
+        
+        Args:
+            tx: The transaction receipt/result
+            context: Current simulation context
         """
-        pass
+        pass 

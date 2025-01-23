@@ -20,9 +20,14 @@ class DataCollector(BaseDataCollector):
     in external files while providing improved data handling and validation.
     """
     
-    def __init__(self, db_path: str = "rings_network.duckdb", sql_dir: Optional[str] = None):
+    def __init__(self, 
+        db_path: str = "rings_network.duckdb", 
+        sql_dir: Optional[str] = None,
+        abis: Optional[List[Dict[str, Any]]] = None
+    ):
         """Initialize the data collector with a DuckDB database connection."""
         self.db_path = db_path
+        self.abis = abis or []  # Store ABIs for event decoding
         
         if sql_dir is None:
             module_dir = Path(__file__).parent
@@ -45,7 +50,7 @@ class DataCollector(BaseDataCollector):
 
         # Initialize event logging components
         self.event_logger = EventLogger(self.con)
-        self.event_handler = None  
+        self.event_handler = ContractEventHandler(self.event_logger, self._current_run_id, self.abis)  
 
     def _get_unique_timestamp(self, base_timestamp: datetime, table_name: str) -> datetime:
         """Generate a unique timestamp for database operations."""

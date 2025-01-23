@@ -241,76 +241,108 @@ class CirclesSimulation(BaseSimulation):
             'chain_id': networks.provider.chain_id
         }
 
-    def _update_simulation_state(self, context: 'SimulationContext', action_name: str, params: Dict[str, Any]) -> None:
-        """
-        Update simulation state after a successful action execution.
-        """
+
+    def update_state_from_transaction(self, tx, context: 'SimulationContext') -> None:
+        """Update simulation state based on transaction data."""
         try:
+            circles_state = context.network_state['contract_states']['CirclesHub']['state']
+            involved_addresses = set()
             client = context.get_client('circleshub')
             if not client:
                 return
 
-            # Access our CirclesHub state from context
-            circles_state = context.network_state['contract_states']['CirclesHub']['state']
+            def clean_address(value: Any) -> Optional[str]:
+                if not value:
+                    return None
+                if isinstance(value, (bytes, HexBytes)):
+                    value = value.hex()
+                if not isinstance(value, str):
+                    return None
+                value = value.replace('0x', '')
+                if len(value) == 64:
+                    value = value[-40:]
+                elif len(value) != 40:
+                    return None
+                if not all(c in '0123456789abcdefABCDEF' for c in value):
+                    return None
+                return f"0x{value}"[:42]
 
-            logger.debug(f"Action: {action_name}")
+            # First process Trust events and update trustMarkers
+            decoded_logs = tx.decode_logs(abi=self.abis)
+            trusts_updated = False
+            
+            for decoded_log in decoded_logs:
+                if decoded_log.event_name == 'Trust':
+                    event_data = decoded_log.event_arguments
+                    truster = event_data.get('truster')
+                    trustee = event_data.get('trustee')
+                    expiry = event_data.get('expiry')
+             
+                    if truster and trustee and expiry:
+                        # Update trust markers
+                        if not isinstance(circles_state.get('trustMarkers'), dict):
+                            circles_state['trustMarkers'] = {}
+                        if truster not in circles_state['trustMarkers']:
+                            circles_state['trustMarkers'][truster] = {}
+                        
+                        circles_state['trustMarkers'][truster][trustee] = expiry
+                        trusts_updated = True
+                        logger.debug(f"Updated trustMarkers: {truster} trusts {trustee} until {expiry}")
+                        
+                        # Add both addresses to involved set
+                        involved_addresses.add(truster)
+                        involved_addresses.add(trustee)
 
-            # 1) If registering a Human or Group => add to 'avatars'
-            if action_name in ['circleshub_RegisterHuman', 'circleshub_RegisterGroup']:
-                address = params.get('sender')
-                if address:
-                    if 'avatars' not in circles_state:
-                        circles_state['avatars'] = []
-                    if address not in circles_state['avatars']:
-                        circles_state['avatars'].append(address)
-                    logger.debug(f"avatars now has {len(circles_state['avatars'])} addresses")
+            # Now collect all other involved addresses from the transaction
+            for decoded_log in decoded_logs:
+                event_data = decoded_log.event_arguments
+                for value in event_data.values():
+                    if isinstance(value, (str, bytes, HexBytes)):
+                        addr = clean_address(value)
+                        if addr:
+                            involved_addresses.add(addr)
+                    elif isinstance(value, (list, tuple)):
+                        for item in value:
+                            addr = clean_address(item)
+                            if addr:
+                                involved_addresses.add(addr)
 
-            # 2) If 'Trust' => update trustMarkers
-            elif action_name == 'circleshub_Trust':
-                truster = params.get('sender')
-                trustee = params.get('_trustReceiver')
-                expiry = params.get('_expiry')
-                
-                if truster and trustee and expiry:
-                    if not isinstance(circles_state.get('trustMarkers'), dict):
-                        circles_state['trustMarkers'] = {}
-                    if truster not in circles_state['trustMarkers']:
-                        circles_state['trustMarkers'][truster] = {}
+            if hasattr(tx, 'sender'):
+                addr = clean_address(tx.sender)
+                if addr:
+                    involved_addresses.add(addr)
+            if hasattr(tx, 'receiver'):
+                addr = clean_address(tx.receiver)
+                if addr:
+                    involved_addresses.add(addr)
 
-                    circles_state['trustMarkers'][truster][trustee] = expiry
-                    logger.debug(
-                        f"Updated trustMarkers for truster={truster}, trustee={trustee}, expiry={expiry}"
-                    )
+            logger.debug(f"Found involved addresses: {involved_addresses}")
 
-            # 3) If this action can affect balances, update them
-            if action_name in [
-                'circleshub_PersonalMint',
-                'circleshub_GroupMint',
-                'circleshub_SafeTransferFrom',
-                'circleshub_Burn',
-                'circleshub_MulticallPathfinderTransfer',
-            ]:
-                addresses = set()
-                from_addr = params.get('_from')
-                to_addr = params.get('_to')
-                sender = params.get('sender')
+            # For each involved address, also get their trusted addresses
+            addresses_to_check = set(involved_addresses)
+            if trusts_updated:  # Only do this expanded check if trust relationships changed
+                for address in list(involved_addresses):
+                    # Get addresses this account trusts
+                    trust_markers = circles_state.get('trustMarkers', {}).get(address, {})
+                    for trustee, expiry in trust_markers.items():
+                        if expiry > context.chain.blocks.head.timestamp:  # Only include active trusts
+                            addresses_to_check.add(trustee)
+                    
+                    # Get addresses that trust this account
+                    for truster, trustees in circles_state.get('trustMarkers', {}).items():
+                        if address in trustees:
+                            if trustees[address] > context.chain.blocks.head.timestamp:  # Only include active trusts
+                                addresses_to_check.add(truster)
 
-                if from_addr:
-                    addresses.add(from_addr)
-                if to_addr:
-                    addresses.add(to_addr)
-                if not addresses and sender:
-                    addresses.add(sender)
-
-                logger.debug(f"Involved addresses: {addresses}")
-
-                # Check if we have a specific token ID
-                token_id_param = params.get('_id')
-                self._update_token_balances(context, addresses, token_id_param)
-
+            logger.debug(f"Checking balances for addresses: {addresses_to_check}")
+            
+            # Update token balances for all affected addresses
+            if addresses_to_check:
+                self._update_token_balances(context, addresses_to_check)
+                        
         except Exception as e:
-            logger.error(f"Failed to update simulation state: {str(e)}", exc_info=True)
-            logger.debug("Current state structure:", circles_state)
+            logger.error(f"Failed to update state from transaction: {str(e)}", exc_info=True)
+
 
     def _update_token_balances(
         self, 
@@ -320,8 +352,7 @@ class CirclesSimulation(BaseSimulation):
     ) -> None:
         """
         Update token balances for the given addresses in CirclesHub.
-        If `token_id` is specified, we only query that ID for each address.
-        Otherwise, we derive the ID via client.toTokenId(address).
+        For each involved address, check their balance of all involved addresses' tokens.
         """
         client = context.get_client('circleshub')
         if not client:
@@ -338,30 +369,29 @@ class CirclesSimulation(BaseSimulation):
         mapping = []
 
         try:
-            if token_id is not None:
-                # 1) If specific _id is given, apply it for each address
-                for addr in addresses:
-                    if isinstance(addr, str):
-                        accounts_list.append(addr)
-                        ids_list.append(token_id)
-                        mapping.append((addr, token_id))
-            else:
-                # 2) Otherwise compute the token ID from each address
-                for addr in addresses:
-                    if not isinstance(addr, str):
-                        continue
+            # Get token IDs for all involved addresses
+            token_ids = {}  # address -> token_id mapping
+            for addr in addresses:
+                try:
+                    token_ids[addr] = client.toTokenId(addr)
+                except Exception as e:
+                    logger.debug(f"Error getting token ID for {addr}: {e}")
+                    continue
 
-                    try:
-                        derived_id = client.toTokenId(addr)
-                        accounts_list.append(addr)
-                        ids_list.append(derived_id)
-                        mapping.append((addr, derived_id))
-                    except Exception as e:
-                        logger.debug(f"Error getting token ID for {addr}: {e}")
-                        continue
+            # For each involved address, check their balance of each involved token
+            balance_checks = set()  # (account, token_id) pairs to check
+            for address in addresses:  # address holding the tokens
+                for token_addr, token_id in token_ids.items():  # tokens to check
+                    balance_checks.add((address, token_id))
+
+            # Convert balance_checks to lists for balanceOfBatch
+            for account, token_id in balance_checks:
+                accounts_list.append(account)
+                ids_list.append(token_id)
+                mapping.append((account, token_id))
 
             if accounts_list:
-                logger.debug(f"Querying balances for accounts={accounts_list}, ids={ids_list}")
+                logger.debug(f"Querying {len(accounts_list)} balances")
                 balances = client.balanceOfBatch(accounts_list, ids_list)
                 date_object = datetime.fromtimestamp(context.chain.blocks.head.timestamp).date()
 
@@ -369,17 +399,17 @@ class CirclesSimulation(BaseSimulation):
                     if bal > 0:
                         if address not in token_balances:
                             token_balances[address] = {}
-                        #token_balances[address][t_id] = bal
-                        token_balances[address][t_id] = {'balance': bal, 'last_day_updated': date_object}
+                        token_balances[address][t_id] = {
+                            'balance': bal, 
+                            'last_day_updated': date_object
+                        }
                         logger.debug(f"Updated balance for {address} token {t_id}: {bal}")
                     else:
-                        # Clean up zero
+                        # Clean up zero balances
                         if address in token_balances and t_id in token_balances[address]:
                             del token_balances[address][t_id]
                             if not token_balances[address]:
                                 del token_balances[address]
-
-                #logger.debug(f"Updated token balances: {token_balances}")
 
         except Exception as e:
             logger.error(f"Failed to update token balances: {e}", exc_info=True)

@@ -176,8 +176,6 @@ class NetworkEvolver():
                 if success:
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
-                    
-                    context.simulation._update_simulation_state(context, action_name, execution_params)
 
             return stats
             

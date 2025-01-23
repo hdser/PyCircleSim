@@ -9,7 +9,7 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
-  circles_newuser: 0
+  circles_newuser: 10
 
 # Agent profiles and their actions
 profiles:
