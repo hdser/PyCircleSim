@@ -70,7 +70,8 @@ class {{ func.name|camel_case }}BaseHandler:
                 {% endfor %}
                 # Add transaction parameters
                 'sender': execution_params.get("sender"),
-                'value': execution_params.get("value", 0)
+                'value': execution_params.get("value", 0),
+                'context': context
             }
                 
             return self.client.{{ func.name }}(**function_args)

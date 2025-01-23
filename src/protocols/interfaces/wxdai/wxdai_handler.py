@@ -2,7 +2,7 @@ import random
 import importlib
 from typing import Dict, Any, Optional
 from eth_pydantic_types import HexBytes
-from src.framework.core import SimulationContext
+from src.framework.core.context import SimulationContext
 from src.protocols.interfaces.wxdai.wxdai_client import WXDAIClient
 
 
@@ -29,33 +29,52 @@ class ApproveBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            'guy': None,  # type: address
             
-            'wad': None,  # type: uint256
+            ,'guy': None  # type: address
+            
+            
+            
+            ,'wad': None  # type: uint256
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.approve(
                 
-                guy=execution_params.get("guy"),
+                'guy': execution_params.get("guy"),
                 
-                wad=execution_params.get("wad"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
-            )
+                
+                'wad': execution_params.get("wad"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.approve(**function_args)
 
         except Exception as e:
             self.logger.error(f"approve action failed: {e}", exc_info=True)
@@ -89,37 +108,60 @@ class TransferFromBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            'src': None,  # type: address
             
-            'dst': None,  # type: address
+            ,'src': None  # type: address
             
-            'wad': None,  # type: uint256
+            
+            
+            ,'dst': None  # type: address
+            
+            
+            
+            ,'wad': None  # type: uint256
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.transferFrom(
                 
-                src=execution_params.get("src"),
+                'src': execution_params.get("src"),
                 
-                dst=execution_params.get("dst"),
                 
-                wad=execution_params.get("wad"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
-            )
+                'dst': execution_params.get("dst"),
+                
+                
+                
+                'wad': execution_params.get("wad"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.transferFrom(**function_args)
 
         except Exception as e:
             self.logger.error(f"transferFrom action failed: {e}", exc_info=True)
@@ -153,29 +195,44 @@ class WithdrawBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            'wad': None,  # type: uint256
+            
+            ,'wad': None  # type: uint256
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.withdraw(
                 
-                wad=execution_params.get("wad"),
+                'wad': execution_params.get("wad"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
-            )
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.withdraw(**function_args)
 
         except Exception as e:
             self.logger.error(f"withdraw action failed: {e}", exc_info=True)
@@ -209,33 +266,52 @@ class TransferBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            'dst': None,  # type: address
             
-            'wad': None,  # type: uint256
+            ,'dst': None  # type: address
+            
+            
+            
+            ,'wad': None  # type: uint256
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.transfer(
                 
-                dst=execution_params.get("dst"),
+                'dst': execution_params.get("dst"),
                 
-                wad=execution_params.get("wad"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
-            )
+                
+                'wad': execution_params.get("wad"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.transfer(**function_args)
 
         except Exception as e:
             self.logger.error(f"transfer action failed: {e}", exc_info=True)
@@ -269,25 +345,36 @@ class DepositBaseHandler:
             self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
             self.strategy = self
 
-    def get_params(self, agent, agent_manager) -> Dict[str, Any]:
+    def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(agent.accounts.keys())) if agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.deposit(
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0)
-            )
+            return self.client.deposit(**function_args)
 
         except Exception as e:
             self.logger.error(f"deposit action failed: {e}", exc_info=True)

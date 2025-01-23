@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional
 from src.protocols.handler_strategies.base import BaseStrategy
-from src.framework.core import SimulationContext
+from src.framework.core.context import SimulationContext
 
 
 class ApproveStrategy(BaseStrategy):
@@ -9,15 +9,27 @@ class ApproveStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'guy': None
-            
-            ,'wad': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['guy'] = None  # type: address
+        
+        
+        
+        
+        
+        params['wad'] = None  # type: uint256
+        
+        
+        
+
+        return params
 
 
 class TransferFromStrategy(BaseStrategy):
@@ -26,17 +38,33 @@ class TransferFromStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'src': None
-            
-            ,'dst': None
-            
-            ,'wad': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['src'] = None  # type: address
+        
+        
+        
+        
+        
+        params['dst'] = None  # type: address
+        
+        
+        
+        
+        
+        params['wad'] = None  # type: uint256
+        
+        
+        
+
+        return params
 
 
 class WithdrawStrategy(BaseStrategy):
@@ -45,13 +73,21 @@ class WithdrawStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'wad': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['wad'] = None  # type: uint256
+        
+        
+        
+
+        return params
 
 
 class TransferStrategy(BaseStrategy):
@@ -60,15 +96,27 @@ class TransferStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'dst': None
-            
-            ,'wad': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['dst'] = None  # type: address
+        
+        
+        
+        
+        
+        params['wad'] = None  # type: uint256
+        
+        
+        
+
+        return params
 
 
 class DepositStrategy(BaseStrategy):
@@ -77,9 +125,13 @@ class DepositStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': int(10**18)
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': int(10**18)            # Transaction value
         }
+            
+        
+
+        return params
 

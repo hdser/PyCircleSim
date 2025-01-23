@@ -51,7 +51,9 @@ class WXDAIClient:
     
     
     def name(self, ) -> str:
-        """name implementation"""
+        """name implementation
+        
+        """
         try:
             return self.contract.name()
         except Exception as e:
@@ -60,8 +62,18 @@ class WXDAIClient:
     
     
     
-    def approve(self, sender: str, value: int, guy: str, wad: int) -> bool:
-        """approve implementation"""
+    def approve(self, sender: str, value: int, guy: str, wad: int, context: Optional['SimulationContext'] = None) -> bool:
+        """approve implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            guy: address - Contract parameter
+            
+            wad: uint256 - Contract parameter
+            
+        """
         try:
             tx = self.contract.approve(
                 guy, wad, 
@@ -69,8 +81,14 @@ class WXDAIClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"approve failed: {e}")
@@ -79,7 +97,9 @@ class WXDAIClient:
     
     
     def totalSupply(self, ) -> int:
-        """totalSupply implementation"""
+        """totalSupply implementation
+        
+        """
         try:
             return self.contract.totalSupply()
         except Exception as e:
@@ -88,8 +108,20 @@ class WXDAIClient:
     
     
     
-    def transferFrom(self, sender: str, value: int, src: str, dst: str, wad: int) -> bool:
-        """transferFrom implementation"""
+    def transferFrom(self, sender: str, value: int, src: str, dst: str, wad: int, context: Optional['SimulationContext'] = None) -> bool:
+        """transferFrom implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            src: address - Contract parameter
+            
+            dst: address - Contract parameter
+            
+            wad: uint256 - Contract parameter
+            
+        """
         try:
             tx = self.contract.transferFrom(
                 src, dst, wad, 
@@ -97,8 +129,14 @@ class WXDAIClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"transferFrom failed: {e}")
@@ -106,8 +144,16 @@ class WXDAIClient:
     
     
     
-    def withdraw(self, sender: str, value: int, wad: int) -> bool:
-        """withdraw implementation"""
+    def withdraw(self, sender: str, value: int, wad: int, context: Optional['SimulationContext'] = None) -> bool:
+        """withdraw implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            wad: uint256 - Contract parameter
+            
+        """
         try:
             tx = self.contract.withdraw(
                 wad, 
@@ -115,8 +161,14 @@ class WXDAIClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"withdraw failed: {e}")
@@ -125,7 +177,9 @@ class WXDAIClient:
     
     
     def decimals(self, ) -> Any:
-        """decimals implementation"""
+        """decimals implementation
+        
+        """
         try:
             return self.contract.decimals()
         except Exception as e:
@@ -135,7 +189,12 @@ class WXDAIClient:
     
     
     def balanceOf(self, param0: str) -> int:
-        """balanceOf implementation"""
+        """balanceOf implementation
+        
+        Args:
+            : address - Contract parameter
+        
+        """
         try:
             return self.contract.balanceOf(param0)
         except Exception as e:
@@ -145,7 +204,9 @@ class WXDAIClient:
     
     
     def symbol(self, ) -> str:
-        """symbol implementation"""
+        """symbol implementation
+        
+        """
         try:
             return self.contract.symbol()
         except Exception as e:
@@ -154,8 +215,18 @@ class WXDAIClient:
     
     
     
-    def transfer(self, sender: str, value: int, dst: str, wad: int) -> bool:
-        """transfer implementation"""
+    def transfer(self, sender: str, value: int, dst: str, wad: int, context: Optional['SimulationContext'] = None) -> bool:
+        """transfer implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            dst: address - Contract parameter
+            
+            wad: uint256 - Contract parameter
+            
+        """
         try:
             tx = self.contract.transfer(
                 dst, wad, 
@@ -163,8 +234,14 @@ class WXDAIClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"transfer failed: {e}")
@@ -172,8 +249,14 @@ class WXDAIClient:
     
     
     
-    def deposit(self, sender: str, value: int) -> bool:
-        """deposit implementation"""
+    def deposit(self, sender: str, value: int, context: Optional['SimulationContext'] = None) -> bool:
+        """deposit implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+        """
         try:
             tx = self.contract.deposit(
                 
@@ -181,8 +264,14 @@ class WXDAIClient:
                 value=value
             )
             success = bool(tx and tx.status == 1)
-            if success and self.collector:
-                self.collector.record_transaction_events(tx)
+            if success:
+                # Record events if collector exists
+                if self.collector:
+                    self.collector.record_transaction_events(tx)
+                
+                # Get simulation from context if it exists
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
             return success
         except Exception as e:
             logger.error(f"deposit failed: {e}")
@@ -191,7 +280,15 @@ class WXDAIClient:
     
     
     def allowance(self, param0: str, param1: str) -> int:
-        """allowance implementation"""
+        """allowance implementation
+        
+        Args:
+            : address - Contract parameter
+        
+        Args:
+            : address - Contract parameter
+        
+        """
         try:
             return self.contract.allowance(param0, param1)
         except Exception as e:

@@ -35,7 +35,7 @@ def agent_balances(agent_addr: str, agent_manager, client) -> dict:
     # Fetch balances and map them to their respective token IDs
     balances = client.balanceOfBatch(accounts, token_ids)
     return {token_id: balance for token_id, balance in zip(token_ids, balances)}
-        
+
 
 class BurnStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
@@ -46,10 +46,15 @@ class BurnStrategy(BaseStrategy):
         client = context.get_client('circleshub')
         if not client:
             return {}
+            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
+        }
+            
 
         balances = agent_balances(sender, context.agent_manager, client)
-
-
         [tokenid, amount] = next(
             (
                 [id, value] for id, value in balances.items() if value >0 
@@ -58,13 +63,14 @@ class BurnStrategy(BaseStrategy):
         )
         if not tokenid:
             return {}
-            
-        return {
-            'sender': sender
-            ,'_id': tokenid
-            ,'_amount': amount
-            ,'_data':  b"" 
-        }
+        
+        
+        
+        params['_id'] = tokenid  # type: uint256
+        params['_amount'] = amount  # type: uint256
+        params['_data'] = b""   # type: bytes
+        
+        return params
 
 
 class CalculateIssuanceWithCheckStrategy(BaseStrategy):
@@ -73,13 +79,22 @@ class CalculateIssuanceWithCheckStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'_human': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['_human'] = None  # type: address
+        
+        
+        
+
+        return params
+
 
 
 class GroupMintStrategy(BaseStrategy):
@@ -87,7 +102,7 @@ class GroupMintStrategy(BaseStrategy):
         client = context.get_client('circleshub')
         if not client:
             return None
-    
+
         groups = context.get_filtered_addresses(
             client.isGroup,
             cache_key='groups_list'
@@ -109,6 +124,7 @@ class GroupMintStrategy(BaseStrategy):
         sender = random.choice(valid_senders)
         collateral_avatar = sender
             
+        
 
         collateral_id = client.toTokenId(collateral_avatar)
         balance = client.balanceOf(collateral_avatar, collateral_id)
@@ -119,13 +135,19 @@ class GroupMintStrategy(BaseStrategy):
         if amount == 0:
             return {}
         
-        return {
-            'sender': sender,
-            '_group': group,
-            '_collateralAvatars': [collateral_avatar],  
-            '_amounts': [amount],  
-            '_data': b"" 
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        params['_group'] = group  # type: address
+        params['_collateralAvatars'] = [collateral_avatar]  # type: address[]
+        params['_amounts'] = [amount]  # type: uint256[]
+        params['_data'] = b""   # type: bytes
+        
+        return params
 
 
 class MigrateStrategy(BaseStrategy):
@@ -134,17 +156,35 @@ class MigrateStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'_owner': None
-            
-            ,'_avatars': None
-            
-            ,'_amounts': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['_owner'] = None  # type: address
+        
+        
+        
+        
+        
+        params['_avatars'] = None  # type: address[]
+        
+        
+        
+        
+        
+        params['_amounts'] = None  # type: uint256[]
+        
+        
+        
+
+        return params
+
+
 
 
 class OperateFlowMatrixStrategy(BaseStrategy):
@@ -231,14 +271,20 @@ class OperateFlowMatrixStrategy(BaseStrategy):
             'data': bytes()
         }
 
-        return {
-            'sender': sender,
-            'value': 0,
-            '_flowVertices': flow_vertices,
-            '_flow': flow_edges,
-            '_streams': [stream],
-            '_packedCoordinates': packed_coordinates
+
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+
+        params['_flowVertices'] = flow_vertices  # type: address[]
+        params['_flow'] = flow_edges
+        params['_streams'] = [stream]
+        params['_packedCoordinates'] = packed_coordinates  # type: bytes
+        
+        return params
 
 
 class PersonalMintStrategy(BaseStrategy):
@@ -255,11 +301,16 @@ class PersonalMintStrategy(BaseStrategy):
             return {}
     
         sender = random.choice(valid_senders)
-        
             
-        return {
-            'sender': sender
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+
+        return params
 
 
 class RegisterCustomGroupStrategy(BaseStrategy):
@@ -268,21 +319,47 @@ class RegisterCustomGroupStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'_mint': None
-            
-            ,'_treasury': None
-            
-            ,'_name': None
-            
-            ,'_symbol': None
-            
-            ,'_metadataDigest': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['_mint'] = None  # type: address
+        
+        
+        
+        
+        
+        params['_treasury'] = None  # type: address
+        
+        
+        
+        
+        
+        params['_name'] = None  # type: string
+        
+        
+        
+        
+        
+        params['_symbol'] = None  # type: string
+        
+        
+        
+        
+        
+        params['_metadataDigest'] = None  # type: bytes32
+        
+        
+        
+
+        return params
+
+
 
 class RegisterGroupStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
@@ -301,13 +378,20 @@ class RegisterGroupStrategy(BaseStrategy):
         group_number = getattr(context.agent, 'group_count', 0) + 1
         mint_policy = "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60"
 
-        return {
-            'sender': creator_address
-            ,'_mint': mint_policy
-            ,'_name': f"RingsGroup{creator_address[:4]}{group_number}"
-            ,'_symbol': f"RG{creator_address[:2]}{group_number}"
-            ,'_metadataDigest': HexBytes("0x00")   
+            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': creator_address,     # Transaction sender
+            'value': 0            # Transaction value
         }
+ 
+        params['_mint'] = mint_policy  # type: address
+        params['_name'] = f"RingsGroup{creator_address[:4]}{group_number}"  # type: string
+        params['_symbol'] = f"RG{creator_address[:2]}{group_number}"  # type: string
+        params['_metadataDigest'] = HexBytes("0x00")   # type: bytes32
+
+        return params
+
 
 
 class RegisterHumanStrategy(BaseStrategy):
@@ -343,12 +427,17 @@ class RegisterHumanStrategy(BaseStrategy):
         
         address = random.choice(unregistered_trusted)
         
-
-        return {
-            'sender': address
-            ,'_inviter': inviter
-            ,'_metadataDigest': HexBytes("0x00")
+            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': address,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        params['_inviter'] = inviter  # type: address
+        params['_metadataDigest'] = HexBytes("0x00")  # type: bytes32
+
+        return params
 
 
 class RegisterOrganizationStrategy(BaseStrategy):
@@ -357,15 +446,27 @@ class RegisterOrganizationStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'_name': None
-            
-            ,'_metadataDigest': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['_name'] = None  # type: string
+        
+        
+        
+        
+        
+        params['_metadataDigest'] = None  # type: bytes32
+        
+        
+        
+
+        return params
 
 
 class SafeBatchTransferFromStrategy(BaseStrategy):
@@ -374,21 +475,46 @@ class SafeBatchTransferFromStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'_from': None
-            
-            ,'_to': None
-            
-            ,'_ids': None
-            
-            ,'_values': None
-            
-            ,'_data': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['_from'] = None  # type: address
+        
+        
+        
+        
+        
+        params['_to'] = None  # type: address
+        
+        
+        
+        
+        
+        params['_ids'] = None  # type: uint256[]
+        
+        
+        
+        
+        
+        params['_values'] = None  # type: uint256[]
+        
+        
+        
+        
+        
+        params['_data'] = None  # type: bytes
+        
+        
+        
+
+        return params
+
 
 
 class SafeTransferFromStrategy(BaseStrategy):
@@ -415,14 +541,20 @@ class SafeTransferFromStrategy(BaseStrategy):
         if amount == 0:
             return {}
 
-        return {
-            'sender': sender,
-            '_from': sender,
-            '_to': receiver,
-            '_id': tokenid,
-            '_value': amount,
-            '_data': b"",
+
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+
+        params['_from'] = sender  # type: address
+        params['_to'] = receiver  # type: address
+        params['_id'] = tokenid  # type: uint256
+        params['_value'] = amount  # type: uint256
+        params['_data'] = b""  # type: bytes
+        
+        return params
 
 
 class SetAdvancedUsageFlagStrategy(BaseStrategy):
@@ -431,13 +563,21 @@ class SetAdvancedUsageFlagStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
-            ,'_flag': None
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['_flag'] = None  # type: bytes32
+        
+        
+        
+
+        return params
 
 
 class SetApprovalForAllStrategy(BaseStrategy):
@@ -446,13 +586,27 @@ class SetApprovalForAllStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            ,'_operator': sender
-            ,'_approved': True
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+        
+        
+        params['_operator'] = None  # type: address
+        
+        
+        
+        
+        
+        params['_approved'] = None  # type: bool
+        
+        
+        
+
+        return params
 
 
 class StopStrategy(BaseStrategy):
@@ -461,11 +615,16 @@ class StopStrategy(BaseStrategy):
         if not sender:
             return None
             
-        return {
-            'sender': sender,
-            'value': 0
-            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
+            
+        
+
+        return params
+
 
 
 class TrustStrategy(BaseStrategy):
@@ -502,14 +661,20 @@ class TrustStrategy(BaseStrategy):
         
         trustee = random.choice(potential_trustees)
 
-        
-        return {
-            'sender': truster,
-            '_trustReceiver': trustee,
-            '_expiry': expiry,
+            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': truster,     # Transaction sender
+            'value': 0            # Transaction value
         }
 
+        params['_trustReceiver'] = trustee  # type: address
+        params['_expiry'] = expiry  # type: uint96
 
+        return params
+
+
+            
 class WrapStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
@@ -529,13 +694,21 @@ class WrapStrategy(BaseStrategy):
         if balance == 0:
             return {}
             
-        return {
-            "sender": sender,
-            "_avatar": sender,
-            "_amount": int(balance/10.0),
-            "_type": 0
+
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,     # Transaction sender
+            'value': 0            # Transaction value
         }
-            
+
+        params['_avatar'] = sender  # type: address
+        params['_amount'] = int(balance/10.0)  # type: uint256
+        params['_type'] = 0  # type: uint8
+
+        return params
+
+
+
 
 class MulticallPathfinderTransferStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:

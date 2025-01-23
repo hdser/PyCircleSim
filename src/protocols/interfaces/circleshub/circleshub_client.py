@@ -118,7 +118,12 @@ class CirclesHubClient:
     
     
     def advancedUsageFlags(self, param0: str) -> bytes:
-        """advancedUsageFlags implementation"""
+        """advancedUsageFlags implementation
+        
+        Args:
+            : address - Contract parameter
+        
+        """
         try:
             return self.contract.advancedUsageFlags(param0)
         except Exception as e:
@@ -128,7 +133,12 @@ class CirclesHubClient:
     
     
     def avatars(self, param0: str) -> str:
-        """avatars implementation"""
+        """avatars implementation
+        
+        Args:
+            : address - Contract parameter
+        
+        """
         try:
             return self.contract.avatars(param0)
         except Exception as e:
@@ -138,7 +148,15 @@ class CirclesHubClient:
     
     
     def balanceOf(self, _account: str, _id: int) -> int:
-        """balanceOf implementation"""
+        """balanceOf implementation
+        
+        Args:
+            _account: address - Contract parameter
+        
+        Args:
+            _id: uint256 - Contract parameter
+        
+        """
         try:
             return self.contract.balanceOf(_account, _id)
         except Exception as e:
@@ -148,7 +166,15 @@ class CirclesHubClient:
     
     
     def balanceOfBatch(self, _accounts: List[str], _ids: List[int]) -> List[int]:
-        """balanceOfBatch implementation"""
+        """balanceOfBatch implementation
+        
+        Args:
+            _accounts: address[] - Contract parameter
+        
+        Args:
+            _ids: uint256[] - Contract parameter
+        
+        """
         try:
             return self.contract.balanceOfBatch(_accounts, _ids)
         except Exception as e:
@@ -158,7 +184,18 @@ class CirclesHubClient:
     
     
     def balanceOfOnDay(self, _account: str, _id: int, _day: int) -> Tuple[int, int]:
-        """balanceOfOnDay implementation"""
+        """balanceOfOnDay implementation
+        
+        Args:
+            _account: address - Contract parameter
+        
+        Args:
+            _id: uint256 - Contract parameter
+        
+        Args:
+            _day: uint64 - Contract parameter
+        
+        """
         try:
             return self.contract.balanceOfOnDay(_account, _id, _day)
         except Exception as e:
@@ -168,7 +205,19 @@ class CirclesHubClient:
     
     
     def burn(self, sender: str, value: int, _id: int, _amount: int, _data: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """burn implementation"""
+        """burn implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _id: uint256 - Contract parameter
+            
+            _amount: uint256 - Contract parameter
+            
+            _data: bytes - Contract parameter
+            
+        """
         try:
             tx = self.contract.burn(
                 _id, _amount, _data, 
@@ -192,7 +241,12 @@ class CirclesHubClient:
     
     
     def calculateIssuance(self, _human: str) -> Tuple[int, int, int]:
-        """calculateIssuance implementation"""
+        """calculateIssuance implementation
+        
+        Args:
+            _human: address - Contract parameter
+        
+        """
         try:
             return self.contract.calculateIssuance(_human)
         except Exception as e:
@@ -201,8 +255,16 @@ class CirclesHubClient:
     
     
     
-    def calculateIssuanceWithCheck(self, sender: str, value: int, _human: str,  context: Optional['SimulationContext'] = None) -> bool:
-        """calculateIssuanceWithCheck implementation"""
+    def calculateIssuanceWithCheck(self, sender: str, value: int, _human: str, context: Optional['SimulationContext'] = None) -> bool:
+        """calculateIssuanceWithCheck implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _human: address - Contract parameter
+            
+        """
         try:
             tx = self.contract.calculateIssuanceWithCheck(
                 _human, 
@@ -226,7 +288,15 @@ class CirclesHubClient:
     
     
     def convertDemurrageToInflationaryValue(self, _demurrageValue: int, _dayUpdated: int) -> int:
-        """convertDemurrageToInflationaryValue implementation"""
+        """convertDemurrageToInflationaryValue implementation
+        
+        Args:
+            _demurrageValue: uint256 - Contract parameter
+        
+        Args:
+            _dayUpdated: uint64 - Contract parameter
+        
+        """
         try:
             return self.contract.convertDemurrageToInflationaryValue(_demurrageValue, _dayUpdated)
         except Exception as e:
@@ -236,7 +306,15 @@ class CirclesHubClient:
     
     
     def convertInflationaryToDemurrageValue(self, _inflationaryValue: int, _day: int) -> int:
-        """convertInflationaryToDemurrageValue implementation"""
+        """convertInflationaryToDemurrageValue implementation
+        
+        Args:
+            _inflationaryValue: uint256 - Contract parameter
+        
+        Args:
+            _day: uint64 - Contract parameter
+        
+        """
         try:
             return self.contract.convertInflationaryToDemurrageValue(_inflationaryValue, _day)
         except Exception as e:
@@ -246,7 +324,12 @@ class CirclesHubClient:
     
     
     def day(self, _timestamp: int) -> int:
-        """day implementation"""
+        """day implementation
+        
+        Args:
+            _timestamp: uint256 - Contract parameter
+        
+        """
         try:
             return self.contract.day(_timestamp)
         except Exception as e:
@@ -255,8 +338,22 @@ class CirclesHubClient:
     
     
     
-    def groupMint(self, sender: str, value: int, _group: str, _collateralAvatars: List[str], _amounts: List[int], _data: bytes,  context: Optional['SimulationContext'] = None) -> bool:
-        """groupMint implementation"""
+    def groupMint(self, sender: str, value: int, _group: str, _collateralAvatars: List[str], _amounts: List[int], _data: bytes, context: Optional['SimulationContext'] = None) -> bool:
+        """groupMint implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _group: address - Contract parameter
+            
+            _collateralAvatars: address[] - Contract parameter
+            
+            _amounts: uint256[] - Contract parameter
+            
+            _data: bytes - Contract parameter
+            
+        """
         try:
             tx = self.contract.groupMint(
                 _group, _collateralAvatars, _amounts, _data, 
@@ -280,7 +377,9 @@ class CirclesHubClient:
     
     
     def inflationDayZero(self, ) -> int:
-        """inflationDayZero implementation"""
+        """inflationDayZero implementation
+        
+        """
         try:
             return self.contract.inflationDayZero()
         except Exception as e:
@@ -290,7 +389,9 @@ class CirclesHubClient:
     
     
     def invitationOnlyTime(self, ) -> int:
-        """invitationOnlyTime implementation"""
+        """invitationOnlyTime implementation
+        
+        """
         try:
             return self.contract.invitationOnlyTime()
         except Exception as e:
@@ -300,7 +401,15 @@ class CirclesHubClient:
     
     
     def isApprovedForAll(self, _account: str, _operator: str) -> bool:
-        """isApprovedForAll implementation"""
+        """isApprovedForAll implementation
+        
+        Args:
+            _account: address - Contract parameter
+        
+        Args:
+            _operator: address - Contract parameter
+        
+        """
         try:
             return self.contract.isApprovedForAll(_account, _operator)
         except Exception as e:
@@ -310,7 +419,12 @@ class CirclesHubClient:
     
     
     def isGroup(self, _group: str) -> bool:
-        """isGroup implementation"""
+        """isGroup implementation
+        
+        Args:
+            _group: address - Contract parameter
+        
+        """
         try:
             return self.contract.isGroup(_group)
         except Exception as e:
@@ -320,7 +434,12 @@ class CirclesHubClient:
     
     
     def isHuman(self, _human: str) -> bool:
-        """isHuman implementation"""
+        """isHuman implementation
+        
+        Args:
+            _human: address - Contract parameter
+        
+        """
         try:
             return self.contract.isHuman(_human)
         except Exception as e:
@@ -330,7 +449,12 @@ class CirclesHubClient:
     
     
     def isOrganization(self, _organization: str) -> bool:
-        """isOrganization implementation"""
+        """isOrganization implementation
+        
+        Args:
+            _organization: address - Contract parameter
+        
+        """
         try:
             return self.contract.isOrganization(_organization)
         except Exception as e:
@@ -340,7 +464,18 @@ class CirclesHubClient:
     
     
     def isPermittedFlow(self, _from: str, _to: str, _circlesAvatar: str) -> bool:
-        """isPermittedFlow implementation"""
+        """isPermittedFlow implementation
+        
+        Args:
+            _from: address - Contract parameter
+        
+        Args:
+            _to: address - Contract parameter
+        
+        Args:
+            _circlesAvatar: address - Contract parameter
+        
+        """
         try:
             return self.contract.isPermittedFlow(_from, _to, _circlesAvatar)
         except Exception as e:
@@ -350,7 +485,15 @@ class CirclesHubClient:
     
     
     def isTrusted(self, _truster: str, _trustee: str) -> bool:
-        """isTrusted implementation"""
+        """isTrusted implementation
+        
+        Args:
+            _truster: address - Contract parameter
+        
+        Args:
+            _trustee: address - Contract parameter
+        
+        """
         try:
             return self.contract.isTrusted(_truster, _trustee)
         except Exception as e:
@@ -360,7 +503,19 @@ class CirclesHubClient:
     
     
     def migrate(self, sender: str, value: int, _owner: str, _avatars: List[str], _amounts: List[int], context: Optional['SimulationContext'] = None) -> bool:
-        """migrate implementation"""
+        """migrate implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _owner: address - Contract parameter
+            
+            _avatars: address[] - Contract parameter
+            
+            _amounts: uint256[] - Contract parameter
+            
+        """
         try:
             tx = self.contract.migrate(
                 _owner, _avatars, _amounts, 
@@ -384,7 +539,12 @@ class CirclesHubClient:
     
     
     def mintPolicies(self, param0: str) -> str:
-        """mintPolicies implementation"""
+        """mintPolicies implementation
+        
+        Args:
+            : address - Contract parameter
+        
+        """
         try:
             return self.contract.mintPolicies(param0)
         except Exception as e:
@@ -394,7 +554,9 @@ class CirclesHubClient:
     
     
     def name(self, ) -> str:
-        """name implementation"""
+        """name implementation
+        
+        """
         try:
             return self.contract.name()
         except Exception as e:
@@ -404,7 +566,21 @@ class CirclesHubClient:
     
     
     def operateFlowMatrix(self, sender: str, value: int, _flowVertices: List[str], _flow: List[Any], _streams: List[Any], _packedCoordinates: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """operateFlowMatrix implementation"""
+        """operateFlowMatrix implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _flowVertices: address[] - Contract parameter
+            
+            _flow: tuple[] - Contract parameter
+            
+            _streams: tuple[] - Contract parameter
+            
+            _packedCoordinates: bytes - Contract parameter
+            
+        """
         try:
             tx = self.contract.operateFlowMatrix(
                 _flowVertices, _flow, _streams, _packedCoordinates, 
@@ -428,7 +604,13 @@ class CirclesHubClient:
     
     
     def personalMint(self, sender: str, value: int, context: Optional['SimulationContext'] = None) -> bool:
-        """personalMint implementation"""
+        """personalMint implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+        """
         try:
             tx = self.contract.personalMint(
                 
@@ -452,7 +634,23 @@ class CirclesHubClient:
     
     
     def registerCustomGroup(self, sender: str, value: int, _mint: str, _treasury: str, _name: str, _symbol: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """registerCustomGroup implementation"""
+        """registerCustomGroup implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _mint: address - Contract parameter
+            
+            _treasury: address - Contract parameter
+            
+            _name: string - Contract parameter
+            
+            _symbol: string - Contract parameter
+            
+            _metadataDigest: bytes32 - Contract parameter
+            
+        """
         try:
             tx = self.contract.registerCustomGroup(
                 _mint, _treasury, _name, _symbol, _metadataDigest, 
@@ -476,7 +674,21 @@ class CirclesHubClient:
     
     
     def registerGroup(self, sender: str, value: int, _mint: str, _name: str, _symbol: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """registerGroup implementation"""
+        """registerGroup implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _mint: address - Contract parameter
+            
+            _name: string - Contract parameter
+            
+            _symbol: string - Contract parameter
+            
+            _metadataDigest: bytes32 - Contract parameter
+            
+        """
         try:
             tx = self.contract.registerGroup(
                 _mint, _name, _symbol, _metadataDigest, 
@@ -500,7 +712,17 @@ class CirclesHubClient:
     
     
     def registerHuman(self, sender: str, value: int, _inviter: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """registerHuman implementation"""
+        """registerHuman implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _inviter: address - Contract parameter
+            
+            _metadataDigest: bytes32 - Contract parameter
+            
+        """
         try:
             tx = self.contract.registerHuman(
                 _inviter, _metadataDigest, 
@@ -524,7 +746,17 @@ class CirclesHubClient:
     
     
     def registerOrganization(self, sender: str, value: int, _name: str, _metadataDigest: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """registerOrganization implementation"""
+        """registerOrganization implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _name: string - Contract parameter
+            
+            _metadataDigest: bytes32 - Contract parameter
+            
+        """
         try:
             tx = self.contract.registerOrganization(
                 _name, _metadataDigest, 
@@ -548,7 +780,23 @@ class CirclesHubClient:
     
     
     def safeBatchTransferFrom(self, sender: str, value: int, _from: str, _to: str, _ids: List[int], _values: List[int], _data: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """safeBatchTransferFrom implementation"""
+        """safeBatchTransferFrom implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _from: address - Contract parameter
+            
+            _to: address - Contract parameter
+            
+            _ids: uint256[] - Contract parameter
+            
+            _values: uint256[] - Contract parameter
+            
+            _data: bytes - Contract parameter
+            
+        """
         try:
             tx = self.contract.safeBatchTransferFrom(
                 _from, _to, _ids, _values, _data, 
@@ -572,7 +820,23 @@ class CirclesHubClient:
     
     
     def safeTransferFrom(self, sender: str, value: int, _from: str, _to: str, _id: int, _value: int, _data: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """safeTransferFrom implementation"""
+        """safeTransferFrom implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _from: address - Contract parameter
+            
+            _to: address - Contract parameter
+            
+            _id: uint256 - Contract parameter
+            
+            _value: uint256 - Contract parameter
+            
+            _data: bytes - Contract parameter
+            
+        """
         try:
             tx = self.contract.safeTransferFrom(
                 _from, _to, _id, _value, _data, 
@@ -596,7 +860,15 @@ class CirclesHubClient:
     
     
     def setAdvancedUsageFlag(self, sender: str, value: int, _flag: bytes, context: Optional['SimulationContext'] = None) -> bool:
-        """setAdvancedUsageFlag implementation"""
+        """setAdvancedUsageFlag implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _flag: bytes32 - Contract parameter
+            
+        """
         try:
             tx = self.contract.setAdvancedUsageFlag(
                 _flag, 
@@ -620,7 +892,17 @@ class CirclesHubClient:
     
     
     def setApprovalForAll(self, sender: str, value: int, _operator: str, _approved: bool, context: Optional['SimulationContext'] = None) -> bool:
-        """setApprovalForAll implementation"""
+        """setApprovalForAll implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _operator: address - Contract parameter
+            
+            _approved: bool - Contract parameter
+            
+        """
         try:
             tx = self.contract.setApprovalForAll(
                 _operator, _approved, 
@@ -644,7 +926,13 @@ class CirclesHubClient:
     
     
     def stop(self, sender: str, value: int, context: Optional['SimulationContext'] = None) -> bool:
-        """stop implementation"""
+        """stop implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+        """
         try:
             tx = self.contract.stop(
                 
@@ -668,7 +956,12 @@ class CirclesHubClient:
     
     
     def stopped(self, _human: str) -> bool:
-        """stopped implementation"""
+        """stopped implementation
+        
+        Args:
+            _human: address - Contract parameter
+        
+        """
         try:
             return self.contract.stopped(_human)
         except Exception as e:
@@ -678,7 +971,12 @@ class CirclesHubClient:
     
     
     def supportsInterface(self, _interfaceId: Any) -> bool:
-        """supportsInterface implementation"""
+        """supportsInterface implementation
+        
+        Args:
+            _interfaceId: bytes4 - Contract parameter
+        
+        """
         try:
             return self.contract.supportsInterface(_interfaceId)
         except Exception as e:
@@ -688,7 +986,9 @@ class CirclesHubClient:
     
     
     def symbol(self, ) -> str:
-        """symbol implementation"""
+        """symbol implementation
+        
+        """
         try:
             return self.contract.symbol()
         except Exception as e:
@@ -698,7 +998,12 @@ class CirclesHubClient:
     
     
     def toTokenId(self, _avatar: str) -> int:
-        """toTokenId implementation"""
+        """toTokenId implementation
+        
+        Args:
+            _avatar: address - Contract parameter
+        
+        """
         try:
             return self.contract.toTokenId(_avatar)
         except Exception as e:
@@ -708,7 +1013,12 @@ class CirclesHubClient:
     
     
     def totalSupply(self, _id: int) -> int:
-        """totalSupply implementation"""
+        """totalSupply implementation
+        
+        Args:
+            _id: uint256 - Contract parameter
+        
+        """
         try:
             return self.contract.totalSupply(_id)
         except Exception as e:
@@ -718,7 +1028,12 @@ class CirclesHubClient:
     
     
     def treasuries(self, param0: str) -> str:
-        """treasuries implementation"""
+        """treasuries implementation
+        
+        Args:
+            : address - Contract parameter
+        
+        """
         try:
             return self.contract.treasuries(param0)
         except Exception as e:
@@ -728,7 +1043,17 @@ class CirclesHubClient:
     
     
     def trust(self, sender: str, value: int, _trustReceiver: str, _expiry: int, context: Optional['SimulationContext'] = None) -> bool:
-        """trust implementation"""
+        """trust implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _trustReceiver: address - Contract parameter
+            
+            _expiry: uint96 - Contract parameter
+            
+        """
         try:
             tx = self.contract.trust(
                 _trustReceiver, _expiry, 
@@ -744,7 +1069,6 @@ class CirclesHubClient:
                 # Get simulation from context if it exists
                 if context and context.simulation:
                     context.simulation.update_state_from_transaction(tx, context)
-
             return success
         except Exception as e:
             logger.error(f"trust failed: {e}")
@@ -753,7 +1077,15 @@ class CirclesHubClient:
     
     
     def trustMarkers(self, param0: str, param1: str) -> Tuple[str, int]:
-        """trustMarkers implementation"""
+        """trustMarkers implementation
+        
+        Args:
+            : address - Contract parameter
+        
+        Args:
+            : address - Contract parameter
+        
+        """
         try:
             return self.contract.trustMarkers(param0, param1)
         except Exception as e:
@@ -763,7 +1095,12 @@ class CirclesHubClient:
     
     
     def uri(self, param0: int) -> str:
-        """uri implementation"""
+        """uri implementation
+        
+        Args:
+            : uint256 - Contract parameter
+        
+        """
         try:
             return self.contract.uri(param0)
         except Exception as e:
@@ -773,7 +1110,19 @@ class CirclesHubClient:
     
     
     def wrap(self, sender: str, value: int, _avatar: str, _amount: int, _type: Any, context: Optional['SimulationContext'] = None) -> bool:
-        """wrap implementation"""
+        """wrap implementation
+
+        Args:
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+            
+            _avatar: address - Contract parameter
+            
+            _amount: uint256 - Contract parameter
+            
+            _type: uint8 - Contract parameter
+            
+        """
         try:
             tx = self.contract.wrap(
                 _avatar, _amount, _type, 
@@ -793,6 +1142,8 @@ class CirclesHubClient:
         except Exception as e:
             logger.error(f"wrap failed: {e}")
             return False
+    
+
         
 
 

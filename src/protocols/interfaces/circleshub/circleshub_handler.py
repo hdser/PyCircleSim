@@ -2,7 +2,7 @@ import random
 import importlib
 from typing import Dict, Any, Optional
 from eth_pydantic_types import HexBytes
-from src.framework.core import SimulationContext
+from src.framework.core.context import SimulationContext
 from src.protocols.interfaces.circleshub.circleshub_client import CirclesHubClient
 
 
@@ -31,36 +31,58 @@ class BurnBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_id': None,  # type: uint256
             
-            '_amount': None,  # type: uint256
+            ,'_id': None  # type: uint256
             
-            '_data': None,  # type: bytes
+            
+            
+            ,'_amount': None  # type: uint256
+            
+            
+            
+            ,'_data': None  # type: bytes
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.burn(
                 
-                _id=execution_params.get("_id"),
+                '_id': execution_params.get("_id"),
                 
-                _amount=execution_params.get("_amount"),
                 
-                _data=execution_params.get("_data"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                '_amount': execution_params.get("_amount"),
+                
+                
+                
+                '_data': execution_params.get("_data"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.burn(**function_args)
 
         except Exception as e:
             self.logger.error(f"burn action failed: {e}", exc_info=True)
@@ -96,28 +118,42 @@ class CalculateIssuanceWithCheckBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_human': None,  # type: address
+            
+            ,'_human': None  # type: address
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.calculateIssuanceWithCheck(
                 
-                _human=execution_params.get("_human"),
+                '_human': execution_params.get("_human"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.calculateIssuanceWithCheck(**function_args)
 
         except Exception as e:
             self.logger.error(f"calculateIssuanceWithCheck action failed: {e}", exc_info=True)
@@ -153,40 +189,66 @@ class GroupMintBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_group': None,  # type: address
             
-            '_collateralAvatars': None,  # type: address[]
+            ,'_group': None  # type: address
             
-            '_amounts': None,  # type: uint256[]
             
-            '_data': None,  # type: bytes
+            
+            ,'_collateralAvatars': None  # type: address[]
+            
+            
+            
+            ,'_amounts': None  # type: uint256[]
+            
+            
+            
+            ,'_data': None  # type: bytes
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.groupMint(
                 
-                _group=execution_params.get("_group"),
+                '_group': execution_params.get("_group"),
                 
-                _collateralAvatars=execution_params.get("_collateralAvatars"),
                 
-                _amounts=execution_params.get("_amounts"),
                 
-                _data=execution_params.get("_data"),
+                '_collateralAvatars': execution_params.get("_collateralAvatars"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                
+                '_amounts': execution_params.get("_amounts"),
+                
+                
+                
+                '_data': execution_params.get("_data"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.groupMint(**function_args)
 
         except Exception as e:
             self.logger.error(f"groupMint action failed: {e}", exc_info=True)
@@ -222,36 +284,58 @@ class MigrateBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_owner': None,  # type: address
             
-            '_avatars': None,  # type: address[]
+            ,'_owner': None  # type: address
             
-            '_amounts': None,  # type: uint256[]
+            
+            
+            ,'_avatars': None  # type: address[]
+            
+            
+            
+            ,'_amounts': None  # type: uint256[]
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.migrate(
                 
-                _owner=execution_params.get("_owner"),
+                '_owner': execution_params.get("_owner"),
                 
-                _avatars=execution_params.get("_avatars"),
                 
-                _amounts=execution_params.get("_amounts"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                '_avatars': execution_params.get("_avatars"),
+                
+                
+                
+                '_amounts': execution_params.get("_amounts"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.migrate(**function_args)
 
         except Exception as e:
             self.logger.error(f"migrate action failed: {e}", exc_info=True)
@@ -287,40 +371,66 @@ class OperateFlowMatrixBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_flowVertices': None,  # type: address[]
             
-            '_flow': None,  # type: tuple[]
+            ,'_flowVertices': None  # type: address[]
             
-            '_streams': None,  # type: tuple[]
             
-            '_packedCoordinates': None,  # type: bytes
+            
+            ,'_flow': None  # type: tuple[]
+            
+            
+            
+            ,'_streams': None  # type: tuple[]
+            
+            
+            
+            ,'_packedCoordinates': None  # type: bytes
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.operateFlowMatrix(
                 
-                _flowVertices=execution_params.get("_flowVertices"),
+                '_flowVertices': execution_params.get("_flowVertices"),
                 
-                _flow=execution_params.get("_flow"),
                 
-                _streams=execution_params.get("_streams"),
                 
-                _packedCoordinates=execution_params.get("_packedCoordinates"),
+                '_flow': execution_params.get("_flow"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                
+                '_streams': execution_params.get("_streams"),
+                
+                
+                
+                '_packedCoordinates': execution_params.get("_packedCoordinates"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.operateFlowMatrix(**function_args)
 
         except Exception as e:
             self.logger.error(f"operateFlowMatrix action failed: {e}", exc_info=True)
@@ -356,24 +466,34 @@ class PersonalMintBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.personalMint(
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+            return self.client.personalMint(**function_args)
 
         except Exception as e:
             self.logger.error(f"personalMint action failed: {e}", exc_info=True)
@@ -409,44 +529,74 @@ class RegisterCustomGroupBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_mint': None,  # type: address
             
-            '_treasury': None,  # type: address
+            ,'_mint': None  # type: address
             
-            '_name': None,  # type: string
             
-            '_symbol': None,  # type: string
             
-            '_metadataDigest': None,  # type: bytes32
+            ,'_treasury': None  # type: address
+            
+            
+            
+            ,'_name': None  # type: string
+            
+            
+            
+            ,'_symbol': None  # type: string
+            
+            
+            
+            ,'_metadataDigest': None  # type: bytes32
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.registerCustomGroup(
                 
-                _mint=execution_params.get("_mint"),
+                '_mint': execution_params.get("_mint"),
                 
-                _treasury=execution_params.get("_treasury"),
                 
-                _name=execution_params.get("_name"),
                 
-                _symbol=execution_params.get("_symbol"),
+                '_treasury': execution_params.get("_treasury"),
                 
-                _metadataDigest=execution_params.get("_metadataDigest"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_name': execution_params.get("_name"),
+                
+                
+                
+                '_symbol': execution_params.get("_symbol"),
+                
+                
+                
+                '_metadataDigest': execution_params.get("_metadataDigest"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.registerCustomGroup(**function_args)
 
         except Exception as e:
             self.logger.error(f"registerCustomGroup action failed: {e}", exc_info=True)
@@ -482,40 +632,66 @@ class RegisterGroupBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_mint': None,  # type: address
             
-            '_name': None,  # type: string
+            ,'_mint': None  # type: address
             
-            '_symbol': None,  # type: string
             
-            '_metadataDigest': None,  # type: bytes32
+            
+            ,'_name': None  # type: string
+            
+            
+            
+            ,'_symbol': None  # type: string
+            
+            
+            
+            ,'_metadataDigest': None  # type: bytes32
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.registerGroup(
                 
-                _mint=execution_params.get("_mint"),
+                '_mint': execution_params.get("_mint"),
                 
-                _name=execution_params.get("_name"),
                 
-                _symbol=execution_params.get("_symbol"),
                 
-                _metadataDigest=execution_params.get("_metadataDigest"),
+                '_name': execution_params.get("_name"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                
+                '_symbol': execution_params.get("_symbol"),
+                
+                
+                
+                '_metadataDigest': execution_params.get("_metadataDigest"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.registerGroup(**function_args)
 
         except Exception as e:
             self.logger.error(f"registerGroup action failed: {e}", exc_info=True)
@@ -551,32 +727,50 @@ class RegisterHumanBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_inviter': None,  # type: address
             
-            '_metadataDigest': None,  # type: bytes32
+            ,'_inviter': None  # type: address
+            
+            
+            
+            ,'_metadataDigest': None  # type: bytes32
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.registerHuman(
                 
-                _inviter=execution_params.get("_inviter"),
+                '_inviter': execution_params.get("_inviter"),
                 
-                _metadataDigest=execution_params.get("_metadataDigest"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_metadataDigest': execution_params.get("_metadataDigest"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.registerHuman(**function_args)
 
         except Exception as e:
             self.logger.error(f"registerHuman action failed: {e}", exc_info=True)
@@ -612,32 +806,50 @@ class RegisterOrganizationBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_name': None,  # type: string
             
-            '_metadataDigest': None,  # type: bytes32
+            ,'_name': None  # type: string
+            
+            
+            
+            ,'_metadataDigest': None  # type: bytes32
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.registerOrganization(
                 
-                _name=execution_params.get("_name"),
+                '_name': execution_params.get("_name"),
                 
-                _metadataDigest=execution_params.get("_metadataDigest"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_metadataDigest': execution_params.get("_metadataDigest"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.registerOrganization(**function_args)
 
         except Exception as e:
             self.logger.error(f"registerOrganization action failed: {e}", exc_info=True)
@@ -673,44 +885,74 @@ class SafeBatchTransferFromBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_from': None,  # type: address
             
-            '_to': None,  # type: address
+            ,'_from': None  # type: address
             
-            '_ids': None,  # type: uint256[]
             
-            '_values': None,  # type: uint256[]
             
-            '_data': None,  # type: bytes
+            ,'_to': None  # type: address
+            
+            
+            
+            ,'_ids': None  # type: uint256[]
+            
+            
+            
+            ,'_values': None  # type: uint256[]
+            
+            
+            
+            ,'_data': None  # type: bytes
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.safeBatchTransferFrom(
                 
-                _from=execution_params.get("_from"),
+                '_from': execution_params.get("_from"),
                 
-                _to=execution_params.get("_to"),
                 
-                _ids=execution_params.get("_ids"),
                 
-                _values=execution_params.get("_values"),
+                '_to': execution_params.get("_to"),
                 
-                _data=execution_params.get("_data"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_ids': execution_params.get("_ids"),
+                
+                
+                
+                '_values': execution_params.get("_values"),
+                
+                
+                
+                '_data': execution_params.get("_data"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.safeBatchTransferFrom(**function_args)
 
         except Exception as e:
             self.logger.error(f"safeBatchTransferFrom action failed: {e}", exc_info=True)
@@ -746,45 +988,74 @@ class SafeTransferFromBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_from': None,  # type: address
             
-            '_to': None,  # type: address
+            ,'_from': None  # type: address
             
-            '_id': None,  # type: uint256
             
-            '_value': None,  # type: uint256
             
-            '_data': None,  # type: bytes
+            ,'_to': None  # type: address
+            
+            
+            
+            ,'_id': None  # type: uint256
+            
+            
+            
+            ,'_value': None  # type: uint256
+            
+            
+            
+            ,'_data': None  # type: bytes
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            print(execution_params)
-            return self.client.safeTransferFrom(
                 
-                _from=execution_params.get("_from"),
+                '_from': execution_params.get("_from"),
                 
-                _to=execution_params.get("_to"),
                 
-                _id=execution_params.get("_id"),
                 
-                _value=execution_params.get("_value"),
+                '_to': execution_params.get("_to"),
                 
-                _data=execution_params.get("_data"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_id': execution_params.get("_id"),
+                
+                
+                
+                '_value': execution_params.get("_value"),
+                
+                
+                
+                '_data': execution_params.get("_data"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.safeTransferFrom(**function_args)
 
         except Exception as e:
             self.logger.error(f"safeTransferFrom action failed: {e}", exc_info=True)
@@ -820,28 +1091,42 @@ class SetAdvancedUsageFlagBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_flag': None,  # type: bytes32
+            
+            ,'_flag': None  # type: bytes32
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.setAdvancedUsageFlag(
                 
-                _flag=execution_params.get("_flag"),
+                '_flag': execution_params.get("_flag"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.setAdvancedUsageFlag(**function_args)
 
         except Exception as e:
             self.logger.error(f"setAdvancedUsageFlag action failed: {e}", exc_info=True)
@@ -877,32 +1162,50 @@ class SetApprovalForAllBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_operator': None,  # type: address
             
-            '_approved': None,  # type: bool
+            ,'_operator': None  # type: address
+            
+            
+            
+            ,'_approved': None  # type: bool
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.setApprovalForAll(
                 
-                _operator=execution_params.get("_operator"),
+                '_operator': execution_params.get("_operator"),
                 
-                _approved=execution_params.get("_approved"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_approved': execution_params.get("_approved"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.setApprovalForAll(**function_args)
 
         except Exception as e:
             self.logger.error(f"setApprovalForAll action failed: {e}", exc_info=True)
@@ -938,24 +1241,34 @@ class StopBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.stop(
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+            return self.client.stop(**function_args)
 
         except Exception as e:
             self.logger.error(f"stop action failed: {e}", exc_info=True)
@@ -991,32 +1304,50 @@ class TrustBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_trustReceiver': None,  # type: address
             
-            '_expiry': None,  # type: uint96
+            ,'_trustReceiver': None  # type: address
+            
+            
+            
+            ,'_expiry': None  # type: uint96
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
+            
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-            return self.client.trust(
                 
-                _trustReceiver=execution_params.get("_trustReceiver"),
+                '_trustReceiver': execution_params.get("_trustReceiver"),
                 
-                _expiry=execution_params.get("_expiry"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_expiry': execution_params.get("_expiry"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.trust(**function_args)
 
         except Exception as e:
             self.logger.error(f"trust action failed: {e}", exc_info=True)
@@ -1052,36 +1383,58 @@ class WrapBaseHandler:
 
     def get_params(self, context: SimulationContext) -> Dict[str, Any]:
         """Default parameter generation if no strategy is loaded"""
-        return {
-            'sender': next(iter(context.agent.accounts.keys())) if context.agent.accounts else None,
-            'value': 0,
+        tx_sender = next(iter(context.agent.accounts.keys())) if context.agent.accounts else None
+        
+        # Build parameters dictionary with collision handling
+        params = {
+            'sender': tx_sender,   # Transaction sender
+            'value': 0            # Transaction value
             
-            '_avatar': None,  # type: address
             
-            '_amount': None,  # type: uint256
+            ,'_avatar': None  # type: address
             
-            '_type': None,  # type: uint8
+            
+            
+            ,'_amount': None  # type: uint256
+            
+            
+            
+            ,'_type': None  # type: uint8
+            
             
         }
+        return params
 
     def execute(self, context: SimulationContext, params: Optional[Dict[str, Any]] = None) -> bool:
+        """Execute the contract function with proper parameter handling"""
         try:
             execution_params = params if params else self.strategy.get_params(context)
             if not execution_params:
                 return False
             
-            return self.client.wrap(
+            # Build function arguments with collision handling
+            function_args = {
+                # Add contract function parameters
                 
-                _avatar=execution_params.get("_avatar"),
                 
-                _amount=execution_params.get("_amount"),
+                '_avatar': execution_params.get("_avatar"),
                 
-                _type=execution_params.get("_type"),
                 
-                sender=execution_params.get("sender"),
-                value=execution_params.get("value", 0),
-                context=context
-            )
+                
+                '_amount': execution_params.get("_amount"),
+                
+                
+                
+                '_type': execution_params.get("_type"),
+                
+                
+                # Add transaction parameters
+                'sender': execution_params.get("sender"),
+                'value': execution_params.get("value", 0),
+                'context': context
+            }
+                
+            return self.client.wrap(**function_args)
 
         except Exception as e:
             self.logger.error(f"wrap action failed: {e}", exc_info=True)
@@ -1090,12 +1443,6 @@ class WrapBaseHandler:
 class WrapHandler(WrapBaseHandler):
     """Concrete handler implementation"""
     pass
-
-
-
-
-
-
 
 
 

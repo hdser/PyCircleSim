@@ -9,7 +9,7 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
-  circles_newuser: 10
+  circles_newuser: 0
 
 # Agent profiles and their actions
 profiles:
@@ -28,9 +28,9 @@ profiles:
        
       
     available_actions:
-      - action: "circleshub_Trust"
-        probability: 1
-        cooldown_blocks: 1
+     # - action: "circleshub_Trust"
+     #   probability: 1
+     #   cooldown_blocks: 1
 
     #  - action: "circleshub_MulticallPathfinderTransfer"
     #    probability: 1
