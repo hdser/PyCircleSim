@@ -203,7 +203,14 @@ class OperateFlowMatrixStrategy(BaseStrategy):
         receiver = random.choice(addresses)
 
         # Get flow analysis results
-        cutoff = str(1000000)
+        constraints = context.agent.profile.action_configs['circleshub_OperateFlowMatrix'].constraints
+        if 'max_flow' in constraints:
+            max_flow = min(constraints['max_flow'],1e9)
+        if 'min_flow' in constraints:
+            min_flow = max(constraints['min_flow'],0)
+        
+        cutoff = str(random.randint(min_flow * 1e3, max_flow * 1e3)) # mCRC
+        #cutoff = str(1000000)
         _, _, simplified_edge_flows, _ = self._analyze_flow(context, sender, receiver, cutoff)
         
         # Transform addresses to sorted unique list for flow vertices
@@ -774,48 +781,28 @@ class MulticallCase1Strategy(BaseStrategy):
         sender = self.get_sender(context)
         if not sender:
             return None
-        # Example subcall #1: "circleshub_RegisterCustomGroup"
+
+
+        # subcall #1: "circleshub_setApprovalForAll"
+
         subcall1_params = {
-            '_mint': "0x79Cbc9C7077dF161b92a745345A6Ade3fC626A60",  
-            '_name': f"Group_{random.randint(1000,9999)}",
-            '_symbol': f"GRP_{random.randint(1000,9999)}",
-            '_metadataDigest': b"\x00"
+            '_operator': "0xD608978aD1e1473fa98BaD368e767C5b11e3b3cE",
+            '_approved': True
         }
-        
-        # Example subcall #2: "circleshub_Trust"
-        # For a trust subcall, you might pick a random trustee:
-        trustee = sender  # trivial example, obviously normally a different address
-        expiry = context.chain.blocks.head.timestamp + 365*24*60*60
 
-        truster = sender
-        potential_trustees = context.get_or_cache(
-            f'potential_trustees_{truster}',
-            lambda: [
-                addr for addr in context.agent_manager.address_to_agent.keys()
-                if addr != truster and not client.isTrusted(truster, addr)
-            ]
-        )
-        
-        if not potential_trustees:
-            return {}
-        
-        trustee = random.choice(potential_trustees)
-
+        # subcall #2: "circleshub_safeTransferFrom"
+        token_id = client.toTokenId("0x42cEDde51198D1773590311E2A340DC06B24cB37")
         subcall2_params = {
-            '_trustReceiver': trustee,
-            '_expiry': expiry
+            '_from': "0x42cEDde51198D1773590311E2A340DC06B24cB37",  
+            '_to': "0xD608978aD1e1473fa98BaD368e767C5b11e3b3cE",
+            '_id': token_id,
+            '_value': 48000000000000000000,
+            '_data': b'0x0000000000000000000000006a023ccd1ff6f2045c3309768ead9e68f978f6e1'
         }
-
-        trustee = random.choice(potential_trustees)
-        subcall3_params = {
-            '_trustReceiver': trustee,
-            '_expiry': expiry
-        }
-
+        
         # Return them under their respective action-names
         return {
-            "tx_params": {"sender": sender, "value": 0},
-            "circleshub_registerGroup": subcall1_params,
-            "circleshub_trust": subcall2_params,
-            # Optionally add more subcalls
+            "tx_params": {"sender": '0x42cEDde51198D1773590311E2A340DC06B24cB37', "value": 0},
+            "circleshub_setApprovalForAll": subcall1_params,
+            "circleshub_safeTransferFrom": subcall2_params,
         }

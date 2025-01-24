@@ -3,6 +3,10 @@ from enum import Enum, auto
 class ActionType(Enum):
     """Available actions derived from protocol handlers"""
     
+    balancerv2lbpfactory_Create = auto()
+    
+    balancerv2lbpfactory_Disable = auto()
+    
     balancerv2vault_BatchSwap = auto()
     
     balancerv2vault_DeregisterTokens = auto()
@@ -30,6 +34,20 @@ class ActionType(Enum):
     balancerv2vault_SetRelayerApproval = auto()
     
     balancerv2vault_Swap = auto()
+    
+    circlesbackingfactory_CreateLBP = auto()
+    
+    circlesbackingfactory_ExitLBP = auto()
+    
+    circlesbackingfactory_GetPersonalCircles = auto()
+    
+    circlesbackingfactory_NotifyRelease = auto()
+    
+    circlesbackingfactory_OnERC1155Received = auto()
+    
+    circlesbackingfactory_SetReleaseTimestamp = auto()
+    
+    circlesbackingfactory_SetSupportedBackingAssetStatus = auto()
     
     circleshub_Burn = auto()
     

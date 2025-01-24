@@ -8,8 +8,10 @@ from ape import networks, chain
 from src.framework.simulation.base import BaseSimulation, BaseSimulationConfig
 from src.framework.logging import get_logger
 from src.protocols.interfaces.circleshub import CirclesHubClient
+from src.protocols.interfaces.circlesbackingfactory import CirclesBackingFactoryClient
 from src.protocols.interfaces.wxdai import WXDAIClient
 from src.protocols.interfaces.balancerv2vault import BalancerV2VaultClient
+from src.protocols.interfaces.balancerv2lbpfactory import BalancerV2LBPFactoryClient
 
 from src.framework.state.graph_converter import StateToGraphConverter
 from src.pathfinder import GraphManager
@@ -52,6 +54,13 @@ class CirclesSimulation(BaseSimulation):
             'abi_folder': 'circles',
             'strategy': 'basic'
         },
+        'circleslbp': {
+            'address': '0x4bB5A425a68ed73Cf0B26ce79F5EEad9103C30fc',
+            'client_class': CirclesBackingFactoryClient,
+            'module_name': 'circlesbackingfactory',
+            'abi_folder': 'circles',
+            'strategy': 'basic'
+        },
         'wxdai': {
             'address': '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
             'client_class': WXDAIClient,
@@ -59,10 +68,17 @@ class CirclesSimulation(BaseSimulation):
             'abi_folder': 'tokens',
             'strategy': 'basic'
         },
-        'wxdai': {
+        'balancerv2': {
             'address': '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
             'client_class': BalancerV2VaultClient,
             'module_name': 'balancerv2vault',
+            'abi_folder': 'balancer_v2',
+            'strategy': 'basic'
+        },
+        'balancerv2lbp': {
+            'address': '0x85a80afee867aDf27B50BdB7b76DA70f1E853062',
+            'client_class': BalancerV2LBPFactoryClient,
+            'module_name': 'balancerv2lbpfactory',
             'abi_folder': 'balancer_v2',
             'strategy': 'basic'
         }
@@ -169,7 +185,7 @@ class CirclesSimulation(BaseSimulation):
                     datetime_object = datetime.fromtimestamp(chain.blocks.head.timestamp)
                     result[address][token_id] = {'balance': balance, 'last_day_updated': datetime_object.date()}
 
-            print(result)
+            #print(result)
             logger.info(f"Successfully computed balances for {len(result)} addresses")
             return result
 

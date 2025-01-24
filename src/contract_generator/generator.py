@@ -109,7 +109,9 @@ class ContractFunction:
     def _get_safe_param_name(self, name: str) -> str:
         """Get a safe parameter name avoiding conflicts"""
         if name == 'sender':
-            return 'account'
+            return 'account_sender'
+        if name == 'value':
+            return 'value_amount'
         if name in self.PYTHON_KEYWORDS:
             return f"{name}_"
         return name

@@ -248,7 +248,7 @@ class BaseSimulation(ABC):
         if self.fast_mode:
             return None
         return DataCollector(
-            self.config.network_config.get('db_path', 'simulation.duckdb'),
+            db_path=self.config.network_config.get('db_path', 'simulation.duckdb'),
             abis=self.abis 
         )
 

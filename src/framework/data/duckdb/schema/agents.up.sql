@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS agents (
     
     -- Action Tracking
     max_daily_actions INTEGER NOT NULL,      -- Maximum daily action limit
-    risk_tolerance FLOAT NOT NULL,           -- Agent's risk tolerance
+    --risk_tolerance FLOAT NOT NULL,           -- Agent's risk tolerance
     
     -- Detailed Action Configuration
     FOREIGN KEY(simulation_run_id) REFERENCES simulation_runs(run_id)

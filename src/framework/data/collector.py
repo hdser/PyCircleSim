@@ -166,7 +166,7 @@ class DataCollector(BaseDataCollector):
             self._current_run_id = result[0]
             
             # Initialize event handler with current run ID
-            self.event_handler = ContractEventHandler(self.event_logger, self._current_run_id)
+            self.event_handler = ContractEventHandler(self.event_logger, self._current_run_id, self.abis)
             
             self.con.commit()
             logger.info(f"Started simulation run {self._current_run_id}")
@@ -247,7 +247,7 @@ class DataCollector(BaseDataCollector):
                 agent.profile.description,
                 len(agent.accounts),
                 agent.profile.max_daily_actions,
-                agent.profile.risk_tolerance,
+              #  agent.profile.risk_tolerance,
               #  agent.profile.preferred_contracts
             ])
             
@@ -430,7 +430,7 @@ class DataCollector(BaseDataCollector):
             return {
                 "profile": dict(zip([
                     "agent_id", "personality", "economic_status", "trust_threshold",
-                    "max_connections", "activity_level", "risk_tolerance"
+                    "max_connections", "activity_level" #, "risk_tolerance"
                 ], profile)),
                 "balance_history": balance_history,
                 "trust_history": trust_history

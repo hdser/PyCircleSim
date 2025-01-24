@@ -104,7 +104,7 @@
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "lbp",
                 "type": "address"
@@ -183,6 +183,31 @@
         "type": "event"
     },
     {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "backer",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "circlesBackingInstance",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "lbp",
+                "type": "address"
+            }
+        ],
+        "name": "Released",
+        "type": "event"
+    },
+    {
         "inputs": [],
         "name": "ADMIN",
         "outputs": [
@@ -229,6 +254,19 @@
                 "internalType": "contract IHub",
                 "name": "",
                 "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "INSTANCE_BYTECODE_HASH",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
             }
         ],
         "stateMutability": "view",
@@ -288,19 +326,6 @@
     },
     {
         "inputs": [],
-        "name": "USDC_DECIMALS",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
         "name": "VALID_TO",
         "outputs": [
             {
@@ -345,19 +370,28 @@
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "backer",
-                "type": "address"
-            }
-        ],
-        "name": "circlesBackingOf",
+        "inputs": [],
+        "name": "backingParameters",
         "outputs": [
             {
                 "internalType": "address",
-                "name": "circlesBacking",
+                "name": "transientBacker",
                 "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "transientBackingAsset",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "transientStableCRC",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "transientStableCRCAmount",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -531,6 +565,19 @@
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "lbp",
+                "type": "address"
+            }
+        ],
+        "name": "notifyRelease",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {

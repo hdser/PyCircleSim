@@ -6,8 +6,8 @@ class BaseConfig:
     """Base configuration for agent behavior"""
     target_account_count: int
     max_daily_actions: int
-    risk_tolerance: float
-    preferred_networks: List[str]
+    #risk_tolerance: float
+   # preferred_networks: List[str]
     
 @dataclass
 class ActionConfig:
@@ -35,8 +35,8 @@ class AgentProfile:
     description: str
     target_account_count: int
     max_daily_actions: int
-    risk_tolerance: float
-    preferred_networks: List[str]
+    #risk_tolerance: float
+    #preferred_networks: List[str]
     preset_addresses: Optional[List[str]]
     action_configs: Dict[str, ActionConfig]
     actions_sequence: Optional[List[Tuple[str, int]]] = None
@@ -64,8 +64,8 @@ class AgentProfile:
             description=config.get('description', ''),
             target_account_count=base_config.get('target_account_count', 1),
             max_daily_actions=base_config.get('max_daily_actions', 10),
-            risk_tolerance=base_config.get('risk_tolerance', 0.5),
-            preferred_networks=base_config.get('preferred_networks', []),
+            #risk_tolerance=base_config.get('risk_tolerance', 0.5),
+            #preferred_networks=base_config.get('preferred_networks', []),
             preset_addresses=base_config.get('preset_addresses', None),
             action_configs=action_configs,
             actions_sequence=actions_sequence

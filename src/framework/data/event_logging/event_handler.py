@@ -22,6 +22,7 @@ class ContractEventHandler:
         self.abis = abis or []
         self._event_processors = {}
 
+
     
     def handle_transaction_events(self, tx) -> None:
         """Process and log all events from a transaction"""
@@ -30,7 +31,6 @@ class ContractEventHandler:
             
         try:
             decoded_logs = tx.decode_logs(abi=self.abis)
-            
             for i, decoded_log in enumerate(decoded_logs):
                 log = tx.logs[i]
 
