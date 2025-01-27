@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS agents (
     total_accounts INTEGER NOT NULL,         -- Number of controlled addresses
     
     -- Action Tracking
-    max_daily_actions INTEGER NOT NULL,      -- Maximum daily action limit
+    max_executions INTEGER NOT NULL,      -- Maximum action limit
     --risk_tolerance FLOAT NOT NULL,           -- Agent's risk tolerance
     
     -- Detailed Action Configuration

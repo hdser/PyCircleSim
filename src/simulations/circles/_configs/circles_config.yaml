@@ -1,6 +1,6 @@
 # Base network parameters
 batch_size: 10           
-iterations: 20           
+iterations: 50           
 blocks_per_iteration: 100  
 block_time: 5            
 compute_initial_balances: true
@@ -23,6 +23,7 @@ state_variables:
       _uri:
         type: string
         slot: 20
+
 
 
 strategies:

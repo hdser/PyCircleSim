@@ -12,6 +12,7 @@ from src.protocols.interfaces.circlesbackingfactory import CirclesBackingFactory
 from src.protocols.interfaces.wxdai import WXDAIClient
 from src.protocols.interfaces.balancerv2vault import BalancerV2VaultClient
 from src.protocols.interfaces.balancerv2lbpfactory import BalancerV2LBPFactoryClient
+from src.protocols.interfaces.erc20 import ERC20Client
 
 from src.framework.state.graph_converter import StateToGraphConverter
 from src.pathfinder import GraphManager
@@ -81,7 +82,15 @@ class CirclesSimulation(BaseSimulation):
             'module_name': 'balancerv2lbpfactory',
             'abi_folder': 'balancer_v2',
             'strategy': 'basic'
-        }
+        },
+        'erc20': {
+        'address': '',  # Generic
+        'client_class': ERC20Client,
+        'module_name': 'erc20',
+        'abi_folder': 'tokens',
+        'abi_name': 'erc20.json',
+        'strategy': 'basic'
+    }
     }
 
     def _rebuild_graph(self, context: 'SimulationContext') -> None:
@@ -308,6 +317,37 @@ class CirclesSimulation(BaseSimulation):
                         # Add both addresses to involved set
                         involved_addresses.add(truster)
                         involved_addresses.add(trustee)
+
+                elif decoded_log.event_name == 'PoolRegistered':
+                    
+                    if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
+                        lbpfactory_state = context.network_state['contract_states']['BalancerV2LBPFactory'] =  {
+                            'address': self.CONTRACT_CONFIGS['balancerv2lbp']['address'],
+                            'state': {}
+                            }
+                        
+                    lbpfactory_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']
+
+                    event_data = decoded_log.event_arguments
+                    poolId = event_data.get('poolId')
+                    poolAddress = event_data.get('poolAddress')
+
+                    
+                    if not isinstance(lbpfactory_state.get('LBPs'), dict):
+                        lbpfactory_state['LBPs'] = {}
+                    if poolId not in lbpfactory_state['LBPs']:
+                        lbpfactory_state['LBPs'][poolId] = {
+                            'poolAddress': poolAddress,
+                            'tokens': []
+                        }
+
+                elif decoded_log.event_name == 'TokensRegistered':
+                    lbpfactory_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']
+
+                    event_data = decoded_log.event_arguments
+                    poolId = event_data.get('poolId')
+                    tokens = event_data.get('tokens')
+                    lbpfactory_state['LBPs'][poolId]['tokens'] = tokens
 
             # Now collect all other involved addresses from the transaction
             for decoded_log in decoded_logs:

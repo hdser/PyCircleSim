@@ -28,9 +28,15 @@ profiles:
        
       
     available_actions:
-      #- action: "circleshub_Trust"
-      #  probability: 1
-      #  cooldown_blocks: 1
+      - action: "balancerv2vault_JoinPool"
+        probability: 1
+        cooldown_blocks: 1
+        max_executions: 1
+        constraints:
+          token0_max: 1.0
+          token0_min: 0.001
+          token1_max: 1.0
+          token1_min: 0.001
 
     #  - action: "circleshub_MulticallPathfinderTransfer"
     #    probability: 1
@@ -51,19 +57,20 @@ profiles:
     #      max_flow: 1000 #CRC
     #      min_flow: 1 #CRC
 
-      - action: "circleshub_MulticallCase1"
-        probability: 0.9
-        cooldown_blocks: 1
+     ## - action: "circleshub_MulticallCase1"
+     #   probability: 0.9
+     #   cooldown_blocks: 1
 
       - action: "balancerv2lbpfactory_Create"
         probability: 1
         cooldown_blocks: 1
+        max_executions: 1
 
-      - action: "circlesbackingfactory_CreateLBP"
-        probability: 1
-        cooldown_blocks: 1
-        constraints:
-          - backingAsset: "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1"
+      #- action: "circlesbackingfactory_CreateLBP"
+      #  probability: 1
+      #  cooldown_blocks: 1
+      #  constraints:
+      #    - backingAsset: "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1"
 
     #  - action: "circleshub_SafeTransferFrom"
     #    probability: 1

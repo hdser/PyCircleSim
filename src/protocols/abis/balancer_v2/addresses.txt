@@ -10,3 +10,4 @@
 "Vault": "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
 "MockWeightedPool-v3": "0xE051605A83dEAe38d26a7346B100EF1AC2ef8a0b"
 NoProtocolFeeLiquidityBootstrappingPoolFactory: 0x85a80afee867aDf27B50BdB7b76DA70f1E853062
+NoProtocolFeeLiquidityBootstrappingPool: 0x5b9ee8b8aBf0d187742b42892F3AA88638CaCE8F

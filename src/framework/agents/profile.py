@@ -5,7 +5,8 @@ from typing import Dict, List, Any, Optional, Tuple
 class BaseConfig:
     """Base configuration for agent behavior"""
     target_account_count: int
-    max_daily_actions: int
+    #max_daily_actions: int
+    max_executions: int
     #risk_tolerance: float
    # preferred_networks: List[str]
     
@@ -16,6 +17,7 @@ class ActionConfig:
     probability: float
     cooldown_blocks: int
     constraints: Dict[str, Any]
+    max_executions: Optional[int] = None
     preset_addresses: Optional[List[str]] = None 
 
     @classmethod
@@ -25,7 +27,8 @@ class ActionConfig:
             action_type=action_type,
             probability=config['probability'],
             cooldown_blocks=config['cooldown_blocks'],
-            constraints=config.get('constraints', {})
+            constraints=config.get('constraints', {}),
+             max_executions=config.get('max_executions')
         )
 
 @dataclass
@@ -34,7 +37,8 @@ class AgentProfile:
     name: str
     description: str
     target_account_count: int
-    max_daily_actions: int
+    #max_daily_actions: int
+    max_executions: int
     #risk_tolerance: float
     #preferred_networks: List[str]
     preset_addresses: Optional[List[str]]
@@ -63,7 +67,8 @@ class AgentProfile:
             name=name,
             description=config.get('description', ''),
             target_account_count=base_config.get('target_account_count', 1),
-            max_daily_actions=base_config.get('max_daily_actions', 10),
+            max_executions=base_config.get('max_executions', 10),
+           # max_daily_actions=base_config.get('max_daily_actions', 10),
             #risk_tolerance=base_config.get('risk_tolerance', 0.5),
             #preferred_networks=base_config.get('preferred_networks', []),
             preset_addresses=base_config.get('preset_addresses', None),

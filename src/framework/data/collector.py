@@ -246,7 +246,7 @@ class DataCollector(BaseDataCollector):
                 agent.profile.name,
                 agent.profile.description,
                 len(agent.accounts),
-                agent.profile.max_daily_actions,
+                agent.profile.max_executions,
               #  agent.profile.risk_tolerance,
               #  agent.profile.preferred_contracts
             ])

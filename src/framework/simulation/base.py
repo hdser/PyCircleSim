@@ -166,6 +166,37 @@ class BaseSimulation(ABC):
 
 
     def _load_contract_abis(self) -> List[EventABI]:
+        """Load all contract ABIs from the abi folder and subfolders and convert them to EventABI objects."""
+        all_abis = []
+        try:
+            # Base ABI folder path
+            abi_base_path = self.project_root / "src" / "protocols" / "abis"
+            
+            # Recursively find all JSON files under the ABI folder
+            for abi_path in abi_base_path.rglob("*.json"):
+                try:
+                    with open(abi_path) as f:
+                        contract_abi = json.load(f)
+                        # Filter for event ABIs and convert to EventABI objects
+                        event_abis = [
+                            EventABI(
+                                name=item['name'],
+                                inputs=item.get('inputs', []),
+                                anonymous=item.get('anonymous', False)
+                            )
+                            for item in contract_abi
+                            if item.get('type') == 'event'
+                        ]
+                        all_abis.extend(event_abis)
+                        logger.info(f"Loaded {len(event_abis)} events from ABI file: {abi_path}")
+                except Exception as e:
+                    logger.error(f"Failed to load ABI from {abi_path}: {e}")
+        except Exception as e:
+            logger.error(f"Error while traversing ABI folder: {e}")
+
+        return all_abis
+
+    def _load_contract_abis2(self) -> List[EventABI]:
         """Load all contract ABIs from config and convert to EventABI objects"""
         all_abis = []
         for name, cfg in self.contract_configs.items():
@@ -263,6 +294,52 @@ class BaseSimulation(ABC):
         return manager
 
     def _initialize_clients(self) -> Dict[str, Any]:
+        """Initialize all contract clients"""
+        clients = {}
+        
+        for name, config in self.contract_configs.items():
+            try:
+                abi_dir = self.project_root / "src" / "protocols" / "abis" / config['abi_folder']
+                
+                # Handle generic ABIs (like ERC20) vs contract-specific ABIs
+                if config.get('abi_name'):
+                    # Use specified ABI name for generic interfaces
+                    abi_path = abi_dir / config['abi_name']
+                else:
+                    # Use contract address for specific contracts
+                    abi_path = abi_dir / f"{config['address']}.json"
+                
+                if not abi_path.exists():
+                    logger.warning(f"ABI file not found for {name} at {abi_path}")
+                    continue
+
+                # Fallback if module_name is not in config:
+                module_name = config.get('module_name', name)
+
+                strategy = config.get(
+                    config['module_name'], 
+                    config.get('strategy', 'basic')
+                )
+                logger.info(f"Initializing {name} client with {strategy} strategy")
+
+                client = config['client_class'](
+                    config['address'],
+                    str(abi_path),
+                    gas_limits=self.config.network_config.get('gas_limits', {}),
+                    data_collector=self.collector
+                )
+                
+                # Store clients by their module_name
+                clients[module_name] = client
+                setattr(self, f"{name}_client", client)
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize {name} client: {e}")
+                raise
+                
+        return clients
+    
+    def _initialize_clients2(self) -> Dict[str, Any]:
         """Initialize all contract clients"""
         clients = {}
         

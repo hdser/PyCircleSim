@@ -1,6 +1,13 @@
 from typing import Dict, Any, Optional
 from src.protocols.handler_strategies.base import BaseStrategy
 from src.framework.core.context import SimulationContext
+import random
+from ape_ethereum.ecosystem import encode
+from ape import Contract
+import logging
+from src.framework.logging import get_logger
+
+logger = get_logger(__name__, logging.DEBUG)
 
 
 class BatchSwapStrategy(BaseStrategy):
@@ -203,51 +210,85 @@ class JoinPoolStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
-            return None
+            return {}
             
         # Initialize parameters with transaction details
         params = {
-            'sender': sender,     # Transaction sender
-            'value': 0            # Transaction value
+            'sender': sender,    
+            'value': 0           
         }
-            
+
+        if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
+            return {}
         
+        if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory'].get('state'), dict):
+            return {}
         
+        if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory']['state'].get('LBPs'), dict):
+            return {}
         
-        params['poolId'] = None  # type: bytes32
-        
-        
-        
-        
-        
-        params['sender_account'] = None  # type: address (renamed from 'sender')
-        
-        
-        
-        
-        
-        params['recipient'] = None  # type: address
-        
-        
-        
-        
-        # Initialize request tuple fields
-        request_fields = {
-            
-            'assets': None,  # address[]
-            
-            'maxAmountsIn': None,  # uint256[]
-            
-            'userData': None,  # bytes
-            
-            'fromInternalBalance': None,  # bool
-            
-        }
-        params['request'] = request_fields
-        
+        LBPs_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']['LBPs']
+        poolId = random.choice(list(LBPs_state.keys()))
+        assets = LBPs_state[poolId]['tokens']
+        vault_address = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
+        maxAmountsIn = []#[1000000000000000000, 100000000000000000]
+
+        constraints = context.agent.profile.action_configs['balancerv2vault_JoinPool'].constraints
+       # if 'maxAmount0In' in constraints:
+       #     maxAmountsIn = constraints['maxAmount0In']
+
+
         
 
+        #------------------------------------------
+        # ERC20 Approve
+        #------------------------------------------
+        # Get ERC20 client
+        erc20_client = context.get_client('erc20')
+        if not erc20_client:
+            logger.warning("ERC20 client not found in context")
+            return {}
+        
+        for i, token_address in enumerate(assets):
+            try:
+                token_balance = erc20_client.balance_of(token_address, sender)
+                if not token_balance > 0:
+                    return {}
+
+                maxAmountsIn.append(int(token_balance * random.uniform(0.1, 0.5)))
+               
+                tx = erc20_client.approve(
+                    token_address=token_address,
+                    spender=vault_address,
+                    amount=token_balance, 
+                    sender=sender,
+                    value=0
+                )
+                if not tx:
+                    logger.error(f"Approval failed for token {token_address}")
+                    return {}
+                logger.info(f"Successfully approved token {token_address}")
+            except Exception as e:
+                logger.error(f"Error during approval for token {token_address}: {e}")
+                return {}
+
+        # Prepare join parameters
+        join_kind = 0  # INIT join kind
+        userData = encode(['uint256', 'uint256[]'], [join_kind, maxAmountsIn])
+        fromInternalBalance = False
+
+        params['poolId'] = poolId
+        params['sender_account'] = sender
+        params['recipient'] = sender
+        params['request'] = {
+            'assets': assets,
+            'maxAmountsIn': maxAmountsIn,
+            'userData': userData,
+            'fromInternalBalance': fromInternalBalance,
+        }
+        print(params)
         return params
+
 
 
 class ManagePoolBalanceStrategy(BaseStrategy):

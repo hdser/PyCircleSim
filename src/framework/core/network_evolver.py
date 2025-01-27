@@ -177,6 +177,12 @@ class NetworkEvolver():
                     stats['successful_actions'] += 1
                     stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
 
+                    agent.record_action(
+                        action_name=action_name,
+                        address=execution_params.get('sender', ''),
+                        block_number=self.network_state['current_block'],
+                        success=True
+                    )
             return stats
             
         except Exception as e:

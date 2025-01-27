@@ -30,6 +30,8 @@ class ContractEventHandler:
             return
             
         try:
+            print(len(tx.logs))
+            print(len(self.abis))
             decoded_logs = tx.decode_logs(abi=self.abis)
             for i, decoded_log in enumerate(decoded_logs):
                 log = tx.logs[i]

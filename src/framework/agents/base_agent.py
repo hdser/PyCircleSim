@@ -66,7 +66,8 @@ class BaseAgent:
         
         
         # Daily tracking
-        self.daily_action_counts: Dict[str, int] = {}  # date -> count
+       # self.daily_action_counts: Dict[str, int] = {}  # date -> count
+        self.action_counts:  Dict[str, int] = {}  # action_name -> count
         
         self.creation_time = datetime.now()
         
@@ -167,9 +168,9 @@ class BaseAgent:
         Returns: (action_name, acting_address, params) or (None, "", {})
         """
         # Check daily action limit
-        today = datetime.now().date().isoformat()
-        if self.daily_action_counts.get(today, 0) >= self.profile.max_daily_actions:
-            return None, "", {}
+        #today = datetime.now().date().isoformat()
+        #if self.daily_action_counts.get(today, 0) >= self.profile.max_daily_actions:
+        #    return None, "", {}
             
         # If we have a sequence defined, use it
         if self.profile.actions_sequence:
@@ -195,8 +196,16 @@ class BaseAgent:
         action_weights = [x[2] for x in available_actions]
         action_name, address, _ = random.choices(available_actions, weights=action_weights)[0]
         
+        # Get current action configuration and check max_executions
+        action_config = self.profile.get_action_config(action_name)
+        if action_config and action_config.max_executions is not None:
+            current_count = self.action_counts.get(action_name, 0)
+            if current_count >= action_config.max_executions:
+                return None, "", {}
+        
         # Get parameters
         params = self._get_base_params(action_name, address)
+        print(params)
         return action_name, address, params
     
     def _can_perform_action(self, action_name: str, address: str, current_block: int) -> bool:
@@ -252,9 +261,8 @@ class BaseAgent:
                 action_state.last_block = block_number
                 action_state.daily_count += 1
             
-            # Update daily counts
-            today = datetime.now().date().isoformat()
-            self.daily_action_counts[today] = self.daily_action_counts.get(today, 0) + 1
+            # Update action counts
+            self.action_counts[action_name] = self.action_counts.get(action_name, 0) + 1
             
             # Record in history
             self.action_history.append((action_name, address, block_number))

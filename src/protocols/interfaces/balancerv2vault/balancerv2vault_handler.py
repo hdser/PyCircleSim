@@ -453,7 +453,7 @@ class JoinPoolBaseHandler:
                 
                 
                 
-                'sender_': execution_params.get("sender_account"),  # Contract's sender parameter
+                'sender_account': execution_params.get("sender_account"),  # Contract's sender parameter
                 
                 
                 

@@ -17,7 +17,7 @@ class CreateStrategy(BaseStrategy):
             
         name = 'Test Pool'
         symbol = 'TP'
-        crc20 = '0xf81c47609e19b1456ddc6acb730f8f5b64840429'
+        crc20 = '0x330941027d6fcd7e28ccb7ad2e15275af29f9ad8'
         backingAsset = '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1'
         weight1 = 10000000000000000
         weight99 = 990000000000000000
