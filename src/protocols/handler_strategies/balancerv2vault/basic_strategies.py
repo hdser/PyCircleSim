@@ -228,17 +228,17 @@ class JoinPoolStrategy(BaseStrategy):
             return {}
         
         LBPs_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']['LBPs']
-        poolId = random.choice(list(LBPs_state.keys()))
+        poolId_list = [poolId for poolId in LBPs_state.keys() if LBPs_state[poolId]['owner']==sender]
+
+        if not poolId_list:
+            return {}
+
+        poolId = random.choice(poolId_list)
         assets = LBPs_state[poolId]['tokens']
         vault_address = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
-        maxAmountsIn = []#[1000000000000000000, 100000000000000000]
+        maxAmountsIn = []
 
         constraints = context.agent.profile.action_configs['balancerv2vault_JoinPool'].constraints
-       # if 'maxAmount0In' in constraints:
-       #     maxAmountsIn = constraints['maxAmount0In']
-
-
-        
 
         #------------------------------------------
         # ERC20 Approve
@@ -286,7 +286,7 @@ class JoinPoolStrategy(BaseStrategy):
             'userData': userData,
             'fromInternalBalance': fromInternalBalance,
         }
-        print(params)
+
         return params
 
 
@@ -561,23 +561,38 @@ class SetRelayerApprovalStrategy(BaseStrategy):
         return params
 
 
+
 class SwapStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
             return None
-            
-        poolId = '0x8621d57c0e3a0b6dd1d7f8e9d7de1801c162dc960002000000000000000000ee'
+        
+        # Get ERC20 client
+        erc20_client = context.get_client('erc20')
+        if not erc20_client:
+            logger.warning("ERC20 client not found in context")
+            return {}
+        
+        if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
+            return {}
+        
+        LBPs_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']['LBPs']
+        poolId = random.choice(list(LBPs_state.keys()))
+        assets = LBPs_state[poolId]['tokens']
+    
         kind = 0
-        assetIn = '0x8e5bBbb09Ed1ebdE8674Cda39A0c169401db4252'
-        assetOut = '0xE7EAb97CE3ed656DC40114d0b829A2D00F0edDB1'
-        amount = int(110)
+        assetIn = assets[0]
+        assetOut = assets[1]
+
+        token_balance = erc20_client.balance_of(assetIn, sender)
+        amount = int(token_balance * random.uniform(0.000000000001, 0.0001))
         userData = b''
 
-        limit = 999999999999999999
-        deadline = 999999999999999999
-        
+        limit = 0
+        deadline = 999999999999999999999
 
+  
         singleSwap = {
             'poolId': poolId,  # bytes32
             'kind': kind,  # uint8
@@ -596,18 +611,13 @@ class SwapStrategy(BaseStrategy):
         # Initialize parameters with transaction details
         params = {
             'sender': sender,     # Transaction sender
-            'value': 100000            # Transaction value
+            'value': 0            # Transaction value
         } 
        
         params['singleSwap'] = singleSwap
         params['funds'] = funds
         params['limit'] = limit  # type: uint256
         params['deadline'] = deadline  # type: uint256
-
-        print(params)
-        
-        
-        
 
         return params
 

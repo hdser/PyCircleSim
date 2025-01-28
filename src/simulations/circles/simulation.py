@@ -18,7 +18,7 @@ from src.framework.state.graph_converter import StateToGraphConverter
 from src.pathfinder import GraphManager
 import logging
 
-logger = get_logger(__name__, logging.DEBUG)
+logger = get_logger(__name__, logging.INFO)
 
 
 class CirclesSimulationConfig(BaseSimulationConfig):
@@ -194,7 +194,6 @@ class CirclesSimulation(BaseSimulation):
                     datetime_object = datetime.fromtimestamp(chain.blocks.head.timestamp)
                     result[address][token_id] = {'balance': balance, 'last_day_updated': datetime_object.date()}
 
-            #print(result)
             logger.info(f"Successfully computed balances for {len(result)} addresses")
             return result
 
@@ -338,7 +337,8 @@ class CirclesSimulation(BaseSimulation):
                     if poolId not in lbpfactory_state['LBPs']:
                         lbpfactory_state['LBPs'][poolId] = {
                             'poolAddress': poolAddress,
-                            'tokens': []
+                            'tokens': [],
+                            'owner': tx.sender
                         }
 
                 elif decoded_log.event_name == 'TokensRegistered':

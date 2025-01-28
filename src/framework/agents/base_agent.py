@@ -8,8 +8,9 @@ from .profile import AgentProfile
 from src.framework.data import BaseDataCollector
 from src.framework.logging import get_logger
 from dataclasses import dataclass
+import logging
 
-logger = get_logger(__name__)
+logger = get_logger(__name__,logging.INFO)
 
 @dataclass
 class BalanceUpdate:
@@ -43,14 +44,9 @@ class BaseAgent:
         self.profile = profile
         self.collector = data_collector
         
-        # Account management - just stores raw accounts
+        # Initialize dictionaries first
         self.accounts: Dict[str, bytes] = {}  # address -> private_key
-
-        # Initialize with preset addresses if provided
-        if self.profile.preset_addresses:
-            for address in self.profile.preset_addresses:
-                self.accounts[address] = bytes()  # Empty bytes since we'll impersonate
-                
+        self.action_counts: Dict[str, Dict[str, int]] = {}  # address -> {action_name -> count}
         
         # Generic state management
         self.state: Dict[str, Any] = {
@@ -64,16 +60,14 @@ class BaseAgent:
         self.address_states: Dict[str, Dict[str, ActionState]] = {}  # address -> {action -> state}
         self.sequence_states: Dict[str, ActionState] = {} # Per-address sequence state
         
-        
-        # Daily tracking
-       # self.daily_action_counts: Dict[str, int] = {}  # date -> count
-        self.action_counts:  Dict[str, int] = {}  # action_name -> count
-        
         self.creation_time = datetime.now()
-        
-        # Initialize states for preset addresses
-        for address in self.accounts:
-            self._initialize_address_state(address)
+
+        # Initialize with preset addresses if provided
+        if self.profile.preset_addresses:
+            for address in self.profile.preset_addresses:
+                self.accounts[address] = bytes()  # Empty bytes since we'll impersonate
+                self.action_counts[address] = {}  # Initialize action counts for this address
+                self._initialize_address_state(address)
 
     def _initialize_address_state(self, address: str):
         """Initialize tracking state for a new address"""
@@ -96,6 +90,8 @@ class BaseAgent:
             if preset_addr:
                 self.accounts[preset_addr] = bytes()
                 self._initialize_address_state(preset_addr)
+                # Initialize action counts for this address
+                self.action_counts[preset_addr] = {}
                 logger.debug(f"Using preset address {preset_addr} for agent {self.agent_id}")
                 return preset_addr, bytes()
             
@@ -117,6 +113,9 @@ class BaseAgent:
                     is_primary=(len(self.accounts) == 1)
                 )
                 
+            # Initialize action counts for new address
+            self.action_counts[account.address] = {}
+
             return account.address, private_key
             
         except Exception as e:
@@ -148,6 +147,7 @@ class BaseAgent:
         sequence_state.remaining_repeats -= 1
         sequence_state.last_block = current_block
         
+        
         params = self._get_base_params(action_name, address)
         return action_name, address, params
             
@@ -167,11 +167,7 @@ class BaseAgent:
         Select an action based on profile configuration and current state
         Returns: (action_name, acting_address, params) or (None, "", {})
         """
-        # Check daily action limit
-        #today = datetime.now().date().isoformat()
-        #if self.daily_action_counts.get(today, 0) >= self.profile.max_daily_actions:
-        #    return None, "", {}
-            
+        
         # If we have a sequence defined, use it
         if self.profile.actions_sequence:
             # Try each address until we find a valid action
@@ -181,31 +177,41 @@ class BaseAgent:
                     return result
             return None, "", {}
         
-        # Otherwise use probability-based selection
+        # First, filter out actions that have reached max_executions for any address
         available_actions = []
         for action_name, config in self.profile.action_configs.items():
             for address in self.accounts:
+                # Get current count for this action and address
+                current_count = self.action_counts.get(address, {}).get(action_name, 0)
+                
+                # Skip if hit max_executions
+                if config.max_executions is not None and current_count >= config.max_executions:
+                    logger.debug(f"Skipping {action_name} for {address}: reached max executions {current_count}/{config.max_executions}")
+                    continue
+                    
                 action_state = self.address_states[address].get(action_name)
                 if action_state and self._can_perform_action(action_name, address, current_block):
                     available_actions.append((action_name, address, config.probability))
-                
+
         if not available_actions:
             return None, "", {}
             
         # Weight selection by probability
         action_weights = [x[2] for x in available_actions]
-        action_name, address, _ = random.choices(available_actions, weights=action_weights)[0]
+        selected_action = random.choices(available_actions, weights=action_weights)[0]
+        action_name, address, _ = selected_action
         
-        # Get current action configuration and check max_executions
-        action_config = self.profile.get_action_config(action_name)
-        if action_config and action_config.max_executions is not None:
-            current_count = self.action_counts.get(action_name, 0)
-            if current_count >= action_config.max_executions:
-                return None, "", {}
+        # Double-check max_executions before returning
+        config = self.profile.get_action_config(action_name)
+        current_count = self.action_counts.get(address, {}).get(action_name, 0)
+        if config.max_executions is not None and current_count >= config.max_executions:
+            logger.debug(f"Cannot select {action_name} for {address}: reached max executions {current_count}/{config.max_executions}")
+            return None, "", {}
+        
+        logger.debug(f"Selected action {action_name} for {address} (count: {current_count})")
         
         # Get parameters
         params = self._get_base_params(action_name, address)
-        print(params)
         return action_name, address, params
     
     def _can_perform_action(self, action_name: str, address: str, current_block: int) -> bool:
@@ -214,17 +220,22 @@ class BaseAgent:
         if not action_config:
             return False
             
+        # Check max executions first
+        current_count = self.action_counts.get(address, {}).get(action_name, 0)
+        if action_config.max_executions is not None and current_count >= action_config.max_executions:
+            return False
+                
         action_state = self.address_states[address].get(action_name)
         if not action_state:
             return False
-            
+                
         # Check cooldown
         blocks_passed = current_block - action_state.last_block
         if blocks_passed < action_config.cooldown_blocks:
             return False
-            
+                
         return True
-        
+            
     def can_perform_action(self, action_name: str, current_block: int, network_state: Dict) -> bool:
         """Check if action can be performed based on constraints"""
         try:
@@ -261,12 +272,14 @@ class BaseAgent:
                 action_state.last_block = block_number
                 action_state.daily_count += 1
             
-            # Update action counts
-            self.action_counts[action_name] = self.action_counts.get(action_name, 0) + 1
+                # Only update counts if action was successful
+                if address not in self.action_counts:
+                    self.action_counts[address] = {}
+                self.action_counts[address][action_name] = self.action_counts[address].get(action_name, 0) + 1
             
             # Record in history
             self.action_history.append((action_name, address, block_number))
-            
+                
     def update_state(self, key: str, value: Any):
         """Update agent's internal state"""
         self.state[key] = value

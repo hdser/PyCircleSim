@@ -9,7 +9,7 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
-  circles_newuser: 0
+  circles_newuser: 4
 
 # Agent profiles and their actions
 profiles:
@@ -21,12 +21,11 @@ profiles:
       risk_tolerance: 0.3      # Risk factor 0-1
       preferred_networks: ["gnosis"]  # Preferred networks
       preset_addresses: 
-        #- "0xD11713721353Eda1df56433642aD7bB14a77CF60"
-        #- "0xA6247834B41771022498F63CAE8820fFEE208265"
+        - "0xD11713721353Eda1df56433642aD7bB14a77CF60"
+        - "0xA6247834B41771022498F63CAE8820fFEE208265"
         - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
         - "0x14c16ce62d26fd51582a646e2e30a3267b1e6d7e"
        
-      
     available_actions:
       - action: "balancerv2vault_JoinPool"
         probability: 1
@@ -38,39 +37,29 @@ profiles:
           token1_max: 1.0
           token1_min: 0.001
 
-    #  - action: "circleshub_MulticallPathfinderTransfer"
-    #    probability: 1
-    #    cooldown_blocks: 1
-    #    max_value: 10.0
-    #    constraints:
-    #      preferred_targets: "trusted_accounts"
-
-    #  - action: "circleshub_SetApprovalForAll"
-    #    probability: 1
-    #    cooldown_blocks: 1
-    #    max_value: 10.0
-
-    #  - action: "circleshub_OperateFlowMatrix"
-    #    probability: 1
-    #    cooldown_blocks: 1
-    #    constraints:
-    #      max_flow: 1000 #CRC
-    #      min_flow: 1 #CRC
-
-     ## - action: "circleshub_MulticallCase1"
-     #   probability: 0.9
-     #   cooldown_blocks: 1
+      - action: "circleshub_OperateFlowMatrix"
+        probability: 1
+        cooldown_blocks: 1
+        constraints:
+          max_flow: 1000 #CRC
+          min_flow: 1 #CRC
 
       - action: "balancerv2lbpfactory_Create"
         probability: 1
         cooldown_blocks: 1
         max_executions: 1
 
-      #- action: "circlesbackingfactory_CreateLBP"
-      #  probability: 1
-      #  cooldown_blocks: 1
-      #  constraints:
-      #    - backingAsset: "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1"
+      - action: "balancerv2vault_Swap"
+        probability: 0.9
+        cooldown_blocks: 1
+
+      - action: "circleshub_Wrap"
+        probability: 0.5
+        cooldown_blocks: 1
+        max_value: 10.0
+        constraints:
+          min_balance: 1.0
+
 
     #  - action: "circleshub_SafeTransferFrom"
     #    probability: 1
