@@ -130,3 +130,14 @@ class SimulationContext:
                  if predicate_func(addr)]
         self._cache[iteration_key] = result
         return result
+    
+
+    #------------------------------------
+    # Balancer V2 specific methods
+    #------------------------------------
+    def find_swap_path(self, start_token: str, end_token: str) -> List[Dict]:
+        """Find path between tokens using Balancer pools"""
+        if not hasattr(self.simulation, 'find_token_path'):
+            logger.warning("Simulation does not have find_token_path method")
+            return []
+        return self.simulation.find_token_path(start_token, end_token)

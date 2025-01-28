@@ -93,6 +93,24 @@ class CirclesSimulation(BaseSimulation):
     }
     }
 
+    def __init__(self, config: BaseSimulationConfig, contract_configs: Dict[str, Any], fast_mode: bool = True):
+        """Initialize the simulation"""
+        # Call parent's init first
+        super().__init__(config, contract_configs, fast_mode)
+        
+        # Load pools data
+        self._pools_data = self._load_pools_data()
+        
+        # Add to initial state if successfully loaded
+        if self._pools_data and self._pools_data['pools']:
+            logger.info(f"Loaded {len(self._pools_data['pools'])} Balancer pools")
+            self.initial_state['balancer'] = {
+                'pools': self._pools_data['pools'],
+                'pools_by_token': self._pools_data['pools_by_token']
+            }
+        else:
+            logger.warning("No Balancer pools data loaded")
+
     def _rebuild_graph(self, context: 'SimulationContext') -> None:
         """Rebuild graph from current state"""
         try:
@@ -469,3 +487,118 @@ class CirclesSimulation(BaseSimulation):
 
         except Exception as e:
             logger.error(f"Failed to update token balances: {e}", exc_info=True)
+
+
+    def _load_pools_data(self) -> Dict[str, Any]:
+        """Load pools configuration data"""
+        try:
+            # Changed from balancerv2_top20_pools.txt to paste.txt
+            pools_file = Path(__file__).parent / "_configs" / "balancerv2_top20_pools.txt"
+            with open(pools_file, 'r') as f:
+                import json
+                pools_data = json.load(f)
+                
+            # Create lookup structures for efficient path finding
+            pools_by_token: Dict[str, List[Dict]] = {}
+            
+            for pool in pools_data:
+                pool_id = pool['id']  # Make sure to store the pool ID
+                for token in pool['poolTokens']:
+                    addr = token['address'].lower()
+                    if addr not in pools_by_token:
+                        pools_by_token[addr] = []
+                    pools_by_token[addr].append({
+                        'id': pool_id,
+                        'name': pool['name'],
+                        'poolTokens': pool['poolTokens']
+                    })
+                    
+            return {
+                'pools': pools_data,
+                'pools_by_token': pools_by_token
+            }
+        except Exception as e:
+            logger.error(f"Failed to load pools data: {e}")
+            return {'pools': [], 'pools_by_token': {}}
+        
+    def get_token_symbol(self, address: str) -> str:
+        """Get token symbol from pools data"""
+        address = address.lower()
+        for pool in self._pools_data['pools']:
+            for token in pool['poolTokens']:
+                if token['address'].lower() == address:
+                    return token['symbol']
+        return address  # Return address if symbol not found
+        
+
+    def find_token_path(self, start_token: str, end_token: str) -> List[Dict]:
+        """
+        Find path of pools between two tokens
+        
+        Args:
+            start_token: Starting token address 
+            end_token: Target token address
+            
+        Returns:
+            List of pools that form a path between tokens, with detailed hop information
+        """
+        if not hasattr(self, '_pools_data'):
+            return []
+                
+        # Normalize addresses
+        start_token = start_token.lower()
+        end_token = end_token.lower()
+        
+        # If same token, no path needed
+        if start_token == end_token:
+            return []
+                
+        # BFS to find shortest path
+        from collections import deque
+            
+        visited = {start_token}
+        queue = deque([(start_token, [])])
+        
+        paths_found = []
+        
+        while queue:
+            current_token, path = queue.popleft()
+            
+            # Get pools containing current token
+            for pool in self._pools_data['pools_by_token'].get(current_token, []):
+                pool_tokens = {t['address'].lower() for t in pool['poolTokens']}
+                
+                for next_token in pool_tokens:
+                    if next_token == end_token:
+                        # Found path, store with details about the hop
+                        new_path = path + [{
+                            'pool_id': pool['id'],
+                            'pool_name': pool['name'],
+                            'tokens_in_pool': [
+                                {'address': t['address'].lower(), 'symbol': t['symbol']}
+                                for t in pool['poolTokens']
+                            ],
+                            'from_token': current_token,
+                            'to_token': next_token
+                        }]
+                        paths_found.append(new_path)
+                        continue
+                        
+                    if next_token not in visited:
+                        visited.add(next_token)
+                        new_path = path + [{
+                            'pool_id': pool['id'],
+                            'pool_name': pool['name'],
+                            'tokens_in_pool': [
+                                {'address': t['address'].lower(), 'symbol': t['symbol']}
+                                for t in pool['poolTokens']
+                            ],
+                            'from_token': current_token,
+                            'to_token': next_token
+                        }]
+                        queue.append((next_token, new_path))
+        
+        # Return shortest path found
+        if paths_found:
+            return min(paths_found, key=len)
+        return []  # No path found

@@ -1,0 +1,334 @@
+[
+{
+    "id": "0x4683e340a8049261057d5ab1b29c8d840e75695e00020000000000000000005a",
+    "name": "Balancer 50wstETH-50GNO",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6",
+        "symbol": "wstETH"
+    },
+    {
+        "address": "0x9c58bacc331c9aa871afd802db6379a98e80cedb",
+        "symbol": "GNO"
+    }
+    ]
+},
+{
+    "id": "0xbad20c15a773bf03ab973302f61fabcea5101f0a000000000000000000000034",
+    "name": "Balancer Stable WETH wstETH pool",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
+        "symbol": "WETH"
+    },
+    {
+        "address": "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6",
+        "symbol": "wstETH"
+    },
+    {
+        "address": "0xbad20c15a773bf03ab973302f61fabcea5101f0a",
+        "symbol": "bb-WETH-wstETH"
+    }
+    ]
+},
+{
+    "id": "0xfc095c811fe836ed12f247bcf042504342b73fb700000000000000000000009f",
+    "name": "Balancer Stable USD3",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x2a22f9c3b484c3629090feed35f17ff8f88f76f0",
+        "symbol": "USDC.e"
+    },
+    {
+        "address": "0x4ecaba5870353805a9f068101a40e0f32ed605c6",
+        "symbol": "USDT"
+    },
+    {
+        "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+        "symbol": "sDAI"
+    },
+    {
+        "address": "0xfc095c811fe836ed12f247bcf042504342b73fb7",
+        "symbol": "sBAL3"
+    }
+    ]
+},
+{
+    "id": "0xbc2acf5e821c5c9f8667a36bb1131dad26ed64f9000200000000000000000063",
+    "name": "Balancer 50sDAI-50wstETH",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6",
+        "symbol": "wstETH"
+    },
+    {
+        "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+        "symbol": "sDAI"
+    }
+    ]
+},
+{
+    "id": "0x8dd4df4ce580b9644437f3375e54f1ab0980822800020000000000000000009c",
+    "name": "Gyroscope ECLP wstETH/WETH",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
+        "symbol": "WETH"
+    },
+    {
+        "address": "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6",
+        "symbol": "wstETH"
+    }
+    ]
+},
+{
+    "id": "0x71e1179c5e197fa551beec85ca2ef8693c61b85b0002000000000000000000a0",
+    "name": "Gyroscope ECLP rETH/WETH",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
+        "symbol": "WETH"
+    },
+    {
+        "address": "0xc791240d1f2def5938e2031364ff4ed887133c3d",
+        "symbol": "rETH"
+    }
+    ]
+},
+{
+    "id": "0xdd439304a77f54b1f7854751ac1169b279591ef7000000000000000000000064",
+    "name": "Balancer EURe/sDAI",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+        "symbol": "sDAI"
+    },
+    {
+        "address": "0xcb444e90d8198415266c6a2724b7900fb12fc56e",
+        "symbol": "EURe"
+    },
+    {
+        "address": "0xdd439304a77f54b1f7854751ac1169b279591ef7",
+        "symbol": "EURe/sDAI"
+    }
+    ]
+},
+{
+    "id": "0xe2343512dcf8a23d81e6cdc2fac656db1ff83aa100020000000000000000009b",
+    "name": "B-50WBTC-50WETH",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
+        "symbol": "WETH"
+    },
+    {
+        "address": "0x8e5bbbb09ed1ebde8674cda39a0c169401db4252",
+        "symbol": "WBTC"
+    }
+    ]
+},
+{
+    "id": "0xae2a38545167be5a2eba9b931b28de5a7d95315e0002000000000000000000cc",
+    "name": "50bCSPX-50sDAI",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x1e2c4fb7ede391d116e6b41cd0608260e8801d59",
+        "symbol": "bCSPX"
+    },
+    {
+        "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+        "symbol": "sDAI"
+    }
+    ]
+},
+{
+    "id": "0x4cdabe9e07ca393943acfb9286bbbd0d0a310ff600020000000000000000005c",
+    "name": "Balancer 50wstETH-50COW",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x177127622c4a00f3d409b75571e12cb3c8973d3c",
+        "symbol": "COW"
+    },
+    {
+        "address": "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6",
+        "symbol": "wstETH"
+    }
+    ]
+},
+{
+    "id": "0x3220c83e953186f2b9ddfc0b5dd69483354edca20000000000000000000000b0",
+    "name": "Balancer osGNO/GNO StablePool",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x3220c83e953186f2b9ddfc0b5dd69483354edca2",
+        "symbol": "osGNO/GNO-BPT"
+    },
+    {
+        "address": "0x9c58bacc331c9aa871afd802db6379a98e80cedb",
+        "symbol": "GNO"
+    },
+    {
+        "address": "0xf490c80aae5f2616d3e3bda2483e30c4cb21d1a0",
+        "symbol": "osGNO"
+    }
+    ]
+},
+{
+    "id": "0x79c872ed3acb3fc5770dd8a0cd9cd5db3b3ac985000200000000000000000067",
+    "name": "50OLAS-50WXDAI",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0xce11e14225575945b8e6dc0d4f2dd4c570f79d9f",
+        "symbol": "OLAS"
+    },
+    {
+        "address": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d",
+        "symbol": "WXDAI"
+    }
+    ]
+},
+{
+    "id": "0x00df7f58e1cf932ebe5f54de5970fb2bdf0ef06d00010000000000000000005b",
+    "name": "Balancer 50wstETH-25BAL-25AURA",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x1509706a6c66ca549ff0cb464de88231ddbe213b",
+        "symbol": "AURA"
+    },
+    {
+        "address": "0x6c76971f98945ae98dd7d4dfca8711ebea946ea6",
+        "symbol": "wstETH"
+    },
+    {
+        "address": "0x7ef541e2a22058048904fe5744f9c7e4c57af717",
+        "symbol": "BAL"
+    }
+    ]
+},
+{
+    "id": "0x21d4c792ea7e38e0d0819c2011a2b1cb7252bd9900020000000000000000001e",
+    "name": "50COW-50GNO",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x177127622c4a00f3d409b75571e12cb3c8973d3c",
+        "symbol": "COW"
+    },
+    {
+        "address": "0x9c58bacc331c9aa871afd802db6379a98e80cedb",
+        "symbol": "GNO"
+    }
+    ]
+},
+{
+    "id": "0x06135a9ae830476d3a941bae9010b63732a055f4000000000000000000000065",
+    "name": "Balancer Stable stEUR EURe pool",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x004626a008b1acdc4c74ab51644093b155e59a23",
+        "symbol": "stEUR"
+    },
+    {
+        "address": "0x06135a9ae830476d3a941bae9010b63732a055f4",
+        "symbol": "stEUR/EURe"
+    },
+    {
+        "address": "0xcb444e90d8198415266c6a2724b7900fb12fc56e",
+        "symbol": "EURe"
+    }
+    ]
+},
+{
+    "id": "0x7e7419ebef7171c84409b7a1c3a5d4538c98d4a10002000000000000000000de",
+    "name": "Gyroscope ECLP GYD/sDAI",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+        "symbol": "sDAI"
+    },
+    {
+        "address": "0xca5d8f8a8d49439357d3cf46ca2e720702f132b8",
+        "symbol": "GYD"
+    }
+    ]
+},
+{
+    "id": "0x9d93f38b75b376acdfe607cd1ecf4495e047deff00000000000000000000009e",
+    "name": "Balancer GBPe/sDAI",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x5cb9073902f2035222b9749f8fb0c9bfe5527108",
+        "symbol": "GBPe"
+    },
+    {
+        "address": "0x9d93f38b75b376acdfe607cd1ecf4495e047deff",
+        "symbol": "GBPe/sDAI"
+    },
+    {
+        "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+        "symbol": "sDAI"
+    }
+    ]
+},
+{
+    "id": "0xa9b2234773cc6a4f3a34a770c52c931cba5c24b2000200000000000000000087",
+    "name": "B-50SAFE-50GNO",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0x4d18815d14fe5c3304e87b3fa18318baa5c23820",
+        "symbol": "SAFE"
+    },
+    {
+        "address": "0x9c58bacc331c9aa871afd802db6379a98e80cedb",
+        "symbol": "GNO"
+    }
+    ]
+},
+{
+    "id": "0xaa56989be5e6267fc579919576948db3e1f108070002000000000000000000ca",
+    "name": "Gyroscope ECLP sDAI/USDC.e Rehype",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0xaf204776c7245bf4147c2612bf6e5972ee483701",
+        "symbol": "sDAI"
+    },
+    {
+        "address": "0xf0e7ec247b918311afa054e0aedb99d74c31b809",
+        "symbol": "waUSDCn"
+    }
+    ]
+},
+{
+    "id": "0x263a6edafa6444dc2ae550f9eff6344c1686d6aa0002000000000000000000d5",
+    "name": "Gyroscope ECLP GYD/AUSDC.e",
+    "chain": "GNOSIS",
+    "poolTokens": [
+    {
+        "address": "0xca5d8f8a8d49439357d3cf46ca2e720702f132b8",
+        "symbol": "GYD"
+    },
+    {
+        "address": "0xf0e7ec247b918311afa054e0aedb99d74c31b809",
+        "symbol": "waUSDCn"
+    }
+    ]
+}
+]
