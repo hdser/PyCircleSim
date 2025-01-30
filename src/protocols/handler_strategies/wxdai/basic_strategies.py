@@ -15,20 +15,9 @@ class ApproveStrategy(BaseStrategy):
             'value': 0            # Transaction value
         }
             
+        params['guy'] = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'  # type: address
+        params['wad'] = int(10e28) # type: uint256
         
-        
-        
-        params['guy'] = None  # type: address
-        
-        
-        
-        
-        
-        params['wad'] = None  # type: uint256
-        
-        
-        
-
         return params
 
 

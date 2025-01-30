@@ -168,7 +168,7 @@ class BalancerV2VaultClient:
     
     
     
-    def exitPool(self, sender: str, value: int, poolId: bytes, account_sender: str, recipient: str, request: Any, context: Optional['SimulationContext'] = None) -> bool:
+    def exitPool(self, sender: str, value: int, poolId: bytes, sender_account: str, recipient: str, request: Any, context: Optional['SimulationContext'] = None) -> bool:
         """exitPool implementation
 
         Args:
@@ -186,7 +186,7 @@ class BalancerV2VaultClient:
         """
         try:
             tx = self.contract.exitPool(
-                poolId, account_sender, recipient, request, 
+                poolId, sender_account, recipient, request, 
                 sender=sender,
                 value=value
             )
@@ -678,7 +678,7 @@ class BalancerV2VaultClient:
     
     
     
-    def setRelayerApproval(self, sender: str, value: int, account_sender: str, relayer: str, approved: bool, context: Optional['SimulationContext'] = None) -> bool:
+    def setRelayerApproval(self, sender: str, value: int, sender_account: str, relayer: str, approved: bool, context: Optional['SimulationContext'] = None) -> bool:
         """setRelayerApproval implementation
 
         Args:
@@ -694,7 +694,7 @@ class BalancerV2VaultClient:
         """
         try:
             tx = self.contract.setRelayerApproval(
-                account_sender, relayer, approved, 
+                sender_account, relayer, approved, 
                 sender=sender,
                 value=value
             )

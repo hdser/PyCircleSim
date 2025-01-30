@@ -9,120 +9,46 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
-  circles_newuser: 0
 
 # Agent profiles and their actions
 profiles:
   circles_user:
-    description: "Regular network participant with standard behavior"
+    description: "Regular network participant"
     base_config:
       target_account_count: 1
-      max_daily_actions: 20    # Maximum actions per day
-      risk_tolerance: 0.3      # Risk factor 0-1
-      preferred_networks: ["gnosis"]  # Preferred networks
+      max_executions: 10
+      risk_tolerance: 0.5
+      sequence_probability: 0.7
+      max_sequence_iterations: 10
       preset_addresses: 
-       # - "0xD11713721353Eda1df56433642aD7bB14a77CF60"
-       # - "0xA6247834B41771022498F63CAE8820fFEE208265"
         - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
-       # - "0x14c16ce62d26fd51582a646e2e30a3267b1e6d7e"
-       
-    available_actions:
-      - action: "balancerv2vault_JoinPool"
-        probability: 1
-        cooldown_blocks: 1
-        max_executions: 1
-        constraints:
-          token0_max: 1.0
-          token0_min: 0.001
-          token1_max: 1.0
-          token1_min: 0.001
 
-      - action: "circleshub_OperateFlowMatrix"
-        probability: 1
-        cooldown_blocks: 1
-        constraints:
-          max_flow: 1000 #CRC
-          min_flow: 1 #CRC
+    action_sequences:
+      - name: "deposit_and_join_sequence"
+        max_executions: 5
+        steps:
+          - action: "batchcall_BatchCall"
+            repeat: 1
+            batchcall:
+              deposit_and_swap: 1
+            constraints: {}
+            params:
+              value: "1000000000000000000"  # 1 xDAI
 
-      - action: "balancerv2lbpfactory_Create"
-        probability: 1
-        cooldown_blocks: 1
-        max_executions: 1
+          - action: "balancerv2vault_JoinPool"
+            repeat: 1
+            constraints:
+              token0_min: 0.001
+              token0_max: 1.0
 
-      - action: "balancerv2vault_Swap"
-        probability: 0.9
-        cooldown_blocks: 1
-
-      - action: "balancerv2vault_BatchSwap"
-        probability: 0.9
-        cooldown_blocks: 1
-
-
-      - action: "circleshub_Wrap"
-        probability: 0.5
-        cooldown_blocks: 1
-        max_value: 10.0
-        constraints:
-          min_balance: 1.0
-
-
-    #  - action: "circleshub_SafeTransferFrom"
-    #    probability: 1
-    #    cooldown_blocks: 1
-    #    max_value: 10.0
-    #    constraints:
-    #      preferred_targets: "trusted_accounts"
-
-  circles_newuser:
-    description: "Regular network participant with standard behavior"
-    base_config:
-      target_account_count: 100  # Number of accounts this agent controls
-      max_daily_actions: 20    # Maximum actions per day
-      preferred_networks: ["gnosis"]  # Preferred networks
-      
-    available_actions:
-      - action: "circleshub_Wrap"
-        probability: 0.5
-        cooldown_blocks: 1
-        max_value: 10.0
-        constraints:
-          min_balance: 1.0
-
+    available_actions:   
       - action: "circleshub_Trust"
-        probability: 1
-        cooldown_blocks: 1
-
-      - action: "circleshub_RegisterGroup"
-        probability: 0.1
-        cooldown_blocks: 10
-        constraints:
-          max_executions: 1
-
-      - action: "circleshub_RegisterHuman"
-        probability: .5
-        cooldown_blocks: 1
-        constraints:
-          max_accounts_per_day: 5
-
-      - action: "circleshub_PersonalMint"
         probability: 0.8
         cooldown_blocks: 2
-        constraints:
-          max_executions: 100
+        max_executions: 5
 
-      - action: "circleshub_GroupMint"
-        probability: 0.4
-        cooldown_blocks: 1
-        max_value: 50.0
-        constraints:
-          min_collateral_ratio: 1.5
-          max_mint_per_day: 1000.0
-
-      - action: "circleshub_Burn"
-        probability: 0.4
-        cooldown_blocks: 1
-        max_value: 50.0
-        constraints:
-          min_collateral_ratio: 1.5
-          max_mint_per_day: 1000.0
-
+      - action: "batchcall_BatchCall"
+        probability: 0
+        cooldown_blocks: 0
+        max_executions: 0
+        batchcall: "deposit_and_swap"

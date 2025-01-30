@@ -12,13 +12,13 @@ logger = get_logger(__name__, logging.DEBUG)
 
 class BatchSwapStrategy(BaseStrategy):
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+
+        vault_address = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
         sender = self.get_sender(context)
         if not sender:
             logger.info("No sender found")
             return None
 
-        logger.info("=== Starting BatchSwapStrategy ===")
-        logger.info(f"Sender: {sender}")
 
         # Get ERC20 client
         erc20_client = context.get_client('erc20')
@@ -45,6 +45,22 @@ class BatchSwapStrategy(BaseStrategy):
         logger.info(f"Token balance: {token_balance}")
         if token_balance == 0:
             logger.info("No balance available")
+            return {}
+        
+        try:
+            tx = erc20_client.approve(
+                token_address=start_token,
+                spender=vault_address,
+                amount=token_balance, 
+                sender=sender,
+                value=0
+            )
+            if not tx:
+                logger.error(f"Approval failed for token {start_token}")
+                return {}
+            logger.info(f"Successfully approved token {start_token}")
+        except Exception as e:
+            logger.error(f"Error during approval for token {start_token}: {e}")
             return {}
 
         # Calculate swap amount
@@ -241,6 +257,7 @@ class FlashLoanStrategy(BaseStrategy):
 
 
 class JoinPoolStrategy(BaseStrategy):
+
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
         if not sender:
@@ -254,6 +271,76 @@ class JoinPoolStrategy(BaseStrategy):
 
         if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
             return {}
+        
+        
+        if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory'].get('state'), dict):
+            return {}
+        
+        if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory']['state'].get('LBPs'), dict):
+            return {}
+        
+        LBPs_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']['LBPs']
+        poolId_list = [poolId for poolId in LBPs_state.keys() if LBPs_state[poolId]['owner']==sender]
+
+        if not poolId_list:
+            return {}
+
+        poolId = random.choice(poolId_list)
+        assets = LBPs_state[poolId]['tokens']
+        vault_address = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
+        maxAmountsIn = []
+
+
+        #------------------------------------------
+        # ERC20 Approve
+        #------------------------------------------
+        # Get ERC20 client
+        erc20_client = context.get_client('erc20')
+        if not erc20_client:
+            logger.warning("ERC20 client not found in context")
+            return {}
+        
+        for i, token_address in enumerate(assets):
+            token_balance = erc20_client.balance_of(token_address, sender)
+            if not token_balance > 0:
+                return {}
+
+            maxAmountsIn.append(token_balance)
+               
+        print(maxAmountsIn)
+
+        # Prepare join parameters
+        join_kind = 0  # INIT join kind
+        userData = encode(['uint256', 'uint256[]'], [join_kind, maxAmountsIn])
+        fromInternalBalance = False
+
+        params['poolId'] = poolId
+        params['sender_account'] = sender
+        params['recipient'] = sender
+        params['request'] = {
+            'assets': assets,
+            'maxAmountsIn': maxAmountsIn,
+            'userData': userData,
+            'fromInternalBalance': fromInternalBalance,
+        }
+
+        print(params)
+        return params
+    
+    def get_params2(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
+        sender = self.get_sender(context)
+        if not sender:
+            return {}
+            
+        # Initialize parameters with transaction details
+        params = {
+            'sender': sender,    
+            'value': 0           
+        }
+
+        if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
+            return {}
+        
         
         if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory'].get('state'), dict):
             return {}
@@ -572,26 +659,9 @@ class SetRelayerApprovalStrategy(BaseStrategy):
             'value': 0            # Transaction value
         }
             
-        
-        
-        
         params['sender_account'] = None  # type: address (renamed from 'sender')
-        
-        
-        
-        
-        
         params['relayer'] = None  # type: address
-        
-        
-        
-        
-        
         params['approved'] = None  # type: bool
-        
-        
-        
-
         return params
 
 

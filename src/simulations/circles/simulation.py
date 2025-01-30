@@ -8,11 +8,12 @@ from ape import networks, chain
 from src.framework.simulation.base import BaseSimulation, BaseSimulationConfig
 from src.framework.logging import get_logger
 from src.protocols.interfaces.circleshub import CirclesHubClient
-from src.protocols.interfaces.circlesbackingfactory import CirclesBackingFactoryClient
+from src.protocols.interfaces.circleserc20lift import CirclesERC20LiftClient
 from src.protocols.interfaces.wxdai import WXDAIClient
 from src.protocols.interfaces.balancerv2vault import BalancerV2VaultClient
 from src.protocols.interfaces.balancerv2lbpfactory import BalancerV2LBPFactoryClient
 from src.protocols.interfaces.erc20 import ERC20Client
+from src.protocols.interfaces.batchcall import BatchCallClient
 
 from src.framework.state.graph_converter import StateToGraphConverter
 from src.pathfinder import GraphManager
@@ -55,10 +56,10 @@ class CirclesSimulation(BaseSimulation):
             'abi_folder': 'circles',
             'strategy': 'basic'
         },
-        'circleslbp': {
-            'address': '0x4bB5A425a68ed73Cf0B26ce79F5EEad9103C30fc',
-            'client_class': CirclesBackingFactoryClient,
-            'module_name': 'circlesbackingfactory',
+        'circleserc20lift': {
+            'address': '0x5F99a795dD2743C36D63511f0D4bc667e6d3cDB5',
+            'client_class': CirclesERC20LiftClient,
+            'module_name': 'circleserc20lift',
             'abi_folder': 'circles',
             'strategy': 'basic'
         },
@@ -84,13 +85,19 @@ class CirclesSimulation(BaseSimulation):
             'strategy': 'basic'
         },
         'erc20': {
-        'address': '',  # Generic
-        'client_class': ERC20Client,
-        'module_name': 'erc20',
-        'abi_folder': 'tokens',
-        'abi_name': 'erc20.json',
-        'strategy': 'basic'
-    }
+            'address': '',  # Generic
+            'client_class': ERC20Client,
+            'module_name': 'erc20',
+            'abi_folder': 'tokens',
+            'abi_name': 'erc20.json',
+            'strategy': 'basic'
+        },
+        'batchcall': {
+            'address': '',  
+            'client_class': BatchCallClient,
+            'module_name': 'batchcall',
+            'strategy': 'basic'
+        }
     }
 
     def __init__(self, config: BaseSimulationConfig, contract_configs: Dict[str, Any], fast_mode: bool = True):
@@ -348,6 +355,7 @@ class CirclesSimulation(BaseSimulation):
                     event_data = decoded_log.event_arguments
                     poolId = event_data.get('poolId')
                     poolAddress = event_data.get('poolAddress')
+                    print(poolId, poolAddress)
 
                     
                     if not isinstance(lbpfactory_state.get('LBPs'), dict):
@@ -492,8 +500,7 @@ class CirclesSimulation(BaseSimulation):
     def _load_pools_data(self) -> Dict[str, Any]:
         """Load pools configuration data"""
         try:
-            # Changed from balancerv2_top20_pools.txt to paste.txt
-            pools_file = Path(__file__).parent / "_configs" / "balancerv2_top20_pools.txt"
+            pools_file = Path(__file__).parent / "_configs" / "balancerv2_top_pools.txt"
             with open(pools_file, 'r') as f:
                 import json
                 pools_data = json.load(f)

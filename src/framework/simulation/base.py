@@ -292,8 +292,78 @@ class BaseSimulation(ABC):
         protocols_path = str(self.project_root / "src" / "protocols")
         manager.registry.discover_actions(protocols_path)
         return manager
-
+    
     def _initialize_clients(self) -> Dict[str, Any]:
+        """Initialize all contract clients including MultiCall and BatchCall"""
+        clients = {}
+        
+        # First initialize all regular clients
+        for name, config in self.contract_configs.items():
+            if name in ['multicall', 'batchcall']:  # Skip special clients for now
+                continue
+                    
+            try:
+                abi_dir = self.project_root / "src" / "protocols" / "abis" / config['abi_folder']
+                
+                # Handle generic ABIs (like ERC20) vs contract-specific ABIs
+                if config.get('abi_name'):
+                    # Use specified ABI name for generic interfaces
+                    abi_path = abi_dir / config['abi_name']
+                else:
+                    # Use contract address for specific contracts
+                    abi_path = abi_dir / f"{config['address']}.json"
+                
+                if not abi_path.exists():
+                    logger.warning(f"ABI file not found for {name} at {abi_path}")
+                    continue
+
+                # Fallback if module_name is not in config:
+                module_name = config.get('module_name', name)
+
+                strategy = config.get(
+                    config['module_name'], 
+                    config.get('strategy', 'basic')
+                )
+                logger.info(f"Initializing {name} client with {strategy} strategy")
+
+                client = config['client_class'](
+                    config['address'],
+                    str(abi_path),
+                    gas_limits=self.config.network_config.get('gas_limits', {}),
+                    data_collector=self.collector
+                )
+                
+                # Store clients by their module_name
+                clients[module_name] = client
+                setattr(self, f"{name}_client", client)
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize {name} client: {e}")
+                raise
+                
+        # Now initialize special clients (MultiCall and BatchCall) with all available clients
+        try:
+            if 'multicall' in self.contract_configs:
+                from src.protocols.interfaces.multicall import MultiCallClient
+                multicall_client = MultiCallClient(clients, collector=self.collector)
+                clients['multicall'] = multicall_client
+                setattr(self, 'multicall_client', multicall_client)
+                logger.info("Initialized MultiCall client with all available contracts")
+
+            if 'batchcall' in self.contract_configs:
+                from src.protocols.interfaces.batchcall import BatchCallClient
+                batchcall_client = BatchCallClient(clients, collector=self.collector)
+                clients['batchcall'] = batchcall_client
+                setattr(self, 'batchcall_client', batchcall_client)
+                logger.info("Initialized BatchCall client with all available contracts")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize special clients: {e}")
+            raise
+        
+        return clients
+
+    def _initialize_clients2(self) -> Dict[str, Any]:
         """Initialize all contract clients"""
         clients = {}
         
@@ -339,44 +409,6 @@ class BaseSimulation(ABC):
                 
         return clients
     
-    def _initialize_clients2(self) -> Dict[str, Any]:
-        """Initialize all contract clients"""
-        clients = {}
-        
-        for name, config in self.contract_configs.items():
-            try:
-                abi_dir = self.project_root / "src" / "protocols" / "abis" / config['abi_folder']
-                abi_path = abi_dir / f"{config['address']}.json"
-                
-                if not abi_path.exists():
-                    logger.warning(f"ABI file not found for {name}")
-                    continue
-
-                # Fallback if module_name is not in config:
-                module_name = config.get('module_name', name)
-
-                strategy = config.get(
-                    config['module_name'], 
-                    config.get('strategy', 'basic')
-                )
-                logger.info(f"Initializing {name} client with {strategy} strategy")
-
-                client = config['client_class'](
-                    config['address'],
-                    str(abi_path),
-                    gas_limits=self.config.network_config.get('gas_limits', {}),
-                    data_collector=self.collector
-                )
-                
-                # Store clients by their module_name
-                clients[module_name] = client
-                setattr(self, f"{name}_client", client)
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize {name} client: {e}")
-                raise
-                
-        return clients
 
     def _initialize_builder(self) -> NetworkBuilder:
         """Initialize network builder"""
