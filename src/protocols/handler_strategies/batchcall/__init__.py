@@ -1,11 +1,11 @@
 from .basic_strategies import (
     DepositOnlyStrategy,
-    DepositAndSwapStrategy,
+    SetupLBPStrategy,
     available_calls
 )
 
 __all__ = [
     'DepositOnlyStrategy',
-    'DepositAndSwapStrategy',
+    'SetupLBPStrategy',
     'available_calls'
 ]

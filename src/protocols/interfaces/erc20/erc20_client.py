@@ -5,7 +5,7 @@ from src.framework.logging import get_logger
 import logging
 import json
 
-logger = get_logger(__name__, logging.DEBUG)
+logger = get_logger(__name__)
 
 class ERC20Client:
     """Generic ERC20 token client that can be instantiated with any token address"""
@@ -33,7 +33,7 @@ class ERC20Client:
         try:
             with open(abi_path) as f:
                 self.abi = json.load(f)
-            logger.info(f"Successfully loaded ERC20 ABI from {abi_path}")
+            logger.debug(f"Successfully loaded ERC20 ABI from {abi_path}")
         except Exception as e:
             logger.error(f"Failed to load ABI from {abi_path}: {e}")
             raise
@@ -42,13 +42,13 @@ class ERC20Client:
         """Get or create Contract instance for token address"""
         if token_address not in self._contracts:
             try:
-                logger.info(f"Creating new contract instance for token {token_address}")
+                logger.debug(f"Creating new contract instance for token {token_address}")
                 # Create contract using address and loaded ABI
                 self._contracts[token_address] = Contract(
                     address=token_address,
                     abi=self.abi
                 )
-                logger.info(f"Successfully created contract instance for {token_address}")
+                logger.debug(f"Successfully created contract instance for {token_address}")
             except Exception as e:
                 logger.error(f"Failed to create contract for {token_address}: {e}")
                 return None

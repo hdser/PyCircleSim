@@ -3,6 +3,7 @@ from src.protocols.handler_strategies.base import BaseStrategy
 from src.framework.core import SimulationContext
 from src.framework.logging import get_logger
 from src.protocols.handler_strategies.batchcall.basic_strategies import available_calls
+import importlib
 import random
 
 logger = get_logger(__name__)
@@ -15,46 +16,58 @@ class BatchCallHandler:
         self.client = client
         self.chain = chain
         self.logger = logger
-        # Create strategy attribute to match interface
-        self.strategy = self
+        
+        # Load appropriate strategy
+        try:
+            module_path = f"src.protocols.handler_strategies.batchcall.{strategy_name}_strategies"
+            strategy_module = importlib.import_module(module_path)
+            # Look for specific strategies like SetupLBPStrategy in the available_calls
+            self.strategy = self  # Default to self if no specific strategy found
+            for strategy_class in available_calls.values():
+                if isinstance(self, strategy_class):
+                    self.strategy = strategy_class()
+                    break
+        except (ImportError, AttributeError) as e:
+            self.logger.error(f"Failed to load strategy {strategy_name}: {e}")
+            self.strategy = self
 
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
-        """Get parameters for batch call execution"""
+        """Retrieve parameters for batch call execution, ensuring sequence consistency."""
         try:
-            # Get call type from agent's action config
-            action_config = context.agent.profile.action_configs['batchcall_BatchCall']
-            if not action_config.batchcall:
-                self.logger.error("No batch call type configured")
+            agent = context.agent
+            # Get current sequence state and address
+            addresses = list(agent.accounts.keys())
+            if not addresses:
                 return None
 
-            # Handle both string and dict configurations
-            if isinstance(action_config.batchcall, str):
-                call_type = action_config.batchcall
-            else:
-                # Select call type based on configured probabilities
-                call_type = random.choices(
-                    list(action_config.batchcall.keys()),
-                    weights=list(action_config.batchcall.values())
-                )[0]
+            # Check each address for active sequences
+            for address in addresses:
+                seq_state = agent.sequence_states.get(address)
+                if not seq_state:
+                    continue
 
-            self.logger.debug(f"Selected batch call type: {call_type}")
-            
-            # Get appropriate strategy for call type
-            strategy_class = available_calls.get(call_type)
-            if not strategy_class:
-                self.logger.error(f"No strategy found for call type: {call_type}")
-                return None
+                # Get active sequence info
+                for sequence in agent.profile.sequences:
+                    state = seq_state.get(sequence.name, {})
+                    if not state.get("active"):
+                        continue
 
-            # Initialize strategy and get parameters
-            strategy = strategy_class()
-            batch_params = strategy.get_params(context)
-            if not batch_params:
-                self.logger.warning("Failed to get batch parameters")
-                return None
+                    current_step = state.get("current_step_index", 0)
+                    if current_step < len(sequence.steps):
+                        step = sequence.steps[current_step]
+                        if step.action == "batchcall_BatchCall" and step.batchcall:
+                            # Get batchcall type
+                            call_type = list(step.batchcall.keys())[0]
+                            strategy_class = available_calls.get(call_type)
+                            if strategy_class:
+                                strategy = strategy_class()
+                                batch_params = strategy.get_params(context)
+                                if batch_params:
+                                    # The strategy's get_params already includes batch_calls
+                                    return batch_params
 
-            # Log parameters for debugging
-            self.logger.debug(f"Batch parameters: {batch_params}")
-            return batch_params
+            self.logger.debug("No active batch call sequences found")
+            return None
 
         except Exception as e:
             self.logger.error(f"Failed to get batch parameters: {e}")
@@ -63,15 +76,17 @@ class BatchCallHandler:
     def execute(self, context: SimulationContext, params: Dict[str, Any] = None) -> bool:
         """Execute batch call operation"""
         try:
-            self.logger.debug(f"BatchCallHandler executing with params: {params}")
-            
             if not params:
                 params = self.get_params(context)
                 if not params:
                     return False
 
-            # Execute batch call
-            return self.client.execute_batch(params,context)
+            # Execute batch calls that were prepared by the strategy
+            if 'batch_calls' in params:
+                return self.client.execute_batch(params['batch_calls'], context)
+            else:
+                self.logger.error("No batch_calls found in params")
+                return False
 
         except Exception as e:
             self.logger.error(f"Batch call execution failed: {e}")

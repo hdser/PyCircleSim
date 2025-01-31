@@ -7,7 +7,7 @@ import logging
 from src.pathfinder import GraphManager
 from datetime import datetime
 
-logger = get_logger(__name__,logging.DEBUG)
+logger = get_logger(__name__)
 
 @dataclass
 class CacheEntry:

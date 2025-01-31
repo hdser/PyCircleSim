@@ -3,10 +3,22 @@ from src.protocols.handler_strategies.base import BaseStrategy
 from src.framework.core import SimulationContext
 from src.framework.logging import get_logger
 import random
+import logging
 
-logger = get_logger(__name__)
+logger = get_logger(__name__,logging.DEBUG)
 
-class DepositAndSwapStrategy(BaseStrategy):
+def get_constraints(sequence_name, sequence_step, context):
+    constraints = {}
+    for sequence in context.agent.profile.sequences:
+        if sequence.name==sequence_name:
+            for step in sequence.steps:
+                if step.batchcall:
+                    if sequence_step in step.batchcall.keys():
+                        constraints = step.constraints
+    return constraints
+        
+
+class SetupLBPStrategy(BaseStrategy):
     """Strategy for depositing xDAI and swapping on Balancer"""
     
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
@@ -14,11 +26,19 @@ class DepositAndSwapStrategy(BaseStrategy):
         if not sender:
             return None
             
-        value = int(10e18)  # 10 xDAI
+        
         VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
-        WXDAI = '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d'  # WxDAI
-        BACKING_ASSET = '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1'   # WETH
+        WXDAI = '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d'
         CIRCLES_HUB = '0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8' 
+
+        constraints = get_constraints('full_setup_lbp','setup_lbp', context)
+        #constraints = self.get_constraints(context,'full_setup_lbp', 'setup_lbp')
+        xDAI_value = int(constraints.get('xDAI_value',100) * 1e18 )
+        CRC_value = int(constraints.get('CRC_value',48) * 1e18 )
+        CRC_token = constraints.get('CRC_token',sender)
+        WRAP_TYPE = constraints.get('WRAP_TYPE',0)
+        BACKING_ASSET = constraints.get('BACKING_ASSET','0xaf204776c7245bF4147c2612BF6e5972Ee483701')
+        
 
         batch_calls = []
 
@@ -29,7 +49,7 @@ class DepositAndSwapStrategy(BaseStrategy):
             'method': 'deposit',
             'params': {
                 'sender': sender,
-                'value': value
+                'value': xDAI_value
             }
         })
 
@@ -41,12 +61,14 @@ class DepositAndSwapStrategy(BaseStrategy):
             'params': {
                 'token_address': WXDAI,
                 'spender': VAULT,
-                'amount': value * 2, 
+                'amount': xDAI_value * 2, 
                 'sender': sender,
                 'value': 0
             }
         })
 
+        path_price = context.find_swap_path(BACKING_ASSET, '0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0')
+        print(path_price)
         # 3) Swap WxDAI to Token
         #_____________________________________
         path = context.find_swap_path(WXDAI, BACKING_ASSET)
@@ -69,7 +91,7 @@ class DepositAndSwapStrategy(BaseStrategy):
                     'poolId': hop['pool_id'],
                     'assetInIndex': assets.index(hop['from_token']),
                     'assetOutIndex': assets.index(hop['to_token']),
-                    'amount': value if i == 0 else 0,
+                    'amount': xDAI_value if i == 0 else 0,
                     'userData': b''
                 })
                 logger.debug(f"Added swap {i}: {hop['from_token']} -> {hop['to_token']}")
@@ -79,7 +101,7 @@ class DepositAndSwapStrategy(BaseStrategy):
 
         # Set limits with 5% slippage
         slippage = 0.05
-        limits = [int(value * (1 + slippage)) if i == 0 else 0 for i in range(len(assets))]
+        limits = [int(xDAI_value * (1 + slippage)) if i == 0 else 0 for i in range(len(assets))]
 
         # Finally append batch swap operation
         batch_calls.append({
@@ -96,7 +118,9 @@ class DepositAndSwapStrategy(BaseStrategy):
                     'toInternalBalance': False
                 },
                 'limits': limits,
-                'deadline': int(context.chain.blocks.head.timestamp + 3600)
+                'deadline': int(context.chain.blocks.head.timestamp + 3600),
+                'sender': sender,
+                'value': 0
             }
         })
 
@@ -110,15 +134,17 @@ class DepositAndSwapStrategy(BaseStrategy):
         if not client:
             return {}
 
-        id = client.toTokenId(sender) 
+        id = client.toTokenId(CRC_token) 
         balance = client.balanceOf(sender, id)
-        wrap_amount = int(48e18)
-
-        if balance < wrap_amount:
+        print(sender, CRC_token, id, balance)
+        
+        
+        if balance < CRC_value:
+            logger.debug(f"Balance {balance} < {CRC_value}")
             return {}
         
 
-         # Add approval for CirclesHub
+        # Add approval for CirclesHub
         batch_calls.append({
             'client_name': 'circleshub',
             'method': 'setApprovalForAll',
@@ -135,9 +161,9 @@ class DepositAndSwapStrategy(BaseStrategy):
             'client_name': 'circleshub',
             'method': 'wrap', 
             'params': {
-                '_avatar': sender,
-                '_amount': wrap_amount,
-                '_type': 0,
+                '_avatar': CRC_token,
+                '_amount': CRC_value,
+                '_type': WRAP_TYPE,
                 'sender': sender,
                 'value': 0
             }
@@ -146,11 +172,12 @@ class DepositAndSwapStrategy(BaseStrategy):
 
         # 6) Create LBP Pool
         #_____________________________________
-        
+
         client_circleserc20 = context.get_client('circleserc20lift')
         if not client_circleserc20:
             return {}
-        CRC20 = client_circleserc20.erc20Circles(0,'0x42cEDde51198D1773590311E2A340DC06B24cB37')
+        CRC20 = client_circleserc20.erc20Circles(0,CRC_token)
+        print(CRC_token, CRC20)
         # Sort tokens and weights
         tokens = []
         weights = []
@@ -158,6 +185,7 @@ class DepositAndSwapStrategy(BaseStrategy):
         weight99 = 990000000000000000  # 99%
 
         # Ensure deterministic token order
+
         if CRC20 < BACKING_ASSET:
             tokens = [CRC20, BACKING_ASSET]
             weights = [weight1, weight99]
@@ -165,12 +193,13 @@ class DepositAndSwapStrategy(BaseStrategy):
             tokens = [BACKING_ASSET, CRC20]
             weights = [weight99, weight1]
 
+        id = str(random.randint(0,1000000))
         batch_calls.append({
             'client_name': 'balancerv2lbpfactory',
             'method': 'create', 
             'params': {
-                'name': 'Test Pool',
-                'symbol': 'TP',
+                'name': 'crc-test'+ id,
+                'symbol': 'TP'+ id,
                 'tokens': tokens,
                 'weights': weights,
                 'swapFeePercentage': 10000000000000000,  # 1%
@@ -208,7 +237,7 @@ class DepositAndSwapStrategy(BaseStrategy):
 
         params = {
             'sender': sender,
-            'value': value,  # This value is used for the deposit operation
+            'value': xDAI_value,  # This value is used for the deposit operation
             'batch_calls': batch_calls
         }
 
@@ -247,5 +276,5 @@ class DepositOnlyStrategy(BaseStrategy):
 # Map call names to strategy classes
 available_calls = {
     'deposit': DepositOnlyStrategy,
-    'deposit_and_swap': DepositAndSwapStrategy
+    'setup_lbp': SetupLBPStrategy
 }

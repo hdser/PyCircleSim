@@ -15,19 +15,9 @@ class EnsureERC20Strategy(BaseStrategy):
             'value': 0            # Transaction value
         }
             
+       # print(context.agent.profile.sequences)
+        params['_avatar'] = sender  # type: address
+        params['_circlesType'] = 0  # type: uint8
         
-        
-        
-        params['_avatar'] = None  # type: address
-        
-        
-        
-        
-        
-        params['_circlesType'] = None  # type: uint8
-        
-        
-        
-
         return params
 

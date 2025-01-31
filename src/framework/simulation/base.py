@@ -196,34 +196,6 @@ class BaseSimulation(ABC):
 
         return all_abis
 
-    def _load_contract_abis2(self) -> List[EventABI]:
-        """Load all contract ABIs from config and convert to EventABI objects"""
-        all_abis = []
-        for name, cfg in self.contract_configs.items():
-            try:
-                abi_path = (self.project_root / "src" / "protocols" / 
-                           "abis" / cfg['abi_folder'] / f"{cfg['address']}.json")
-                if abi_path.exists():
-                    with open(abi_path) as f:
-                        contract_abi = json.load(f)
-                        # Filter for event ABIs and convert to EventABI objects
-                        event_abis = [
-                            EventABI(
-                                name=item['name'],
-                                inputs=item.get('inputs', []),
-                                anonymous=item.get('anonymous', False)
-                            )
-                            for item in contract_abi 
-                            if item.get('type') == 'event'
-                        ]
-                        all_abis.extend(event_abis)
-                        logger.info(f"Loaded {len(event_abis)} events from ABI for {name}")
-                else:
-                    logger.warning(f"ABI file not found: {abi_path}")
-            except Exception as e:
-                logger.error(f"Failed to load ABI for {name}: {e}")
-                
-        return all_abis
 
     def _initialize_contract_states(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         """Initialize contract states from configuration"""
@@ -341,7 +313,7 @@ class BaseSimulation(ABC):
                 logger.error(f"Failed to initialize {name} client: {e}")
                 raise
                 
-        # Now initialize special clients (MultiCall and BatchCall) with all available clients
+        # initialize special clients (MultiCall and BatchCall) with all available clients
         try:
             if 'multicall' in self.contract_configs:
                 from src.protocols.interfaces.multicall import MultiCallClient
@@ -361,52 +333,6 @@ class BaseSimulation(ABC):
             logger.error(f"Failed to initialize special clients: {e}")
             raise
         
-        return clients
-
-    def _initialize_clients2(self) -> Dict[str, Any]:
-        """Initialize all contract clients"""
-        clients = {}
-        
-        for name, config in self.contract_configs.items():
-            try:
-                abi_dir = self.project_root / "src" / "protocols" / "abis" / config['abi_folder']
-                
-                # Handle generic ABIs (like ERC20) vs contract-specific ABIs
-                if config.get('abi_name'):
-                    # Use specified ABI name for generic interfaces
-                    abi_path = abi_dir / config['abi_name']
-                else:
-                    # Use contract address for specific contracts
-                    abi_path = abi_dir / f"{config['address']}.json"
-                
-                if not abi_path.exists():
-                    logger.warning(f"ABI file not found for {name} at {abi_path}")
-                    continue
-
-                # Fallback if module_name is not in config:
-                module_name = config.get('module_name', name)
-
-                strategy = config.get(
-                    config['module_name'], 
-                    config.get('strategy', 'basic')
-                )
-                logger.info(f"Initializing {name} client with {strategy} strategy")
-
-                client = config['client_class'](
-                    config['address'],
-                    str(abi_path),
-                    gas_limits=self.config.network_config.get('gas_limits', {}),
-                    data_collector=self.collector
-                )
-                
-                # Store clients by their module_name
-                clients[module_name] = client
-                setattr(self, f"{name}_client", client)
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize {name} client: {e}")
-                raise
-                
         return clients
     
 

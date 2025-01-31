@@ -260,6 +260,7 @@ class JoinPoolStrategy(BaseStrategy):
 
     def get_params(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
         sender = self.get_sender(context)
+
         if not sender:
             return {}
             
@@ -287,13 +288,13 @@ class JoinPoolStrategy(BaseStrategy):
 
         poolId = random.choice(poolId_list)
         assets = LBPs_state[poolId]['tokens']
-        vault_address = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
+        print(assets)
+        if assets[0] > assets[1]:
+            assets = assets[::-1]
+        print(assets)
         maxAmountsIn = []
 
 
-        #------------------------------------------
-        # ERC20 Approve
-        #------------------------------------------
         # Get ERC20 client
         erc20_client = context.get_client('erc20')
         if not erc20_client:
@@ -302,12 +303,12 @@ class JoinPoolStrategy(BaseStrategy):
         
         for i, token_address in enumerate(assets):
             token_balance = erc20_client.balance_of(token_address, sender)
+            print(sender, token_address, token_balance)
             if not token_balance > 0:
                 return {}
 
             maxAmountsIn.append(token_balance)
                
-        print(maxAmountsIn)
 
         # Prepare join parameters
         join_kind = 0  # INIT join kind
@@ -323,93 +324,9 @@ class JoinPoolStrategy(BaseStrategy):
             'userData': userData,
             'fromInternalBalance': fromInternalBalance,
         }
-
         print(params)
         return params
     
-    def get_params2(self, context: SimulationContext) -> Optional[Dict[str, Any]]:
-        sender = self.get_sender(context)
-        if not sender:
-            return {}
-            
-        # Initialize parameters with transaction details
-        params = {
-            'sender': sender,    
-            'value': 0           
-        }
-
-        if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
-            return {}
-        
-        
-        if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory'].get('state'), dict):
-            return {}
-        
-        if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory']['state'].get('LBPs'), dict):
-            return {}
-        
-        LBPs_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']['LBPs']
-        poolId_list = [poolId for poolId in LBPs_state.keys() if LBPs_state[poolId]['owner']==sender]
-
-        if not poolId_list:
-            return {}
-
-        poolId = random.choice(poolId_list)
-        assets = LBPs_state[poolId]['tokens']
-        vault_address = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
-        maxAmountsIn = []
-
-        constraints = context.agent.profile.action_configs['balancerv2vault_JoinPool'].constraints
-
-        #------------------------------------------
-        # ERC20 Approve
-        #------------------------------------------
-        # Get ERC20 client
-        erc20_client = context.get_client('erc20')
-        if not erc20_client:
-            logger.warning("ERC20 client not found in context")
-            return {}
-        
-        for i, token_address in enumerate(assets):
-            try:
-                token_balance = erc20_client.balance_of(token_address, sender)
-                if not token_balance > 0:
-                    return {}
-
-                maxAmountsIn.append(int(token_balance * random.uniform(0.1, 0.5)))
-               
-                tx = erc20_client.approve(
-                    token_address=token_address,
-                    spender=vault_address,
-                    amount=token_balance, 
-                    sender=sender,
-                    value=0
-                )
-                if not tx:
-                    logger.error(f"Approval failed for token {token_address}")
-                    return {}
-                logger.info(f"Successfully approved token {token_address}")
-            except Exception as e:
-                logger.error(f"Error during approval for token {token_address}: {e}")
-                return {}
-
-        # Prepare join parameters
-        join_kind = 0  # INIT join kind
-        userData = encode(['uint256', 'uint256[]'], [join_kind, maxAmountsIn])
-        fromInternalBalance = False
-
-        params['poolId'] = poolId
-        params['sender_account'] = sender
-        params['recipient'] = sender
-        params['request'] = {
-            'assets': assets,
-            'maxAmountsIn': maxAmountsIn,
-            'userData': userData,
-            'fromInternalBalance': fromInternalBalance,
-        }
-
-        return params
-
 
 
 class ManagePoolBalanceStrategy(BaseStrategy):

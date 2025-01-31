@@ -190,6 +190,15 @@ class CirclesSimulation(BaseSimulation):
                     mapping.append(pair)
                     unique_pairs.add(pair)
 
+            #for token in token_ids.keys():
+            #    pair = (avatar, token_ids[token])
+            #    if pair not in unique_pairs:
+            #        accounts_list.append(avatar)
+            #        ids_list.append(token_ids[avatar])
+            #        mapping.append(pair)
+            #        unique_pairs.add(pair)
+
+
             # Check all trustees
             trusted_map = trustMarkers.get(avatar, {})
             for trustee, expiry in trusted_map.items():
@@ -355,9 +364,8 @@ class CirclesSimulation(BaseSimulation):
                     event_data = decoded_log.event_arguments
                     poolId = event_data.get('poolId')
                     poolAddress = event_data.get('poolAddress')
-                    print(poolId, poolAddress)
 
-                    
+                   
                     if not isinstance(lbpfactory_state.get('LBPs'), dict):
                         lbpfactory_state['LBPs'] = {}
                     if poolId not in lbpfactory_state['LBPs']:
@@ -366,6 +374,7 @@ class CirclesSimulation(BaseSimulation):
                             'tokens': [],
                             'owner': tx.sender
                         }
+                       
 
                 elif decoded_log.event_name == 'TokensRegistered':
                     lbpfactory_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']
@@ -375,6 +384,7 @@ class CirclesSimulation(BaseSimulation):
                     tokens = event_data.get('tokens')
                     lbpfactory_state['LBPs'][poolId]['tokens'] = tokens
 
+            
             # Now collect all other involved addresses from the transaction
             for decoded_log in decoded_logs:
                 event_data = decoded_log.event_arguments

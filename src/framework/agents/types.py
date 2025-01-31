@@ -37,19 +37,7 @@ class ActionType(Enum):
     
     batchcall_BatchCall = auto()
     
-    circlesbackingfactory_CreateLBP = auto()
-    
-    circlesbackingfactory_ExitLBP = auto()
-    
-    circlesbackingfactory_GetPersonalCircles = auto()
-    
-    circlesbackingfactory_NotifyRelease = auto()
-    
-    circlesbackingfactory_OnERC1155Received = auto()
-    
-    circlesbackingfactory_SetReleaseTimestamp = auto()
-    
-    circlesbackingfactory_SetSupportedBackingAssetStatus = auto()
+    circleserc20lift_EnsureERC20 = auto()
     
     circleshub_Burn = auto()
     
@@ -98,8 +86,6 @@ class ActionType(Enum):
     erc20_Transfer = auto()
     
     erc20_TransferFrom = auto()
-    
-    multicall_LBPSetup = auto()
     
     ringshub_Burn = auto()
     

@@ -96,42 +96,6 @@ class NetworkEvolver():
                     exc_info=True
                 )
 
-    def _initialize_handlers2(self):
-        """Initialize all available action handlers with configured strategies"""
-        registry = self.agent_manager.registry
-
-        for action_name, metadata in registry._actions.items():
-            try:
-                interface_path = f"src.protocols.interfaces.{metadata.module_name}"
-                module = importlib.import_module(interface_path)
-                handler_class = getattr(module, metadata.handler_class)
-
-                client = self._get_client_for_module(metadata.module_name)
-                if not client:
-                    continue
-
-                strategy = getattr(self, 'strategy_config', {}).get(
-                    metadata.module_name,
-                    'basic'
-                )
-                
-                handler = handler_class(
-                    client=client,
-                    chain=chain,
-                    logger=logger,
-                    strategy_name=strategy
-                )
-                self.handlers[action_name] = handler
-                
-                logger.info(
-                    f"Initialized handler {action_name} with {strategy} strategy"
-                )
-                
-            except Exception as e:
-                logger.error(
-                    f"Failed to initialize handler for {action_name}: {e}",
-                    exc_info=True
-                )
         
                 
     def _get_client_for_module(self, module_name: str) -> Any:
@@ -203,15 +167,12 @@ class NetworkEvolver():
                     continue
 
                 handler = self.handlers.get(action_name)
-                print('handler',handler.strategy, action_name)
                 if not handler:
                     continue
                     
-                 # Get complete parameters from the strategy
+                
+                # Get complete parameters from the strategy
                 execution_params = handler.strategy.get_params(context)
-                #print(execution_params)
-                #if not execution_params:
-                #    continue
 
                 stats['total_actions'] += 1
                 success = handler.execute(context,execution_params)

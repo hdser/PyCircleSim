@@ -197,7 +197,8 @@ class OperateFlowMatrixStrategy(BaseStrategy):
         if not client:
             return None
 
-        addresses = [addr for addr in list(context.agent_manager.address_to_agent.keys()) if addr != sender]
+       # addresses = [addr for addr in list(context.agent_manager.address_to_agent.keys()) if addr != sender]
+        addresses = [addr for addr in list(context.agent.accounts.keys()) if addr != sender]
         if not addresses:
             return {}
         receiver = random.choice(addresses)
@@ -786,7 +787,7 @@ class MulticallCase1Strategy(BaseStrategy):
         # subcall #1: "circleshub_setApprovalForAll"
 
         subcall1_params = {
-            '_operator': "0xD608978aD1e1473fa98BaD368e767C5b11e3b3cE",
+            '_operator': "0x4bB5A425a68ed73Cf0B26ce79F5EEad9103C30fc",
             '_approved': True
         }
 
@@ -794,7 +795,7 @@ class MulticallCase1Strategy(BaseStrategy):
         token_id = client.toTokenId("0x42cEDde51198D1773590311E2A340DC06B24cB37")
         subcall2_params = {
             '_from': "0x42cEDde51198D1773590311E2A340DC06B24cB37",  
-            '_to': "0xD608978aD1e1473fa98BaD368e767C5b11e3b3cE",
+            '_to': "0x4bB5A425a68ed73Cf0B26ce79F5EEad9103C30fc",
             '_id': token_id,
             '_value': 48000000000000000000,
             '_data': b'0x0000000000000000000000006a023ccd1ff6f2045c3309768ead9e68f978f6e1'
