@@ -1,7 +1,0 @@
-from enum import Enum, auto
-
-class ActionType(Enum):
-    """Available actions derived from protocol handlers"""
-    {% for action in actions %}
-    {{ action }} = auto()
-    {% endfor %}

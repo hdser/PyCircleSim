@@ -1,0 +1,25 @@
+{% for contract in contracts %}
+{% for func in contract.functions %}
+from .{{ contract.name }}.{{ func.name }} import {{ func.class_name }}
+{% endfor %}
+{% endfor %}
+
+{% for custom_impl in custom_implementations %}
+from .{{ custom_impl.folder }}.{{ custom_impl.file }} import {{ custom_impl.class_name }}
+{% endfor %}
+
+# Implementation registry 
+IMPLEMENTATIONS = {
+    {% for contract in contracts %}
+    {% for func in contract.functions %}
+    "{{ func.key }}": {{ func.class_name }},
+    {% endfor %}
+    {% endfor %}
+    
+    {% if custom_implementations %}
+    # Custom implementations
+    {% for impl in custom_implementations %}
+    "{{ impl.key }}": {{ impl.class_name }},
+    {% endfor %}
+    {% endif %}
+}

@@ -6,8 +6,8 @@ from .{{ contract_name.lower() }}_handler import (
 )
 
 __all__ = [
-    '{{ contract_name }}Client',
+    "{{ contract_name }}Client",
     {% for handler in handlers %}
-    '{{ handler }}'{% if not loop.last %},{% endif %}
+    "{{ handler }}"{% if not loop.last %},{% endif %}
     {% endfor %}
 ]

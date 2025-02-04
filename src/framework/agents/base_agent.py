@@ -2,25 +2,16 @@ from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
 import random
 import secrets
-from dataclasses import dataclass
 from eth_account import Account
 from ape import networks
-from .profile import AgentProfile
-from src.framework.data import BaseDataCollector
 from src.framework.logging import get_logger
+from src.framework.data import BaseDataCollector
+from .profile import AgentProfile 
 import logging
 
-logger = get_logger(__name__, logging.DEBUG)
+logger = get_logger(__name__, logging.INFO)
 
 
-@dataclass
-class BalanceUpdate:
-    """Records a balance update for an account"""
-    contract: str
-    account: str 
-    balance: int
-    timestamp: datetime
-    block: int
 
 class BaseAgent:
     def __init__(self, 
@@ -43,8 +34,6 @@ class BaseAgent:
         
         # State tracking
         self.state: Dict[str, Any] = {
-            'balances-ERC20': {},
-            'balances-history': [],
             'isGroup': []
         }
         
@@ -52,24 +41,11 @@ class BaseAgent:
 
         self._initialize_accounts()
 
-    def _initialize_accounts(self):
-        """Ensure agent has required number of accounts."""
-        target_count = self.profile.base_config.target_account_count
-        assigned_addresses = self.profile.preset_addresses or []
-        
-        # Initialize preset addresses first
-        for addr in assigned_addresses:
-            self.accounts[addr] = bytes()  # Placeholder
-            self._initialize_address(addr, preset=True)
-
-        # Create new accounts if needed
-        while len(self.accounts) < target_count:
-            address, private_key = self.create_account()
-            self.accounts[address] = private_key
-            self._initialize_address(address)
-
-
-
+    def _validate_action(self, action_name: str) -> bool:
+        # Import IMPLEMENTATIONS locally to break the cycle
+        from src.protocols.implementations import IMPLEMENTATIONS
+        return action_name in IMPLEMENTATIONS
+    
     def _initialize_accounts(self):
         """Ensure agent has required number of accounts."""
         target_count = self.profile.base_config.target_account_count
@@ -133,310 +109,321 @@ class BaseAgent:
         self.action_states[address] = {}
         self.last_action_blocks[address] = {}
         
-        # Initialize action states for each available action
-        for action_name, config in self.profile.action_configs.items():
+        # Collect all action names from both regular actions and sequence steps
+        action_names = set()
+        
+        # Add actions from action_configs
+        for action_name in self.profile.action_configs.keys():
+            action_names.add(action_name)
+            
+        # Add actions from sequences
+        for sequence in self.profile.sequences:
+            for step in sequence.steps:
+                action_names.add(step.action)
+                
+        # Initialize action states for each action
+        for action_name in action_names:
             self.action_states[address][action_name] = {
                 'cooldown_block': 0,
                 'executions': 0
             }
-        self.last_action_blocks[address][action_name] = 0
+            self.last_action_blocks[address][action_name] = 0
 
 
-    def select_action(self, current_block: int, network_state: Dict[str, Any]) -> Tuple[Optional[str], str, Dict]:
-        """Selects an action for an agent. Prioritizes executing active sequences."""
-        addresses = list(self.accounts.keys())
-
-        # First check any active sequences that need to be completed
-        for address in addresses:
-            seq_state = self.sequence_states.get(address)
-            if not seq_state:
-                continue
-
-            # Check each sequence
-            for sequence in self.profile.sequences:
-                seq_name = sequence.name
-                if seq_name not in seq_state:
-                    continue
-                    
-                state = seq_state[seq_name]
-                
-                # If sequence is active, continue it
-                if state.get("active"):
-                    action_tuple = self._execute_sequence_step(address, sequence, state, current_block)
-                    if action_tuple:
-                        return action_tuple
-
-                    # If no action returned, the sequence step is complete, move to next step
-                    state["current_step_index"] += 1
-                    state["executed_repeats_for_step"] = 0
-                    if state["current_step_index"] >= len(sequence.steps):
-                        state["active"] = False
-                        state["sequence_executions"] = state.get("sequence_executions", 0) + 1
-
-        # Then look for addresses that can start a new sequence
-        for address in addresses:
-            for sequence in self.profile.sequences:
-                state = self.sequence_states[address][sequence.name]
-                # Check if we can start a new sequence
-                if not state.get("active") and state.get("sequence_executions", 0) < sequence.max_executions:
-                    state["active"] = True
-                    state["current_step_index"] = 0
-                    state["executed_repeats_for_step"] = 0
-                    return self._execute_sequence_step(address, sequence, state, current_block)
-
-        return self._select_individual_action(current_block)
-
-    def _execute_sequence_step(self, address: str, sequence: 'ActionSequence', state: Dict[str, Any], current_block: int) -> Optional[Tuple[str, str, Dict]]:
-        """Execute the next step of an active sequence for an address."""
-        steps = sequence.steps
-        step_index = state["current_step_index"]
-
-        if step_index >= len(steps):
-            logger.debug(f"{address} completed sequence {sequence.name}")
-            state["sequence_executions"] = state.get("sequence_executions", 0) + 1
-            state["active"] = False
-            return None
-
-        step = steps[step_index]
-        action_name = step.action
-
-        logger.debug(f"{address} executing step {step_index} ({action_name}) in sequence {sequence.name}")
-
-        last_block = self.last_action_blocks.get(address, {}).get(action_name, 0)
-        cooldown = step.constraints.get("cooldown_blocks", 0)
-
-        if (current_block - last_block) < cooldown:
-            logger.warning(f"{action_name} skipped due to cooldown ({cooldown}) for {address}")
-            return None
-
-        params = {"sender": address}
-        if hasattr(step, 'constraints') and step.constraints:
-            params.update(step.constraints)
-        if step.batchcall:
-            params["batchcall"] = step.batchcall
-
-        logger.debug(f"{address} executing {action_name} with parameters {params}")
-
-        return action_name, address, params
-
-
-    def select_action3(self, current_block: int, network_state: Dict[str, Any]) -> Tuple[Optional[str], str, Dict]:
+    def select_action(self, current_block: int, network_state: Dict[str, Any]) -> Tuple[Optional[str], str]:
         """
-        1) Try to continue any sequence that is active for any address.
-        2) If none is active, activate a new sequence for the first address that hasn't completed it.
+        Selects an action for an agent, prioritizing sequences but handling failures gracefully.
+        
+        Returns:
+            Tuple of (implementation_name, address) or (None, "")
         """
         base_cfg = self.profile.base_config
         seq_probability = getattr(base_cfg, "sequence_probability", 0.0)
-        preset_addrs = self.profile.preset_addresses if self.profile.preset_addresses else list(self.accounts.keys())
+        addresses = list(self.accounts.keys())
 
-        # First check any active sequences
-        for address in preset_addrs:
+        logger.debug(f"Selecting action with sequence probability {seq_probability}")
+        logger.debug(f"Available sequences: {[s.name for s in self.profile.sequences]}")
+
+        # 1. First check any active sequences that need to be continued
+        for address in addresses:
             for seq_def in self.profile.sequences:
                 seq_name = seq_def.name
                 seq_state = self.sequence_states[address][seq_name]
-                
+
+                # Skip if sequence has failed for this address
+                if seq_state.get("failed"):
+                    continue
+                    
                 # Skip if sequence is completed for this address
                 if seq_state["sequence_executions"] >= seq_def.max_executions:
                     continue
 
-                # Activate sequence if not active
-                if not seq_state["active"] and random.random() < seq_probability:
-                    logger.info(f"Activating sequence {seq_name} for address {address}")
-                    seq_state["active"] = True
-
-                # Try to execute next step if sequence is active
+                # If sequence is active, try to continue it
                 if seq_state["active"]:
-                    logger.debug(f"Checking sequence {seq_name} for {address}: step {seq_state['current_step_index']}, "
-                            f"repeats {seq_state['executed_repeats_for_step']}")
-                    action_tuple = self._select_sequence_step(address, seq_def, seq_state, current_block)
+                    action_tuple = self._execute_sequence_step(address, seq_def, seq_state, current_block)
                     if action_tuple:
-                        action_name, _, params = action_tuple
-                        # Force the address to be consistent
-                        params['sender'] = address
-                        # Return with the correct address
-                        return action_name, address, params
+                        action_name, addr, _ = action_tuple
+                        return action_name, addr
+
+        # 2. Then check if we should start a new sequence
+        if random.random() < seq_probability:
+            for address in addresses:
+                for seq_def in self.profile.sequences:
+                    seq_name = seq_def.name
+                    seq_state = self.sequence_states[address][seq_name]
+                    
+                    # Only try to start sequence if:
+                    # - It's not active
+                    # - Hasn't failed
+                    # - Hasn't reached max executions
+                    if (not seq_state["active"] and 
+                        not seq_state.get("failed") and
+                        seq_state["sequence_executions"] < seq_def.max_executions):
+                        
+                        logger.info(f"Starting new sequence {seq_name} for address {address}")
+                        seq_state["active"] = True
+                        seq_state["current_step_index"] = 0
+                        seq_state["executed_repeats_for_step"] = 0
+                        
+                        action_tuple = self._execute_sequence_step(address, seq_def, seq_state, current_block)
+                        if action_tuple:
+                            action_name, addr, _ = action_tuple
+                            return action_name, addr
 
         # Fall back to individual actions
-        return self._select_individual_action(current_block)
+        individual_action = self._select_individual_action(current_block)
+        if individual_action[0]:
+            return individual_action[0], individual_action[1]
+            
+        return None, ""
     
-    def _select_sequence_step3(
-        self,
-        address: str,
-        seq_def: Any,
-        state: Dict[str, Any],
-        current_block: int
-    ) -> Optional[Tuple[str, str, Dict]]:
-        """
-        Return (action_name, address, params) for the next step in this sequence
-        """
-        # If already finished max_executions, deactivate
-        if state["sequence_executions"] >= seq_def.max_executions:
-            state["active"] = False
-            return None
-
-        steps = seq_def.steps
-        step_index = state["current_step_index"]
-        
-        # Check if we're within sequence steps
-        if step_index >= len(steps):
-            # Reset for next iteration
-            state["current_step_index"] = 0
-            state["executed_repeats_for_step"] = 0
-            step_index = 0
-            state["sequence_executions"] += 1
-            
-            # If we've hit max executions, deactivate
-            if state["sequence_executions"] >= seq_def.max_executions:
-                state["active"] = False
-                return None
-
-        # Get current step
-        current_step = steps[step_index]
-        action_name = current_step.action  # Access as attribute
-        repeats_needed = current_step.repeat  # Access as attribute
-        repeats_done = state["executed_repeats_for_step"]
-
-        # Check if we need more repeats for this step
-        if repeats_done >= repeats_needed:
-            logger.info(f"Step {step_index} ({action_name}) completed all repeats for {address}")
-            # Move to next step
-            state["current_step_index"] += 1
-            state["executed_repeats_for_step"] = 0
-            return self._select_sequence_step(address, seq_def, state, current_block)
-
-        # Check cooldown
-        last_block = self.last_action_blocks[address].get(action_name, 0)
-        if hasattr(current_step, 'cooldown_blocks'):
-            cooldown = current_step.cooldown_blocks
-        else:
-            cooldown = 0
-            
-        if (current_block - last_block) < cooldown:
-            return None
-
-        # Build params
+    def _prepare_master_params(self, action_config: Dict[str, Any], address: str) -> Dict[str, Any]:
+        """New method to prepare master interface parameters"""
         params = {
-            "sender": address,  # Always use the sequence address
-            "value": 0
+            'sender': address,
+            'value': 0,
+            'implementation': action_config.get('implementation')
         }
         
-        # Add constraints if they exist
-        if hasattr(current_step, 'constraints') and current_step.constraints:
-            params.update(current_step.constraints)
-            # Ensure sender isn't overwritten by constraints
-            params["sender"] = address
-
-        # Handle batchcall if present
-        if hasattr(current_step, 'batchcall') and current_step.batchcall:
-            params["batchcall"] = current_step.batchcall
-
-        logger.info(f"Selected step {step_index} ({action_name}) for address {address}, "
-                f"repeat {repeats_done + 1}/{repeats_needed}")
-        return (action_name, address, params)
-
+        # Add all constraints as parameters
+        if 'constraints' in action_config:
+            params.update(action_config['constraints'])
+            
+        return params
 
     def _select_sequence_action(self, current_block: int) -> Optional[Tuple[str, str, Dict]]:
-        """Select next action from available sequences"""
+        """Modified to handle master interface actions in sequences"""
         for sequence in self.profile.sequences:
-            # Try each address until we find a valid execution
             for address in self.accounts:
-                # Skip if sequence can't be executed for this address
-                if not self.profile.can_execute_sequence(sequence, address):
+                step = sequence.get_current_step()
+                if not step:
                     continue
-
-                # Get current step
-                current_step = sequence.steps[sequence.current_step_index]
-                if not self.profile.can_execute_step(current_step):
-                    continue
-
-                # Check cooldown
-                last_block = self.last_action_blocks[address].get(current_step.action, 0)
-                if current_block - last_block < current_step.repeat:
-                    continue
-
-                # Prepare parameters
-                params = self._prepare_action_params(
-                    current_step.action,
-                    address,
-                    current_step.constraints,
-                    current_step.batchcall
-                )
-                if not params:
-                    continue
-
-                # Update tracking
-                self.profile.update_sequence_progress(sequence, current_step)
-                self.last_action_blocks[address][current_step.action] = current_block
-
-                return current_step.action, address, params
-
-        return None
+                    
+                # Handle master interface actions
+                if step.action.startswith('master_'):
+                    params = self._prepare_master_params(step, address)
+                    return step.action, address, params
+                    
+                # Original action handling...
 
     def _select_individual_action(self, current_block: int) -> Tuple[Optional[str], str, Dict]:
-        """Select a standalone action if no sequence is available."""
+        """Modified to handle master interface actions"""
         available_actions = []
+        
         for action_name, config in self.profile.action_configs.items():
             for address in self.accounts:
-                # Skip actions that exceed max executions
-                if config.max_executions and config.current_executions >= config.max_executions:
+                # Skip if max executions reached
+                if self._max_executions_reached(action_name, address):
                     continue
-                
-                # Check cooldown
-                last_block = self.last_action_blocks[address].get(action_name, 0)
-                if (current_block - last_block) < config.cooldown_blocks:
+                    
+                # Skip if in cooldown
+                if self._in_cooldown(action_name, address, current_block):
                     continue
-
-                available_actions.append((action_name, address, config.probability))
+                    
+                available_actions.append((action_name, address, config))
 
         if not available_actions:
             return None, "", {}
 
         # Select action based on probabilities
-        action, address, _ = random.choices(
-            available_actions, 
-            weights=[x[2] for x in available_actions],
+        action_name, address, config = random.choices(
+            available_actions,
+            weights=[x[2].probability for x in available_actions],
             k=1
         )[0]
 
-        params = self.profile.action_configs[action].constraints
-        params["sender"] = address
-        return action, address, params
+        # Handle master interface actions
+        if action_name.startswith('master_'):
+            params = self._prepare_master_params(config, address)
+        else:
+            params = self._prepare_action_params(action_name, address, config)
+            
+        return action_name, address, params
+    
+    def _max_executions_reached(self, action_name: str, address: str) -> bool:
+        config = self.profile.get_action_config(action_name)
+        if not config:
+            return True
+        executions = self.action_states[address][action_name]['executions']
+        return config.max_executions is not None and executions >= config.max_executions
+
+    def _in_cooldown(self, action_name: str, address: str, current_block: int) -> bool:
+        config = self.profile.get_action_config(action_name)
+        if not config:
+            return True
+        last_block = self.last_action_blocks[address].get(action_name, 0) 
+        return (current_block - last_block) < config.cooldown_blocks
+    
+    def _execute_sequence_step(self, address: str, sequence: Any, state: Dict[str, Any], current_block: int) -> Optional[Tuple[str, str, Dict]]:
+        """Execute the next step of a sequence"""
+        steps = sequence.steps
+        step_index = state["current_step_index"]
+        
+        logger.debug(f"Executing step {step_index} of sequence {sequence.name}")
+
+        # Check if we're done with the sequence
+        if step_index >= len(steps):
+            logger.debug(f"Sequence {sequence.name} completed")
+            state["sequence_executions"] = state.get("sequence_executions", 0) + 1
+            state["active"] = False
+            state["current_step_index"] = 0
+            state["executed_repeats_for_step"] = 0
+            return None
+
+        current_step = steps[step_index]
+        action_name = current_step.action
+
+        logger.debug(f"Current step action: {action_name}")
+
+        # Check cooldown
+        last_block = self.last_action_blocks[address].get(action_name, 0)
+        cooldown = getattr(current_step, 'cooldown_blocks', 0)
+        if (current_block - last_block) < cooldown:
+            logger.debug(f"Action {action_name} in cooldown")
+            return None
+
+        # Check if we've done enough repeats
+        repeats_done = state["executed_repeats_for_step"]
+        repeats_needed = current_step.repeat
+        if repeats_done >= repeats_needed:
+            logger.debug(f"Step {step_index} completed all repeats")
+            state["current_step_index"] += 1
+            state["executed_repeats_for_step"] = 0
+            return self._execute_sequence_step(address, sequence, state, current_block)
+
+        # Build parameters
+        params = {"sender": address}
+        if hasattr(current_step, 'constraints') and current_step.constraints:
+            params.update(current_step.constraints)
+        if hasattr(current_step, 'batchcall') and current_step.batchcall:
+            params["batchcall"] = current_step.batchcall
+
+        logger.debug(f"Built parameters for action {action_name}: {params}")
+
+        return action_name, address, params
+
 
     def _prepare_action_params(self, 
-                             action_name: str, 
-                             address: str,
-                             constraints: Dict[str, Any],
-                             batchcall: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
-        """Prepare parameters for action execution"""
+                         action_name: str, 
+                         address: str,
+                         constraints: Dict[str, Any],
+                         batchcall: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+        """
+        Prepare parameters for action execution by combining base parameters with constraints 
+        and optional batch call configuration.
+        
+        Args:
+            action_name: Name of the action being executed
+            address: Address initiating the action
+            constraints: Dictionary of constraint parameters for the action
+            batchcall: Optional dictionary mapping batch call types to their probabilities
+
+        Returns:
+            Dict containing all parameters needed for action execution
+        """
+        # Initialize with required base parameters
         params = {
             'sender': address,
             'value': 0
         }
 
-        # Add constraints
+        # Add constraints if provided, ensuring we handle both dict and ActionConfig objects
         if constraints:
-            params.update(constraints)
+            if isinstance(constraints, dict):
+                params.update(constraints)
+            elif hasattr(constraints, 'constraints'):
+                # Handle case where we receive an ActionConfig object
+                params.update(constraints.constraints)
 
-        # Handle batch call configuration
+        # Handle batch call configuration if provided
         if batchcall:
-            options = list(batchcall.items())
-            selected_call, _ = random.choices(
-                options,
-                weights=[x[1] for x in options],
-                k=1
-            )[0]
-            params['batchcall'] = selected_call[0]
-
+            try:
+                # Convert batchcall items to list for random selection
+                options = list(batchcall.items())
+                if options:
+                    # Select a batch call type based on weights
+                    selected_call, _ = random.choices(
+                        options,
+                        weights=[x[1] for x in options],
+                        k=1
+                    )[0]
+                    params['batchcall'] = selected_call
+            except Exception as e:
+                logger.error(f"Failed to process batch call configuration: {e}")
+                # Continue without batch call if processing fails
+                
         return params
 
-    def record_action(self, action_name: str, address: str, block_number: int, success: bool):
-        """Record action execution and update sequence state"""
-        if not success:
-            return
-            
-        logger.debug(f"Recording action {action_name} for address {address}")
+    def record_action(
+            self, 
+            action_name: str, 
+            address: str, 
+            block_number: int, 
+            success: bool, 
+            context: Optional['SimulationContext'] = None
+        ):
+        """
+        Record action execution and update sequence state.
+        
+        Args:
+            action_name: Name of the executed action
+            address: Address that executed the action
+            block_number: Block number where action was executed
+            success: Whether the action executed successfully
+            context: Optional simulation context containing error information
+        """
+        logger.debug(f"Recording action {action_name} for address {address} (success={success})")
 
-        # Update sequence states if applicable
+        # Handle action failure
+        if not success:
+            error_msg = None
+            if context and hasattr(context, 'last_error'):
+                error_msg = context.last_error.get('batch_call')
+                
+            # Update sequence states to mark failure
+            for seq_name, seq_state in self.sequence_states[address].items():
+                if seq_state.get("active"):
+                    logger.info(f"Marking sequence {seq_name} as failed for {address} at step {seq_state['current_step_index']}")
+                    logger.info(f"Failure reason: {error_msg}")
+                    # Update sequence state with failure information
+                    seq_state.update({
+                        "active": False,
+                        "failed": True,
+                        "failed_step": seq_state["current_step_index"],
+                        "failed_action": action_name,
+                        "failure_reason": error_msg
+                    })
+            return
+
+        # Update action tracking state
+        if address in self.action_states and action_name in self.action_states[address]:
+            self.action_states[address][action_name].update({
+                'cooldown_block': block_number,
+                'executions': self.action_states[address][action_name]['executions'] + 1
+            })
+            self.last_action_blocks[address][action_name] = block_number
+
+        # Update sequence states for successful execution
         for sequence in self.profile.sequences:
             state = self.sequence_states[address][sequence.name]
             if not state.get("active"):
@@ -448,34 +435,30 @@ class BaseAgent:
                 
             current_step = sequence.steps[current_step_idx]
             
-            # If this is the current step's action
+            # Check if this action matches current sequence step
             if current_step.action == action_name:
                 logger.debug(f"Found matching step {current_step_idx} for action {action_name}")
                 
-                # Increment repeats for this step
+                # Update step execution count
                 state["executed_repeats_for_step"] += 1
                 logger.debug(f"Executed repeats: {state['executed_repeats_for_step']}/{current_step.repeat}")
                 
-                # If step complete
+                # Check if step is complete
                 if state["executed_repeats_for_step"] >= current_step.repeat:
                     # Move to next step
                     state["current_step_index"] += 1
                     state["executed_repeats_for_step"] = 0
                     
-                    # If sequence complete
+                    # Check if sequence is complete
                     if state["current_step_index"] >= len(sequence.steps):
                         logger.debug(f"Completed sequence {sequence.name} for {address}")
-                        state["active"] = False
-                        state["current_step_index"] = 0
-                        state["sequence_executions"] = state.get("sequence_executions", 0) + 1
+                        state.update({
+                            "active": False,
+                            "current_step_index": 0,
+                            "sequence_executions": state.get("sequence_executions", 0) + 1
+                        })
                     else:
                         logger.debug(f"Moving to step {state['current_step_index']} for {address}")
-
-        # Update action states
-        if address in self.action_states and action_name in self.action_states[address]:
-            self.action_states[address][action_name]['cooldown_block'] = block_number
-            self.action_states[address][action_name]['executions'] += 1
-            self.last_action_blocks[address][action_name] = block_number
                     
 
     def update_state(self, key: str, value: Any):
@@ -505,43 +488,3 @@ class BaseAgent:
 
         return False
 
-    def update_balance(self, account: str, contract: str, balance: int, 
-                      timestamp: datetime, block: int) -> None:
-        """Update the ERC20 balance for an account/contract pair"""
-        # Skip if not our account
-        if account not in self.accounts:
-            return
-            
-        # Initialize if needed
-        if account not in self.state['balances-ERC20']:
-            self.state['balances-ERC20'][account] = {}
-        
-        # Only store if non-zero or updating existing entry
-        if balance > 0 or contract in self.state['balances-ERC20'][account]:
-            self.state['balances-ERC20'][account][contract] = balance
-            
-            # Add to history
-            update = BalanceUpdate(
-                contract=contract,
-                account=account,
-                balance=balance,
-                timestamp=timestamp,
-                block=block
-            )
-            self.state['balances-history'].append(update)
-
-    def get_last_balance(self, account: str, contract: str) -> Optional[int]:
-        """Get last recorded balance for account/contract pair"""
-        return self.state['balances-ERC20'].get(account, {}).get(contract)
-
-    def get_balance_history(self, account: str = None, 
-                          contract: str = None) -> List[BalanceUpdate]:
-        """Get balance update history, optionally filtered"""
-        history = self.state['balances-history']
-        
-        if account:
-            history = [h for h in history if h.account == account]
-        if contract:
-            history = [h for h in history if h.contract == contract]
-            
-        return history

@@ -12,6 +12,7 @@ node:
   gnosis:
     mainnet:
       uri: http://192.168.2.186:8545 
+
 gnosis:
   default_network: mainnet-fork
   mainnet_fork:

@@ -1,0 +1,43 @@
+from typing import Dict, List, Any
+from ..registry import register_implementation, ContractCall
+from ..base import BaseImplementation
+from src.framework.core.context import SimulationContext
+
+@register_implementation("{{ contract_name.lower() }}_{{ func.name }}")
+class {{ contract_name.replace('hub', 'Hub').replace('erc20', 'ERC20') }}{{ func.name|camel_case }}(BaseImplementation):
+    """Implementation for {{ func.name }} in {{ contract_name }}"""
+    
+    def get_calls(self, context: SimulationContext) -> List[ContractCall]:
+        """Generate {{ func.name }} call(s).
+
+        Args:
+            context: Current simulation context
+                {% for inp in func.inputs %}
+                {{ inp.name }} ({{ inp.type }}): Contract parameter
+                {% endfor %}
+
+        Returns:
+            List[ContractCall]: List of calls to execute
+        """
+        sender = self.get_sender(context)
+        if not sender:
+            return []
+            
+        client = context.get_client('{{ contract_name.lower() }}')
+        if not client:
+            return []
+
+        # Get constraints from profile
+        constraints = context.agent.profile.get_action_config('{{ contract_name.lower() }}_{{ func.name }}').constraints
+
+        return [ContractCall(
+            client_name='{{ contract_name.lower() }}',
+            method='{{ func.name }}',
+            params={
+                'sender': sender,
+                'value': 0,
+                {% for inp in func.inputs %}
+                '{{ inp.name }}': constraints.get('{{ inp.name }}'),
+                {% endfor %}
+            }
+        )]

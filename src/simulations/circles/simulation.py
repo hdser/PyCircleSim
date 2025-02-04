@@ -13,7 +13,7 @@ from src.protocols.interfaces.wxdai import WXDAIClient
 from src.protocols.interfaces.balancerv2vault import BalancerV2VaultClient
 from src.protocols.interfaces.balancerv2lbpfactory import BalancerV2LBPFactoryClient
 from src.protocols.interfaces.erc20 import ERC20Client
-from src.protocols.interfaces.batchcall import BatchCallClient
+from src.protocols.interfaces.master import MasterClient
 
 from src.framework.state.graph_converter import StateToGraphConverter
 from src.pathfinder import GraphManager
@@ -23,18 +23,19 @@ logger = get_logger(__name__, logging.INFO)
 
 
 class CirclesSimulationConfig(BaseSimulationConfig):
-    """Configuration for Rings simulation"""
+    """Configuration for Circles simulation"""
 
     def _validate_config(self):
-        """Validate Rings-specific configuration"""
+        """Validate configuration"""
         super()._validate_config()
 
+        # Add master strategy if not present
         if 'strategies' not in self.network_config:
-            self.network_config['strategies'] = {
-                'circles': 'basic',
-                'wxdai': 'basic'
-            }
-
+            self.network_config['strategies'] = {}
+        
+        self.network_config['strategies']['master'] = 'basic'
+        
+        logger.info(f"Configured strategies: {self.network_config['strategies']}")
 
     def get_agent_distribution(self) -> Dict[str, int]:
         """Get distribution of agent types"""
@@ -54,35 +55,30 @@ class CirclesSimulation(BaseSimulation):
             'client_class': CirclesHubClient,
             'module_name': 'circleshub',
             'abi_folder': 'circles',
-            'strategy': 'basic'
         },
         'circleserc20lift': {
             'address': '0x5F99a795dD2743C36D63511f0D4bc667e6d3cDB5',
             'client_class': CirclesERC20LiftClient,
             'module_name': 'circleserc20lift',
             'abi_folder': 'circles',
-            'strategy': 'basic'
         },
         'wxdai': {
             'address': '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
             'client_class': WXDAIClient,
             'module_name': 'wxdai',
             'abi_folder': 'tokens',
-            'strategy': 'basic'
         },
         'balancerv2': {
             'address': '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
             'client_class': BalancerV2VaultClient,
             'module_name': 'balancerv2vault',
             'abi_folder': 'balancer_v2',
-            'strategy': 'basic'
         },
         'balancerv2lbp': {
             'address': '0x85a80afee867aDf27B50BdB7b76DA70f1E853062',
             'client_class': BalancerV2LBPFactoryClient,
             'module_name': 'balancerv2lbpfactory',
             'abi_folder': 'balancer_v2',
-            'strategy': 'basic'
         },
         'erc20': {
             'address': '',  # Generic
@@ -90,21 +86,26 @@ class CirclesSimulation(BaseSimulation):
             'module_name': 'erc20',
             'abi_folder': 'tokens',
             'abi_name': 'erc20.json',
-            'strategy': 'basic'
         },
-        'batchcall': {
-            'address': '',  
-            'client_class': BatchCallClient,
-            'module_name': 'batchcall',
-            'strategy': 'basic'
+        'master': {
+            'client_class': MasterClient,
+            'module_name': 'master',
+            'strategy': 'basic',
+            'address': None,  # Master client doesn't need an address
+            'abi_folder': None  # No specific ABI needed
         }
     }
 
     def __init__(self, config: BaseSimulationConfig, contract_configs: Dict[str, Any], fast_mode: bool = True):
         """Initialize the simulation"""
-        # Call parent's init first
-        super().__init__(config, contract_configs, fast_mode)
+        contract_configs['master'] = {
+            'client_class': MasterClient,
+            'module_name': 'master',
+            'address': None
+        }
         
+        super().__init__(config, contract_configs, fast_mode)
+            
         # Load pools data
         self._pools_data = self._load_pools_data()
         
@@ -215,18 +216,20 @@ class CirclesSimulation(BaseSimulation):
             return {}
 
         try:
-            # 3) Use client to fetch all balances in one batch
-            balances = client.balanceOfBatch(accounts_list, ids_list)
-            
-            # 4) Build results
             result: Dict[str, Dict[int, int]] = {}
-            for (address, token_id), balance in zip(mapping, balances):
-                if balance > 0:
-                    if address not in result:
-                        result[address] = {}
-                    #result[address][token_id] = balance
-                    datetime_object = datetime.fromtimestamp(chain.blocks.head.timestamp)
-                    result[address][token_id] = {'balance': balance, 'last_day_updated': datetime_object.date()}
+            BATCH_SIZE = 500
+            for i in range(0, len(accounts_list), BATCH_SIZE):
+                batch_accounts = accounts_list[i:i+BATCH_SIZE]
+                batch_ids = ids_list[i:i+BATCH_SIZE]
+                batch_mapping = mapping[i:i+BATCH_SIZE]
+                balances = client.balanceOfBatch(batch_accounts, batch_ids)
+            
+                for (address, token_id), balance in zip(batch_mapping, balances):
+                    if balance > 0:
+                        if address not in result:
+                            result[address] = {}
+                        datetime_object = datetime.fromtimestamp(chain.blocks.head.timestamp)
+                        result[address][token_id] = {'balance': balance, 'last_day_updated': datetime_object.date()}
 
             logger.info(f"Successfully computed balances for {len(result)} addresses")
             return result

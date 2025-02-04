@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List, Set
-from src.framework.agents import AgentManager, BaseAgent
+from src.framework.agents.agent_manager import AgentManager
+from src.framework.agents.base_agent import BaseAgent
 import time
 from src.framework.logging import get_logger
 import logging

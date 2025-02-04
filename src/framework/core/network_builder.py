@@ -1,7 +1,8 @@
 from typing import Dict, Optional, List, Any
 from ape import chain
 from eth_pydantic_types import HexBytes
-from src.framework.agents import AgentManager, BaseAgent
+from src.framework.agents.agent_manager import AgentManager
+from src.framework.agents.base_agent import BaseAgent
 from src.framework.data import DataCollector
 from src.framework.logging import get_logger
 from src.framework.core.context import SimulationContext

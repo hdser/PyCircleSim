@@ -1,9 +1,0 @@
-{% for func in functions if not func.is_view %}
-from .basic_strategies import {{ func.name|camel_case }}Strategy
-{% endfor %}
-
-__all__ = [
-{% for func in functions if not func.is_view %}
-    '{{ func.name|camel_case }}Strategy',
-{% endfor %}
-]

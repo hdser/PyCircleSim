@@ -2,7 +2,8 @@ from typing import Dict, Optional, Any, List, Tuple
 from datetime import datetime
 import random
 from ape import chain
-from src.framework.agents import AgentManager, BaseAgent, ActionType
+from src.framework.agents.agent_manager import AgentManager
+from src.framework.agents.base_agent import BaseAgent
 from src.framework.data import DataCollector
 from src.framework.logging import get_logger
 from .context import SimulationContext
@@ -11,37 +12,36 @@ import importlib
 logger = get_logger(__name__)
 
 class NetworkEvolver():
-    """Enhanced NetworkEvolver with dynamic action handling"""
-    
     def __init__(
         self,
         clients: Dict[str, Any],
         agent_manager: AgentManager,
         collector: Optional[DataCollector] = None,
         gas_limits: Optional[Dict] = None,
-        strategy_config: Optional[Dict] = None
     ):
         self.clients = clients
         self.agent_manager = agent_manager
         self.collector = collector
         self.gas_limits = gas_limits
-        self.strategy_config = strategy_config
         self._iteration_cache = {}
-        
-        # Track last action times
-        self.last_action_times: Dict[str, int] = {}
-        self.min_blocks_between_actions = 5
         
         self.network_state = {
             'current_block': 0,
             'current_time': 0,
-            'contract_states': {},  # Will store per-contract state
-            'running_state': {}     # For dynamic state
+            'contract_states': {},
+            'running_state': {}
         }
 
-        # Initialize all available handlers
-        self.handlers = {}
-        self._initialize_handlers()
+        # Initialize master handler
+        self.master_handler = None
+        if 'master' in self.clients:
+            from src.protocols.interfaces.master.master_handler import MasterHandler
+            self.master_handler = MasterHandler(
+                client=self.clients['master'],
+                chain=chain,
+                logger=logger
+            )
+            logger.info("Master handler initialized")
 
     def set_simulation(self, simulation: 'BaseSimulation'):
         """Set the simulation instance"""
@@ -58,43 +58,16 @@ class NetworkEvolver():
 
    
     def _initialize_handlers(self):
-        """Initialize all available action handlers with configured strategies"""
-        registry = self.agent_manager.registry
-
-        for action_name, metadata in registry._actions.items():
-            try:
-                interface_path = f"src.protocols.interfaces.{metadata.module_name}"
-                module = importlib.import_module(interface_path)
-                handler_class = getattr(module, metadata.handler_class)
-
-                client = self._get_client_for_module(metadata.module_name)
-                if not client:
-                    continue
-
-                strategy = getattr(self, 'strategy_config', {}).get(
-                    metadata.module_name,
-                    'basic'
-                )
-                
-                handler = handler_class(
-                    client=client,
-                    chain=chain,
-                    logger=logger,
-                    strategy_name=strategy
-                )
-                
-                # Store the handler directly since it includes its own strategy
-                self.handlers[action_name] = handler
-                
-                logger.info(
-                    f"Initialized handler {action_name} with {strategy} strategy"
-                )
-                
-            except Exception as e:
-                logger.error(
-                    f"Failed to initialize handler for {action_name}: {e}",
-                    exc_info=True
-                )
+        """Initialize all available handlers"""
+        # Only initialize master handler
+        if 'master' in self.clients:
+            from src.protocols.interfaces.master.master_handler import MasterHandler
+            self.handlers['master_execute'] = MasterHandler(
+                client=self.clients['master'],
+                chain=chain,
+                logger=logger
+            )
+            logger.info("Master handler initialized")
 
         
                 
@@ -129,15 +102,15 @@ class NetworkEvolver():
             return False
             
     def evolve_network(self, iteration: int) -> Dict[str, int]:
+        """Main evolution loop"""
         self._iteration_cache.clear()
-
-        stats = {
-            'total_actions': 0,
-            'successful_actions': 0,
-            'action_counts': {}
-        }
+        stats = {'total_actions': 0, 'successful_actions': 0, 'action_counts': {}}
         
         try:
+            logger.debug(f"Starting iteration {iteration}")
+            logger.debug(f"Master handler present: {self.master_handler is not None}")
+            logger.debug(f"Master client present: {bool(self.clients.get('master'))}")
+
             all_agents = list(self.agent_manager.agents.values())
             random.shuffle(all_agents)
 
@@ -145,15 +118,12 @@ class NetworkEvolver():
                 'current_block': chain.blocks.head.number,
                 'current_time': chain.blocks.head.timestamp,
             })
-            import time
-            for agent in all_agents:
-                if not self._check_action_timing(agent.agent_id, self.network_state['current_block']):
-                    continue
 
-                # Pass all clients to context
+            for agent in all_agents:
+                logger.debug(f"Processing agent {agent.agent_id}")
                 context = SimulationContext(
                     agent=agent,
-                    agent_manager=self.agent_manager,
+                    agent_manager=self.agent_manager, 
                     clients=self.clients,
                     chain=chain,
                     network_state=self.network_state,
@@ -161,35 +131,46 @@ class NetworkEvolver():
                     iteration=iteration,
                     iteration_cache=self._iteration_cache
                 )
-                
-                action_name = self._select_action(context)
-                if not action_name:
+
+                implementation, acting_address = agent.select_action(
+                    self.network_state['current_block'],
+                    self.network_state
+                )
+
+                if not implementation:
+                    logger.debug("No implementation selected")
                     continue
 
-                handler = self.handlers.get(action_name)
-                if not handler:
+                if not self.master_handler:
+                    logger.debug("No master handler available")
                     continue
-                    
+
+                logger.info(f"Executing implementation {implementation} for address {acting_address}")
                 
-                # Get complete parameters from the strategy
-                execution_params = handler.strategy.get_params(context)
+                params = {
+                    'sender': acting_address,
+                    'implementation': implementation
+                }
 
                 stats['total_actions'] += 1
-                success = handler.execute(context,execution_params)
+                success = self.master_handler.execute(context, params)
+                
                 if success:
                     stats['successful_actions'] += 1
-                    stats['action_counts'][action_name] = stats['action_counts'].get(action_name, 0) + 1
-
+                    stats['action_counts'][implementation] = stats['action_counts'].get(implementation, 0) + 1
+                    
                     agent.record_action(
-                        action_name=action_name,
-                        address=execution_params.get('sender', ''),
+                        action_name=implementation,
+                        address=acting_address,
                         block_number=self.network_state['current_block'],
-                        success=True
+                        success=True,
+                        context=context
                     )
+
             return stats
             
         except Exception as e:
-            logger.error(f"Network evolution failed: {e}")
+            logger.error(f"Network evolution failed: {e}", exc_info=True)
             return stats
         
     

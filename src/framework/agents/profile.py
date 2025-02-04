@@ -94,8 +94,78 @@ class AgentProfile:
         self.max_executions = self.base_config.max_executions
         self.risk_tolerance = self.base_config.risk_tolerance
 
+
     @classmethod
     def from_dict(cls, name: str, config: Dict) -> 'AgentProfile':
+        """Create profile from configuration dictionary"""
+        # Parse base config
+        base_config = BaseConfig(
+            target_account_count=config.get('base_config', {}).get('target_account_count', 1),
+            max_executions=config.get('base_config', {}).get('max_executions', 10),
+            risk_tolerance=config.get('base_config', {}).get('risk_tolerance', 0.5),
+            sequence_probability=config.get('base_config', {}).get('sequence_probability', 0.5),
+            max_sequence_iterations=config.get('base_config', {}).get('max_sequence_iterations'),
+            preferred_networks=config.get('base_config', {}).get('preferred_networks', [])
+        )
+
+        # Parse sequences
+        sequences = []
+        for seq in config.get('action_sequences', []):
+            steps = []
+            for step in seq.get('steps', []):
+                steps.append(SequenceStep(
+                    action=step['action'],
+                    repeat=step.get('repeat', 1),
+                    constraints=step.get('constraints', {}),
+                    batchcall=step.get('batchcall'),
+                    current_repeat=0
+                ))
+            sequences.append(ActionSequence(
+                name=seq['name'],
+                max_executions=seq.get('max_executions'),
+                steps=steps,
+                current_execution=0,
+                current_step_index=0
+            ))
+
+        # Parse action configs - including both available_actions and sequence actions
+        action_configs = {}
+
+        # Add available_actions
+        for action in config.get('available_actions', []):
+            action_type = action['action']
+            action_configs[action_type] = ActionConfig.from_dict(action_type, action)
+
+        # Add sequence actions if they're not already in action_configs
+        for sequence in sequences:
+            for step in sequence.steps:
+                action_type = step.action
+                if action_type not in action_configs:
+                    # Create action config from sequence step
+                    action_config = ActionConfig(
+                        action_type=action_type,
+                        probability=1.0,  # Sequences have their own probability handling
+                        cooldown_blocks=0,  # Use sequence's own cooldown handling
+                        constraints=step.constraints or {},
+                        batchcall=step.batchcall,
+                        max_executions=None  # Sequences handle their own execution limits
+                    )
+                    action_configs[action_type] = action_config
+
+        logger.info(f"Created profile with actions: {list(action_configs.keys())}")
+
+        return cls(
+            name=name,
+            description=config.get('description', ''),
+            base_config=base_config,
+            sequences=sequences,
+            action_configs=action_configs,
+            preset_addresses=config.get('base_config', {}).get('preset_addresses'),
+            current_sequence_iterations=None  # Will be initialized in post_init
+        )
+
+    @classmethod
+    def from_dict2(cls, name: str, config: Dict) -> 'AgentProfile':
         """Create profile from configuration dictionary"""
         # Parse base config
         base_config = BaseConfig(

@@ -9,10 +9,11 @@ import json
 
 from ape import chain
 from src.framework.data import DataCollector
-from src.framework.agents import AgentManager
+from src.framework.agents.agent_manager import AgentManager
 from src.framework.core import NetworkBuilder, NetworkEvolver, SimulationContext
 from src.framework.logging import get_logger
 from src.framework.state.decoder import StateDecoder
+from src.protocols.interfaces.master import MasterClient
 
 
 logger = get_logger(__name__)
@@ -139,7 +140,6 @@ class BaseSimulation(ABC):
         self.fast_mode = fast_mode
         self.project_root = project_root or Path(__file__).parents[3]
         self.simulation_start_time = datetime.now()
-        self.strategy_config = self.config.network_config.get('strategies', {})
 
         # Load all ABIs first so they're available for everything else
         self.abis = self._load_contract_abis()
@@ -147,12 +147,20 @@ class BaseSimulation(ABC):
         # Initialize infrastructure
         self.collector = self._initialize_collector()
         self.agent_manager = self._initialize_agent_manager()
+
+        # **Fix: Initialize clients before master client**
         self.clients = self._initialize_clients()
+
+        # **Now initialize master client**
+        self.master_client = self._initialize_master_client()
+
+        # Ensure master client is added to clients
+        self.clients['master'] = self.master_client
 
         # Initialize contract states
         self.contract_states = self._initialize_contract_states(config, contract_configs)
-        
-        # Put decoded states into initial_state for backward compatibility
+
+        # Store initial state
         self.initial_state = {
             contract_id: state_data['state'] 
             for contract_id, state_data in self.contract_states.items()
@@ -164,6 +172,106 @@ class BaseSimulation(ABC):
         # Tracking
         self.iteration_stats: List[Dict[str, Any]] = []
 
+    def _initialize_master_client(self) -> MasterClient:
+        """Initialize master interface client"""
+        return MasterClient(
+            clients=self.clients or {},  # Pass empty dict if not initialized yet
+            data_collector=self.collector
+        )
+
+    def _initialize_clients(self) -> Dict[str, Any]:
+        """Modified to work with master client"""
+        clients = {}
+        
+        # First initialize all regular clients
+        for name, config in self.contract_configs.items():
+            if name == 'master':  # Skip master client since it's already initialized
+                continue
+                    
+            try:
+                abi_dir = self.project_root / "src" / "protocols" / "abis" / config['abi_folder']
+                
+                # Handle generic ABIs vs contract-specific ABIs
+                if config.get('abi_name'):
+                    abi_path = abi_dir / config['abi_name']
+                else:
+                    abi_path = abi_dir / f"{config['address']}.json"
+                
+                if not abi_path.exists():
+                    logger.warning(f"ABI file not found for {name} at {abi_path}")
+                    continue
+
+                # Fallback if module_name is not in config
+                module_name = config.get('module_name', name)
+
+                strategy = config.get(
+                    config['module_name'], 
+                    config.get('strategy', 'basic')
+                )
+
+                client = config['client_class'](
+                    config['address'],
+                    str(abi_path),
+                    gas_limits=self.config.network_config.get('gas_limits', {}),
+                    data_collector=self.collector
+                )
+                
+                # Store clients by their module_name
+                clients[module_name] = client
+                setattr(self, f"{name}_client", client)
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize {name} client: {e}")
+                raise
+                
+        return clients
+
+    def _initialize_contract_states(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Initialize contract states with master client support"""
+        initialized_states = {}
+
+        # Check if state variables exist in config
+        if not config.state_variables:
+            return initialized_states
+
+        for contract_id, state_config in config.state_variables.items():
+            try:
+                # Get contract address from state config or contract_configs
+                contract_address = state_config.get('address') or contract_configs.get(contract_id, {}).get('address')
+                if not contract_address:
+                    logger.error(f"No address found for contract {contract_id}")
+                    continue
+
+                # Initialize contract state decoder and decode state
+                decoder = StateDecoder(contract_address)
+                decoded_state = decoder.decode_state(state_config['variables'])
+                initialized_states[contract_id] = {
+                    'address': contract_address,
+                    'state': decoded_state
+                }
+
+                logger.info(f"Decoded state for {contract_id} ({contract_address}): {list(decoded_state.keys())}")
+
+            except Exception as e:
+                logger.error(f"Failed to decode state for contract {contract_id}: {e}")
+                continue
+
+        # Update master client with initial states
+        if self.master_client:
+            for contract_id, state_data in initialized_states.items():
+                self.master_client.update_contract_state(contract_id, state_data)
+
+        return initialized_states
+
+
+    def update_state_from_transaction(self, tx: Any, context: 'SimulationContext') -> None:
+        """Update simulation state from transaction"""
+        # Let master client handle state updates first
+        if self.master_client:
+            self.master_client.update_state_from_transaction(tx, context)
+            
+        # Then do any simulation-specific updates
+        super().update_state_from_transaction(tx, context)
 
     def _load_contract_abis(self) -> List[EventABI]:
         """Load all contract ABIs from the abi folder and subfolders and convert them to EventABI objects."""
@@ -197,50 +305,6 @@ class BaseSimulation(ABC):
         return all_abis
 
 
-    def _initialize_contract_states(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Initialize contract states from configuration"""
-        initialized_states = {}
-
-        if not config.state_variables:
-            return initialized_states
-
-        for contract_id, state_config in config.state_variables.items():
-            try:
-                # Get contract address - from state config or contract_configs
-                if 'address' in state_config:
-                    contract_address = state_config['address']
-                elif contract_id in contract_configs:
-                    contract_address = contract_configs[contract_id]['address']
-                else:
-                    logger.error(f"No address found for contract {contract_id}")
-                    continue
-
-                # Verify contract exists
-                if not contract_address:
-                    logger.error(f"Invalid address for contract {contract_id}")
-                    continue
-
-                # Initialize decoder and decode state
-                decoder = StateDecoder(contract_address)
-                decoded_state = decoder.decode_state(state_config['variables'])
-                
-                initialized_states[contract_id] = {
-                    'address': contract_address,
-                    'state': decoded_state
-                }
-                
-                #import json
-                #with open("sample.json", "w") as outfile:
-                #    json.dump(decoded_state, outfile)
-
-                logger.info(f"Decoded state for {contract_id} ({contract_address}): {decoded_state.keys()}")
-
-            except Exception as e:
-                logger.error(f"Failed to decode state for contract {contract_id}: {e}")
-                continue
-
-        return initialized_states
-
     def get_initial_state(self) -> Dict[str, Any]:
         """Get initial state for agents"""
         # Override in specific simulations to use decoded state
@@ -255,85 +319,12 @@ class BaseSimulation(ABC):
             abis=self.abis 
         )
 
-    def _initialize_agent_manager(self) -> AgentManager:
-        """Initialize agent manager"""
+    def _initialize_agent_manager(self):
         manager = AgentManager(
             config=self.config.agent_config,
             data_collector=self.collector
         )
-        protocols_path = str(self.project_root / "src" / "protocols")
-        manager.registry.discover_actions(protocols_path)
         return manager
-    
-    def _initialize_clients(self) -> Dict[str, Any]:
-        """Initialize all contract clients including MultiCall and BatchCall"""
-        clients = {}
-        
-        # First initialize all regular clients
-        for name, config in self.contract_configs.items():
-            if name in ['multicall', 'batchcall']:  # Skip special clients for now
-                continue
-                    
-            try:
-                abi_dir = self.project_root / "src" / "protocols" / "abis" / config['abi_folder']
-                
-                # Handle generic ABIs (like ERC20) vs contract-specific ABIs
-                if config.get('abi_name'):
-                    # Use specified ABI name for generic interfaces
-                    abi_path = abi_dir / config['abi_name']
-                else:
-                    # Use contract address for specific contracts
-                    abi_path = abi_dir / f"{config['address']}.json"
-                
-                if not abi_path.exists():
-                    logger.warning(f"ABI file not found for {name} at {abi_path}")
-                    continue
-
-                # Fallback if module_name is not in config:
-                module_name = config.get('module_name', name)
-
-                strategy = config.get(
-                    config['module_name'], 
-                    config.get('strategy', 'basic')
-                )
-                logger.info(f"Initializing {name} client with {strategy} strategy")
-
-                client = config['client_class'](
-                    config['address'],
-                    str(abi_path),
-                    gas_limits=self.config.network_config.get('gas_limits', {}),
-                    data_collector=self.collector
-                )
-                
-                # Store clients by their module_name
-                clients[module_name] = client
-                setattr(self, f"{name}_client", client)
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize {name} client: {e}")
-                raise
-                
-        # initialize special clients (MultiCall and BatchCall) with all available clients
-        try:
-            if 'multicall' in self.contract_configs:
-                from src.protocols.interfaces.multicall import MultiCallClient
-                multicall_client = MultiCallClient(clients, collector=self.collector)
-                clients['multicall'] = multicall_client
-                setattr(self, 'multicall_client', multicall_client)
-                logger.info("Initialized MultiCall client with all available contracts")
-
-            if 'batchcall' in self.contract_configs:
-                from src.protocols.interfaces.batchcall import BatchCallClient
-                batchcall_client = BatchCallClient(clients, collector=self.collector)
-                clients['batchcall'] = batchcall_client
-                setattr(self, 'batchcall_client', batchcall_client)
-                logger.info("Initialized BatchCall client with all available contracts")
-
-        except Exception as e:
-            logger.error(f"Failed to initialize special clients: {e}")
-            raise
-        
-        return clients
     
 
     def _initialize_builder(self) -> NetworkBuilder:
@@ -353,8 +344,7 @@ class BaseSimulation(ABC):
             clients=self.clients,
             agent_manager=self.agent_manager,
             collector=self.collector,
-            gas_limits=self.config.network_config.get('gas_limits'),
-            strategy_config=self.strategy_config
+            gas_limits=self.config.network_config.get('gas_limits')
         )
         evolver.initialize_contract_states(self.contract_states)
         evolver.set_simulation(self)
@@ -500,14 +490,3 @@ class BaseSimulation(ABC):
             'current_block': chain.blocks.head.number,
             'action_counts': action_counts
         }
-
-    def update_state_from_transaction(self, tx, context: 'SimulationContext') -> None:
-        """
-        Generic method to update simulation state based on transaction data.
-        Override in specific simulations to implement custom state tracking.
-        
-        Args:
-            tx: The transaction receipt/result
-            context: Current simulation context
-        """
-        pass 

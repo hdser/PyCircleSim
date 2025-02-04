@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional
-from .base_agent import BaseAgent
-from .profile import AgentProfile
-from .action_registry import ActionRegistry
+import uuid
 from src.framework.data import BaseDataCollector
 from src.framework.logging import get_logger
-import uuid
+from .base_agent import BaseAgent
+from .profile import AgentProfile 
+
 
 logger = get_logger(__name__)
 
@@ -17,15 +17,15 @@ class AgentManager:
         self.data_collector = data_collector
         self.agents: Dict[str, BaseAgent] = {}
         self.address_to_agent: Dict[str, str] = {}  # address -> agent_id
-        self.registry = ActionRegistry()
         
         # Initialize any additional settings from config
         self.agent_distribution = config.get('agent_distribution', {})
         self.simulation_params = config.get('simulation_params', {})
+
         
         logger.info(f"Initialized AgentManager with {len(self.config['profiles'])} agent profiles")
 
-
+   
     def _create_profile(self, profile_name: str) -> AgentProfile:
         """Create profile from configuration dictionary"""
         try:
@@ -42,24 +42,19 @@ class AgentManager:
         """Create a new agent given a profile name."""
         profile = self._create_profile(profile_name)
         agent_id = str(uuid.uuid4())
-
+        
         agent = BaseAgent(agent_id, profile, self.data_collector)
         
         # Record agent BEFORE creating any addresses
         if self.data_collector and self.data_collector.current_run_id:
             self.data_collector.record_agent(agent)
-            
-        # Now create address
-        if agent.profile.preset_addresses:
-            for preset_addr in agent.profile.preset_addresses:
-                address, _ = agent.create_account(preset_addr)
-                self.agents[agent_id] = agent
-                self.address_to_agent[address] = agent_id
-        else:
-            address, _ = agent.create_account()
-            self.agents[agent_id] = agent
-            self.address_to_agent[address] = agent_id
         
+        # Store agent in agents dictionary
+        self.agents[agent_id] = agent
+            
+        # Register all addresses, whether preset or newly created
+        for address in agent.accounts.keys():
+            self.address_to_agent[address] = agent_id
 
         return agent
 

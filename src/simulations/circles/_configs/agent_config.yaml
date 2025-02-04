@@ -9,19 +9,18 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
-  circles_newuser: 0
 
 # Agent profiles and their actions
 profiles:
   circles_user:
     description: "Regular network participant"
     base_config:
-      target_account_count: 1
-      risk_tolerance: 0.5
+      target_account_count: 10
+      risk_tolerance: 0.5 
       sequence_probability: 1
-      max_sequence_iterations: 1
+      max_sequence_iterations: 5
       preset_addresses: 
-        - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
+       # - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
         - "0xA6247834B41771022498F63CAE8820fFEE208265"
         - "0x14c16ce62d26Fd51582A646e2e30a3267b1E6D7E"
 
@@ -29,12 +28,12 @@ profiles:
       - name: "full_setup_lbp"
         max_executions: 1
         steps:
-          - action: "circleserc20lift_EnsureERC20"
+          - action: "circleserc20lift_ensureERC20"
             repeat: 1
             constraints:
-              CRC_TYPE: 0
+              _circlesType: 0
 
-          - action: "batchcall_BatchCall"
+          - action: "custom_setupLBP"
             repeat: 1
             batchcall:
               setup_lbp: 1
@@ -45,62 +44,34 @@ profiles:
               #CRC_token: '0xf48554937f18885c7f15c432c596b5843648231D' 
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
 
-          - action: "balancerv2vault_JoinPool"
+          - action: "custom_joinLBP"
             repeat: 1
             constraints:
               CRC_TYPE: 0
-     
 
-    available_actions:   
-      - action: "circleshub_Trust"
-        probability: 0.5
-        cooldown_blocks: 2
-        max_executions: 5
+   # available_actions:   
+   #   - action: "circleshub_trust"
+   #     probability: .1
+   #     cooldown_blocks: 2
 
+   #   - action: "circleshub_registerHuman"
+   #     probability: 1
+   #     cooldown_blocks: 2
+        
+    #  - action: "custom_setupLBP"
+    #    probability: 1
+    #    cooldown_blocks: 2
+    #    constraints: {}
 
-  circles_newuser:
-    description: "Regular network participant with standard behavior"
-    base_config:
-      target_account_count: 100  # Number of accounts this agent controls
-      max_daily_actions: 20    # Maximum actions per day
-      preferred_networks: ["gnosis"]  # Preferred networks
-      
-    available_actions:
-      - action: "circleshub_Wrap"
-        probability: 0.5
-        cooldown_blocks: 1
-        max_value: 10.0
-        constraints:
-          min_balance: 1.0
+    #  - action: "circleshub_personalMint"
+    #    probability: 1.0
+    #    cooldown_blocks: 720
 
-      - action: "circleshub_Trust"
-        probability: 1
-        cooldown_blocks: 1
-
-      - action: "circleshub_RegisterGroup"
-        probability: 0.1
-        cooldown_blocks: 10
-        constraints:
-          max_executions: 1
-
-      - action: "circleshub_RegisterHuman"
-        probability: .5
-        cooldown_blocks: 1
-        constraints:
-          max_accounts_per_day: 5
-
-      - action: "circleshub_PersonalMint"
-        probability: 0.8
-        cooldown_blocks: 2
-        constraints:
-          max_executions: 100
-
-      - action: "circleshub_GroupMint"
-        probability: 0.4
-        cooldown_blocks: 1
-        max_value: 50.0
- #       constraints:
- #         min_collateral_ratio: 1.5
- #         max_mint_per_day: 1000.0
+    #  - action: "circleshub_operateFlowMatrix"
+    #    probability: 1.0
+    #    cooldown_blocks: 10
+    #    constraints:
+    #      max_flow: 1000 #CRC
+    #      min_flow: 1 #CRC
 
       
