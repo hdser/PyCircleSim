@@ -2,7 +2,7 @@
 
 ![PyCircleSim Header](img/header-pycirclesim.png)
 
-**PyCircleSim** is a Python framework for simulating and analyzing the [Circles protocol](https://circles.foundation) through agent-based modeling in realistic scenarios.
+**PyCircleSim** is a Python framework for simulating and analyzing the [Circles protocol](https://aboutcircles.com/) through agent-based modeling in realistic scenarios.
 
 
 ## Table of Contents
