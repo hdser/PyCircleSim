@@ -179,7 +179,7 @@ class BaseAgent:
                     if (not seq_state["active"] and 
                         not seq_state.get("failed") and
                         seq_state["sequence_executions"] < seq_def.max_executions):
-                        
+
                         logger.info(f"Starting new sequence {seq_name} for address {address}")
                         seq_state["active"] = True
                         seq_state["current_step_index"] = 0
@@ -231,6 +231,10 @@ class BaseAgent:
         available_actions = []
         
         for action_name, config in self.profile.action_configs.items():
+            # Skip sequence-only actions
+            if config.sequence_only:
+                continue
+                
             for address in self.accounts:
                 # Skip if max executions reached
                 if self._max_executions_reached(action_name, address):
@@ -315,8 +319,6 @@ class BaseAgent:
         params = {"sender": address}
         if hasattr(current_step, 'constraints') and current_step.constraints:
             params.update(current_step.constraints)
-        if hasattr(current_step, 'batchcall') and current_step.batchcall:
-            params["batchcall"] = current_step.batchcall
 
         logger.debug(f"Built parameters for action {action_name}: {params}")
 
@@ -326,17 +328,15 @@ class BaseAgent:
     def _prepare_action_params(self, 
                          action_name: str, 
                          address: str,
-                         constraints: Dict[str, Any],
-                         batchcall: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+                         constraints: Dict[str, Any]
+        ) -> Dict[str, Any]:
         """
-        Prepare parameters for action execution by combining base parameters with constraints 
-        and optional batch call configuration.
+        Prepare parameters for action execution by combining base parameters with constraints.
         
         Args:
             action_name: Name of the action being executed
             address: Address initiating the action
             constraints: Dictionary of constraint parameters for the action
-            batchcall: Optional dictionary mapping batch call types to their probabilities
 
         Returns:
             Dict containing all parameters needed for action execution
@@ -355,23 +355,6 @@ class BaseAgent:
                 # Handle case where we receive an ActionConfig object
                 params.update(constraints.constraints)
 
-        # Handle batch call configuration if provided
-        if batchcall:
-            try:
-                # Convert batchcall items to list for random selection
-                options = list(batchcall.items())
-                if options:
-                    # Select a batch call type based on weights
-                    selected_call, _ = random.choices(
-                        options,
-                        weights=[x[1] for x in options],
-                        k=1
-                    )[0]
-                    params['batchcall'] = selected_call
-            except Exception as e:
-                logger.error(f"Failed to process batch call configuration: {e}")
-                # Continue without batch call if processing fails
-                
         return params
 
     def record_action(
@@ -426,6 +409,7 @@ class BaseAgent:
         # Update sequence states for successful execution
         for sequence in self.profile.sequences:
             state = self.sequence_states[address][sequence.name]
+
             if not state.get("active"):
                 continue
                 

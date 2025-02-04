@@ -15,12 +15,12 @@ profiles:
   circles_user:
     description: "Regular network participant"
     base_config:
-      target_account_count: 10
+      target_account_count: 1
       risk_tolerance: 0.5 
       sequence_probability: 1
-      max_sequence_iterations: 5
+      max_sequence_iterations: 1
       preset_addresses: 
-       # - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
+        - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
         - "0xA6247834B41771022498F63CAE8820fFEE208265"
         - "0x14c16ce62d26Fd51582A646e2e30a3267b1E6D7E"
 
@@ -35,8 +35,6 @@ profiles:
 
           - action: "custom_setupLBP"
             repeat: 1
-            batchcall:
-              setup_lbp: 1
             constraints:
               xDAI_value: 100
               CRC_value: 2

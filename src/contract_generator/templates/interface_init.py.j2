@@ -1,13 +1,23 @@
+{% set has_handlers = handlers|length > 0 -%}
 from .{{ contract_name.lower() }}_client import {{ contract_name }}Client
+
+{% if has_handlers %}
 from .{{ contract_name.lower() }}_handler import (
     {% for handler in handlers %}
     {{ handler }}{% if not loop.last %},{% endif %}
     {% endfor %}
 )
+{% endif %}
 
+{% if has_handlers %}
 __all__ = [
     "{{ contract_name }}Client",
     {% for handler in handlers %}
     "{{ handler }}"{% if not loop.last %},{% endif %}
     {% endfor %}
 ]
+{% else %}
+__all__ = [
+    "{{ contract_name }}Client"
+]
+{% endif %}
