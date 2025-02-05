@@ -5,6 +5,17 @@ blocks_per_iteration: 10
 block_time: 5            
 compute_initial_balances: true
 
+historical_events:
+  BalancerV2LBPFactory:  # Contract identifier matching contract_configs
+    address: "0x85a80afee867aDf27B50BdB7b76DA70f1E853062"
+    events:
+      - PoolCreated
+
+  BalancerV2Vault:  # Contract identifier matching contract_configs
+    address: "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+    events:
+      - PoolBalanceChanged
+
 state_variables:
   CirclesHub:  # Contract identifier matching contract_configs
     address: "0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8"  # Optional override

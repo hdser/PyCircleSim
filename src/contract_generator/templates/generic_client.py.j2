@@ -1,0 +1,105 @@
+from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
+from eth_typing import HexStr
+from eth_pydantic_types import HexBytes
+from ape import Contract, chain
+from src.framework.data import BaseDataCollector
+from src.framework.logging import get_logger
+import logging
+import json
+
+logger = get_logger(__name__)
+
+class {{ contract_name }}Client:
+    """Generic client interface for {{ contract_name }} contract"""
+    
+    def __init__(
+        self,
+        address: str,
+        abi_path: str,
+        gas_limits: Optional[Dict[str, int]] = None,
+        data_collector: Optional['BaseDataCollector'] = None
+    ):
+        self.address = address
+        self.abi_path = abi_path
+        self.data_collector = data_collector
+        self.gas_limits = gas_limits or {}
+        self._contracts: Dict[str, Contract] = {}
+
+        # Load ABI from file
+        try:
+            with open(abi_path) as f:
+                self.abi = json.load(f)
+            logger.debug(f"Successfully loaded {{ contract_name }} ABI from {abi_path}")
+        except Exception as e:
+            logger.error(f"Failed to load ABI from {abi_path}: {e}")
+            raise
+
+    def get_contract(self, contract_address: str) -> Optional[Contract]:
+        """Get or create Contract instance for given address"""
+        if contract_address not in self._contracts:
+            try:
+                logger.debug(f"Creating new contract instance for {contract_address}")
+                self._contracts[contract_address] = Contract(
+                    address=contract_address,
+                    abi=self.abi
+                )
+                logger.debug(f"Successfully created contract instance for {contract_address}")
+            except Exception as e:
+                logger.error(f"Failed to create contract for {contract_address}: {e}")
+                return None
+        return self._contracts[contract_address]
+
+    {% for func in functions %}
+    {% if func.is_view %}
+    def {{ func.name }}(self, contract_address: str, {{ func.get_python_param_defs() }}) -> {{ func.get_python_return_type() }}:
+        """{{ func.name }} implementation
+        Args:
+            contract_address: Contract address to call
+            {% for inp in func.inputs %}
+            {{ inp.name }}: {{ inp.type }} - Contract parameter
+            {% endfor %}
+        """
+        try:
+            contract = self.get_contract(contract_address)
+            if not contract:
+                return None
+            return contract.{{ func.name }}({{ func.get_python_params() }})
+        except Exception as e:
+            logger.error(f"{{ func.name }} failed: {e}")
+            return None
+    {% else %}
+    def {{ func.name }}(self, contract_address: str, {{ func.get_python_param_defs() }}, sender: str, value: int = 0, context: Optional['SimulationContext'] = None) -> bool:
+        """{{ func.name }} implementation
+        Args:
+            contract_address: Contract address to call
+            {% for inp in func.inputs %}
+            {{ inp.name }}: {{ inp.type }} - Contract parameter
+            {% endfor %}
+            sender: Address initiating the transaction
+            value: Value in wei to send with transaction
+        """
+        try:
+            contract = self.get_contract(contract_address)
+            if not contract:
+                return False
+
+            tx = contract.{{ func.name }}(
+                {{ func.get_python_params() }},
+                sender=sender,
+                value=value
+            )
+            success = bool(tx and tx.status == 1)
+            
+            if success:
+                if self.data_collector:
+                    self.data_collector.record_transaction_events(tx)
+                if context and context.simulation:
+                    context.simulation.update_state_from_transaction(tx, context)
+            return success
+            
+        except Exception as e:
+            logger.error(f"{{ func.name }} failed: {e}")
+            return False
+    {% endif %}
+    {% endfor %}

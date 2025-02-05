@@ -123,6 +123,7 @@ class NetworkEvolver():
                 logger.debug(f"Processing agent {agent.agent_id}")
                 context = SimulationContext(
                     agent=agent,
+                    acting_address='',
                     agent_manager=self.agent_manager, 
                     clients=self.clients,
                     chain=chain,
@@ -151,7 +152,7 @@ class NetworkEvolver():
                     'sender': acting_address,
                     'implementation': implementation
                 }
-
+                context.acting_address = acting_address
                 stats['total_actions'] += 1
                 success = self.master_handler.execute(context, params)
                 
@@ -159,13 +160,13 @@ class NetworkEvolver():
                     stats['successful_actions'] += 1
                     stats['action_counts'][implementation] = stats['action_counts'].get(implementation, 0) + 1
                     
-                    agent.record_action(
-                        action_name=implementation,
-                        address=acting_address,
-                        block_number=self.network_state['current_block'],
-                        success=True,
-                        context=context
-                    )
+                agent.record_action(
+                    action_name=implementation,
+                    address=acting_address,
+                    block_number=self.network_state['current_block'],
+                    success=success,
+                    context=context
+                )
 
             return stats
             

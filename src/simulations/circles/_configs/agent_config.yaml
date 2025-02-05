@@ -9,18 +9,52 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   circles_user: 1
+  circles_user2: 1
 
 # Agent profiles and their actions
 profiles:
+  circles_user2:
+    description: "Regular network participant"
+    base_config:
+      target_account_count: 1
+      risk_tolerance: 0.5 
+      sequence_probability: 0.3
+      max_sequence_iterations: 1
+      preset_addresses: 
+        - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
+
+    action_sequences:
+      - name: "full_setup_lbp"
+        max_executions: 1
+        steps:
+          - action: "circleserc20lift_ensureERC20"
+            repeat: 1
+            constraints:
+              _circlesType: 0
+
+          - action: "custom_setupLBP"
+            repeat: 1
+            constraints:
+              XDAI_AMOUNT: 50
+              CRC_AMOUNT: 48
+              WRAP_TYPE: 0
+              BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
+              WEIGHT_CRC: 10000000000000000
+              WEIGHT_BACKING: 990000000000000000
+
+          - action: "custom_joinLBP"
+            repeat: 1
+            constraints:
+              CRC_TYPE: 0
+
   circles_user:
     description: "Regular network participant"
     base_config:
       target_account_count: 1
       risk_tolerance: 0.5 
-      sequence_probability: 1
+      sequence_probability: 0.3
       max_sequence_iterations: 1
       preset_addresses: 
-        - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
         - "0xA6247834B41771022498F63CAE8820fFEE208265"
         - "0x14c16ce62d26Fd51582A646e2e30a3267b1E6D7E"
 
@@ -36,34 +70,44 @@ profiles:
           - action: "custom_setupLBP"
             repeat: 1
             constraints:
-              xDAI_value: 100
-              CRC_value: 2
-              CRC_TYPE: 0
-              #CRC_token: '0xf48554937f18885c7f15c432c596b5843648231D' 
+              XDAI_AMOUNT: 100
+              CRC_AMOUNT: 48
+              WRAP_TYPE: 0
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
+              WEIGHT_CRC: 10000000000000000
+              WEIGHT_BACKING: 990000000000000000
 
           - action: "custom_joinLBP"
             repeat: 1
             constraints:
               CRC_TYPE: 0
 
-   # available_actions:   
-   #   - action: "circleshub_trust"
-   #     probability: .1
-   #     cooldown_blocks: 2
+    available_actions:   
 
-   #   - action: "circleshub_registerHuman"
-   #     probability: 1
-   #     cooldown_blocks: 2
+      - action: "custom_arbLBP"
+        probability: 1
+        cooldown_blocks: 2
+
+      - action: "custom_pathFinderArb"
+        probability: 0.1
+        cooldown_blocks: 2
+
+      - action: "circleshub_trust"
+        probability: .6
+        cooldown_blocks: 2
+
+      - action: "circleshub_registerHuman"
+        probability: 0.5
+        cooldown_blocks: 2
         
     #  - action: "custom_setupLBP"
     #    probability: 1
     #    cooldown_blocks: 2
     #    constraints: {}
 
-    #  - action: "circleshub_personalMint"
-    #    probability: 1.0
-    #    cooldown_blocks: 720
+      - action: "circleshub_personalMint"
+        probability: .6
+        cooldown_blocks: 720
 
     #  - action: "circleshub_operateFlowMatrix"
     #    probability: 1.0

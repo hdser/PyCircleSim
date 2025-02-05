@@ -22,9 +22,8 @@ class CirclesERC20LiftEnsureERC20(BaseImplementation):
         Returns:
             List[ContractCall]: List of calls to execute
         """
-        sender = self.get_sender(context)
-        if not sender:
-            return []
+        sender = context.acting_address
+       
 
         client = context.get_client("circleserc20lift")
         if not client:

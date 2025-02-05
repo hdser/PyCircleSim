@@ -13,6 +13,7 @@ from src.framework.agents.agent_manager import AgentManager
 from src.framework.core import NetworkBuilder, NetworkEvolver, SimulationContext
 from src.framework.logging import get_logger
 from src.framework.state.decoder import StateDecoder
+from src.framework.state.event_indexer import EventIndexer
 from src.protocols.interfaces.master import MasterClient
 
 
@@ -160,10 +161,16 @@ class BaseSimulation(ABC):
         # Initialize contract states
         self.contract_states = self._initialize_contract_states(config, contract_configs)
 
+        # Initialize historical events
+        self.historical_events = {}#self._index_historical_events(config, contract_configs)
+
         # Store initial state
         self.initial_state = {
-            contract_id: state_data['state'] 
-            for contract_id, state_data in self.contract_states.items()
+            'contract_states': {
+                contract_id: state_data['state'] 
+                for contract_id, state_data in self.contract_states.items()
+            },
+            'historical_events': self.historical_events
         }
 
         self.builder = self._initialize_builder()
@@ -172,6 +179,51 @@ class BaseSimulation(ABC):
         # Tracking
         self.iteration_stats: List[Dict[str, Any]] = []
 
+    def _index_historical_events(self, config: BaseSimulationConfig, contract_configs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Initialize historical event indexing"""
+        indexed_events = {}
+        event_configs = config.network_config.get('historical_events', {})
+
+        if not event_configs:
+            return indexed_events
+
+        event_indexer = EventIndexer(event_configs, self.abis)
+        
+        for contract_id, event_config in event_configs.items():
+            try:
+                # Get client in a case-insensitive way
+                client_key = next((k for k in self.clients.keys() 
+                                 if k.lower() == contract_id.lower()), None)
+                if not client_key:
+                    logger.error(f"No client found for {contract_id}")
+                    continue
+                    
+                client = self.clients[client_key]
+
+                # Get contract address
+                contract_address = event_config.get('address') or contract_configs.get(contract_id, {}).get('address')
+                if not contract_address:
+                    logger.error(f"No address found for contract {contract_id}")
+                    continue
+
+                indexed_events[contract_id] = event_indexer.index_contract_events(
+                    contract_id=contract_id,
+                    client=client,
+                    address=contract_address
+                )
+                
+                if indexed_events[contract_id]:
+                    total_events = sum(len(events) for events in indexed_events[contract_id].values())
+                    logger.info(f"Indexed {total_events} events for {contract_id}")
+                    for event_name, events in indexed_events[contract_id].items():
+                        logger.info(f"  - {event_name}: {len(events)} events")
+
+            except Exception as e:
+                logger.error(f"Failed to index events for {contract_id}: {e}")
+                continue
+
+        return indexed_events
+    
     def _initialize_master_client(self) -> MasterClient:
         """Initialize master interface client"""
         return MasterClient(

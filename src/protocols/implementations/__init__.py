@@ -42,8 +42,77 @@ from .erc20.increaseApproval import ERC20IncreaseApproval
 from .erc20.push import ERC20Push
 
 
-from .circleserc20lift.ensureERC20 import CirclesERC20LiftEnsureERC20
+from .supergroup.updateMetadataDigest import SuperGroupUpdateMetadataDigest
 
+from .supergroup.beforeBurnPolicy import SuperGroupBeforeBurnPolicy
+
+from .supergroup.setRequireOperators import SuperGroupSetRequireOperators
+
+from .supergroup.setAdvancedUsageFlag import SuperGroupSetAdvancedUsageFlag
+
+from .supergroup.safeBatchTransferFrom import SuperGroupSafeBatchTransferFrom
+
+from .supergroup.registerShortNameWithNonce import SuperGroupRegisterShortNameWithNonce
+
+from .supergroup.beforeMintPolicy import SuperGroupBeforeMintPolicy
+
+from .supergroup.safeTransferFrom import SuperGroupSafeTransferFrom
+
+from .supergroup.onERC1155BatchReceived import SuperGroupOnERC1155BatchReceived
+
+from .supergroup.setup import SuperGroupSetup
+
+from .supergroup.trustBatch import SuperGroupTrustBatch
+
+from .supergroup.setMintFee import SuperGroupSetMintFee
+
+from .supergroup.trust import SuperGroupTrust
+
+from .supergroup.setReturnGroupCirclesToSender import (
+    SuperGroupSetReturnGroupCirclesToSender,
+)
+
+from .supergroup.registerShortName import SuperGroupRegisterShortName
+
+from .supergroup.setService import SuperGroupSetService
+
+from .supergroup.setAuthorizedOperator import SuperGroupSetAuthorizedOperator
+
+from .supergroup.setRedemptionBurn import SuperGroupSetRedemptionBurn
+
+from .supergroup.beforeRedeemPolicy import SuperGroupBeforeRedeemPolicy
+
+from .supergroup.onERC1155Received import SuperGroupOnERC1155Received
+
+from .supergroup.registerOperatorRequest import SuperGroupRegisterOperatorRequest
+
+
+from .circlesdemurrageerc20.approve import CirclesDemurrageERC20Approve
+
+from .circlesdemurrageerc20.transfer import CirclesDemurrageERC20Transfer
+
+from .circlesdemurrageerc20.unwrap import CirclesDemurrageERC20Unwrap
+
+from .circlesdemurrageerc20.decreaseAllowance import (
+    CirclesDemurrageERC20DecreaseAllowance,
+)
+
+from .circlesdemurrageerc20.transferFrom import CirclesDemurrageERC20TransferFrom
+
+from .circlesdemurrageerc20.increaseAllowance import (
+    CirclesDemurrageERC20IncreaseAllowance,
+)
+
+from .circlesdemurrageerc20.permit import CirclesDemurrageERC20Permit
+
+from .circlesdemurrageerc20.setup import CirclesDemurrageERC20Setup
+
+from .circlesdemurrageerc20.onERC1155Received import (
+    CirclesDemurrageERC20OnERC1155Received,
+)
+
+
+from .circleserc20lift.ensureERC20 import CirclesERC20LiftEnsureERC20
 
 
 from .balancerv2vault.registerPool import BalancerV2VaultRegisterPool
@@ -73,6 +142,31 @@ from .balancerv2vault.flashLoan import BalancerV2VaultFlashLoan
 from .balancerv2vault.exitPool import BalancerV2VaultExitPool
 
 from .balancerv2vault.joinPool import BalancerV2VaultJoinPool
+
+
+from .circlesinflationaryerc20.approve import CirclesInflationaryERC20Approve
+
+from .circlesinflationaryerc20.transfer import CirclesInflationaryERC20Transfer
+
+from .circlesinflationaryerc20.unwrap import CirclesInflationaryERC20Unwrap
+
+from .circlesinflationaryerc20.decreaseAllowance import (
+    CirclesInflationaryERC20DecreaseAllowance,
+)
+
+from .circlesinflationaryerc20.transferFrom import CirclesInflationaryERC20TransferFrom
+
+from .circlesinflationaryerc20.increaseAllowance import (
+    CirclesInflationaryERC20IncreaseAllowance,
+)
+
+from .circlesinflationaryerc20.permit import CirclesInflationaryERC20Permit
+
+from .circlesinflationaryerc20.setup import CirclesInflationaryERC20Setup
+
+from .circlesinflationaryerc20.onERC1155Received import (
+    CirclesInflationaryERC20OnERC1155Received,
+)
 
 
 from .circleshub.operateFlowMatrix import CirclesHubOperateFlowMatrix
@@ -110,7 +204,13 @@ from .circleshub.setApprovalForAll import CirclesHubSetApprovalForAll
 from .circleshub.migrate import CirclesHubMigrate
 
 
+from ._custom.pathFinderArb import PathFinderArb
+
 from ._custom.setupLBP import SetupLBP
+
+from ._custom.pathFinderTransfer import PathFinderTransfer
+
+from ._custom.arbLBP import ArbLBP
 
 from ._custom.joinLBP import JoinLBP
 
@@ -138,8 +238,37 @@ IMPLEMENTATIONS = {
     "erc20_setBridgeContract": ERC20SetBridgeContract,
     "erc20_increaseApproval": ERC20IncreaseApproval,
     "erc20_push": ERC20Push,
+    "supergroup_updateMetadataDigest": SuperGroupUpdateMetadataDigest,
+    "supergroup_beforeBurnPolicy": SuperGroupBeforeBurnPolicy,
+    "supergroup_setRequireOperators": SuperGroupSetRequireOperators,
+    "supergroup_setAdvancedUsageFlag": SuperGroupSetAdvancedUsageFlag,
+    "supergroup_safeBatchTransferFrom": SuperGroupSafeBatchTransferFrom,
+    "supergroup_registerShortNameWithNonce": SuperGroupRegisterShortNameWithNonce,
+    "supergroup_beforeMintPolicy": SuperGroupBeforeMintPolicy,
+    "supergroup_safeTransferFrom": SuperGroupSafeTransferFrom,
+    "supergroup_onERC1155BatchReceived": SuperGroupOnERC1155BatchReceived,
+    "supergroup_setup": SuperGroupSetup,
+    "supergroup_trustBatch": SuperGroupTrustBatch,
+    "supergroup_setMintFee": SuperGroupSetMintFee,
+    "supergroup_trust": SuperGroupTrust,
+    "supergroup_setReturnGroupCirclesToSender": SuperGroupSetReturnGroupCirclesToSender,
+    "supergroup_registerShortName": SuperGroupRegisterShortName,
+    "supergroup_setService": SuperGroupSetService,
+    "supergroup_setAuthorizedOperator": SuperGroupSetAuthorizedOperator,
+    "supergroup_setRedemptionBurn": SuperGroupSetRedemptionBurn,
+    "supergroup_beforeRedeemPolicy": SuperGroupBeforeRedeemPolicy,
+    "supergroup_onERC1155Received": SuperGroupOnERC1155Received,
+    "supergroup_registerOperatorRequest": SuperGroupRegisterOperatorRequest,
+    "circlesdemurrageerc20_approve": CirclesDemurrageERC20Approve,
+    "circlesdemurrageerc20_transfer": CirclesDemurrageERC20Transfer,
+    "circlesdemurrageerc20_unwrap": CirclesDemurrageERC20Unwrap,
+    "circlesdemurrageerc20_decreaseAllowance": CirclesDemurrageERC20DecreaseAllowance,
+    "circlesdemurrageerc20_transferFrom": CirclesDemurrageERC20TransferFrom,
+    "circlesdemurrageerc20_increaseAllowance": CirclesDemurrageERC20IncreaseAllowance,
+    "circlesdemurrageerc20_permit": CirclesDemurrageERC20Permit,
+    "circlesdemurrageerc20_setup": CirclesDemurrageERC20Setup,
+    "circlesdemurrageerc20_onERC1155Received": CirclesDemurrageERC20OnERC1155Received,
     "circleserc20lift_ensureERC20": CirclesERC20LiftEnsureERC20,
-    "circleserc20lift_ensureERC20_template": CirclesERC20LiftEnsureERC20,
     "balancerv2vault_registerPool": BalancerV2VaultRegisterPool,
     "balancerv2vault_queryBatchSwap": BalancerV2VaultQueryBatchSwap,
     "balancerv2vault_batchSwap": BalancerV2VaultBatchSwap,
@@ -154,6 +283,15 @@ IMPLEMENTATIONS = {
     "balancerv2vault_flashLoan": BalancerV2VaultFlashLoan,
     "balancerv2vault_exitPool": BalancerV2VaultExitPool,
     "balancerv2vault_joinPool": BalancerV2VaultJoinPool,
+    "circlesinflationaryerc20_approve": CirclesInflationaryERC20Approve,
+    "circlesinflationaryerc20_transfer": CirclesInflationaryERC20Transfer,
+    "circlesinflationaryerc20_unwrap": CirclesInflationaryERC20Unwrap,
+    "circlesinflationaryerc20_decreaseAllowance": CirclesInflationaryERC20DecreaseAllowance,
+    "circlesinflationaryerc20_transferFrom": CirclesInflationaryERC20TransferFrom,
+    "circlesinflationaryerc20_increaseAllowance": CirclesInflationaryERC20IncreaseAllowance,
+    "circlesinflationaryerc20_permit": CirclesInflationaryERC20Permit,
+    "circlesinflationaryerc20_setup": CirclesInflationaryERC20Setup,
+    "circlesinflationaryerc20_onERC1155Received": CirclesInflationaryERC20OnERC1155Received,
     "circleshub_operateFlowMatrix": CirclesHubOperateFlowMatrix,
     "circleshub_setAdvancedUsageFlag": CirclesHubSetAdvancedUsageFlag,
     "circleshub_registerGroup": CirclesHubRegisterGroup,
@@ -172,6 +310,9 @@ IMPLEMENTATIONS = {
     "circleshub_setApprovalForAll": CirclesHubSetApprovalForAll,
     "circleshub_migrate": CirclesHubMigrate,
     # Custom implementations
+    "custom_pathFinderArb": PathFinderArb,
     "custom_setupLBP": SetupLBP,
+    "custom_pathFinderTransfer": PathFinderTransfer,
+    "custom_arbLBP": ArbLBP,
     "custom_joinLBP": JoinLBP,
 }

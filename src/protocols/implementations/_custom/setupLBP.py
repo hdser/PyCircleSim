@@ -13,9 +13,7 @@ class SetupLBP(BaseImplementation):
 
     def get_calls(self, context: SimulationContext) -> List[ContractCall]:
 
-        sender = self.get_sender(context)
-        if not sender:
-            return []
+        sender = context.acting_address
 
         client = context.get_client("circleshub")
         if not client:
@@ -30,14 +28,14 @@ class SetupLBP(BaseImplementation):
         CIRCLES_HUB = '0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8' 
 
         # Get constraints from profile
-        constraints = context.agent.profile.get_action_config(
-            "custom_setupLBP"
-        ).constraints
-        xDAI_value = int(constraints.get('xDAI_value',100) * 1e18 )
-        CRC_value = int(constraints.get('CRC_value',48) * 1e18 )
-        CRC_token = constraints.get('CRC_token',sender)
+        constraints = context.agent.profile.get_action_config("custom_setupLBP").constraints
+        XDAI_AMOUNT = int(constraints.get('XDAI_AMOUNT',100) * 1e18 )
+        CRC_AMOUNT = int(constraints.get('CRC_AMOUNT',48) * 1e18 )
+        CRC_TOKEN = constraints.get('CRC_TOKEN',sender)
         WRAP_TYPE = constraints.get('WRAP_TYPE',0)
         BACKING_ASSET = constraints.get('BACKING_ASSET','0xaf204776c7245bF4147c2612BF6e5972Ee483701')
+        WEIGHT_CRC = constraints.get('WEIGHT_CRC',10000000000000000)
+        WEIGHT_BACKING = constraints.get('WEIGHT_BACKING',990000000000000000)
 
         batch_calls = []
 
@@ -50,7 +48,7 @@ class SetupLBP(BaseImplementation):
                 method="deposit",
                 params={
                     "sender": sender,
-                    "value": xDAI_value,
+                    "value": XDAI_AMOUNT,
                 }
             )
         )
@@ -64,7 +62,7 @@ class SetupLBP(BaseImplementation):
                 params={
                     "token_address": WXDAI,
                     "spender": VAULT,
-                    "amount": xDAI_value * 2, 
+                    "amount": XDAI_AMOUNT * 2, 
                     "sender": sender,
                     "value": 0
                 }
@@ -93,7 +91,7 @@ class SetupLBP(BaseImplementation):
                     'poolId': hop['pool_id'],
                     'assetInIndex': assets.index(hop['from_token']),
                     'assetOutIndex': assets.index(hop['to_token']),
-                    'amount': xDAI_value if i == 0 else 0,
+                    'amount': XDAI_AMOUNT if i == 0 else 0,
                     'userData': b''
                 })
                 logger.debug(f"Added swap {i}: {hop['from_token']} -> {hop['to_token']}")
@@ -103,7 +101,7 @@ class SetupLBP(BaseImplementation):
 
         # Set limits with 5% slippage
         slippage = 0.05
-        limits = [int(xDAI_value * (1 + slippage)) if i == 0 else 0 for i in range(len(assets))]
+        limits = [int(XDAI_AMOUNT * (1 + slippage)) if i == 0 else 0 for i in range(len(assets))]
 
         # Finally append batch swap operation
         batch_calls.append(
@@ -146,11 +144,11 @@ class SetupLBP(BaseImplementation):
 
         # 5) Wrap CRC
         #_____________________________________
-        id = client.toTokenId(CRC_token) 
+        id = client.toTokenId(CRC_TOKEN) 
         balance = client.balanceOf(sender, id)
         
-        if balance < CRC_value:
-            logger.debug(f"Balance {balance} < {CRC_value}")
+        if balance < CRC_AMOUNT:
+            logger.debug(f"Balance {balance} < {CRC_AMOUNT}")
             return {}
         
         batch_calls.append(
@@ -158,8 +156,8 @@ class SetupLBP(BaseImplementation):
                 client_name="circleshub",
                 method="wrap",
                 params={
-                    '_avatar': CRC_token,
-                    '_amount': CRC_value,
+                    '_avatar': CRC_TOKEN,
+                    '_amount': CRC_AMOUNT,
                     '_type': WRAP_TYPE,
                     'sender': sender,
                     'value': 0
@@ -170,21 +168,14 @@ class SetupLBP(BaseImplementation):
         # 6) Create LBP Pool
         #_____________________________________
 
-        CRC20 = client_circleserc20.erc20Circles(0,CRC_token)
-        # Sort tokens and weights
-        tokens = []
-        weights = []
-        weight1 = 10000000000000000  # 1%
-        weight99 = 990000000000000000  # 99%
+        CRC20 = client_circleserc20.erc20Circles(WRAP_TYPE,CRC_TOKEN)
+        # Sort tokens and weights, Ensure deterministic token order
+        tokens = [CRC20, BACKING_ASSET]
+        weights = [WEIGHT_CRC, WEIGHT_BACKING]
 
-        # Ensure deterministic token order
-
-        if CRC20 < BACKING_ASSET:
-            tokens = [CRC20, BACKING_ASSET]
-            weights = [weight1, weight99]
-        else:
-            tokens = [BACKING_ASSET, CRC20]
-            weights = [weight99, weight1]
+        if tokens[0].lower() > tokens[1].lower():
+            tokens = tokens[::-1]
+            weights = weights[::-1]
 
         id = str(random.randint(0,1000000))
 
@@ -235,6 +226,5 @@ class SetupLBP(BaseImplementation):
                 }
             )
         )
-     
 
         return batch_calls

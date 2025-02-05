@@ -113,6 +113,7 @@ class NetworkBuilder:
                 # Create context for this action
                 context = SimulationContext(
                     agent=agent,
+                    acting_address='',
                     agent_manager=self.agent_manager,
                     clients=self.clients,
                     chain=chain,

@@ -11,33 +11,30 @@ class JoinLBP(BaseImplementation):
 
     def get_calls(self, context: SimulationContext) -> List[ContractCall]:
        
-        sender = self.get_sender(context)
-        if not sender:
-            return []
-
+        sender = context.acting_address
+       
         client = context.get_client("balancerv2vault")
         if not client:
             return []
 
         if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
-            return {}
-        
+            return []
         
         if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory'].get('state'), dict):
-            return {}
-        
+            return []
+
         if not isinstance(context.network_state['contract_states']['BalancerV2LBPFactory']['state'].get('LBPs'), dict):
-            return {}
-        
+            return []
+
         LBPs_state = context.network_state['contract_states']['BalancerV2LBPFactory']['state']['LBPs']
         poolId_list = [poolId for poolId in LBPs_state.keys() if LBPs_state[poolId]['owner']==sender]
 
         if not poolId_list:
-            return {}
+            return []
 
         poolId = random.choice(poolId_list)
         assets = LBPs_state[poolId]['tokens']
-        if assets[0] > assets[1]:
+        if assets[0].lower() > assets[1].lower():
             assets = assets[::-1]
 
         maxAmountsIn = []
@@ -46,13 +43,12 @@ class JoinLBP(BaseImplementation):
         # Get ERC20 client
         erc20_client = context.get_client('erc20')
         if not erc20_client:
-            return {}
+            return []
         
         for i, token_address in enumerate(assets):
             token_balance = erc20_client.balance_of(token_address, sender)
-            print(sender, token_address, token_balance)
             if not token_balance > 0:
-                return {}
+                return []
 
             maxAmountsIn.append(token_balance)
                

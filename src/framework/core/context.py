@@ -21,6 +21,7 @@ class SimulationContext:
     def __init__(
         self,
         agent: BaseAgent,
+        acting_address: str,
         agent_manager: AgentManager,
         clients: Dict[str, Any],
         chain: Any,
@@ -30,6 +31,7 @@ class SimulationContext:
         iteration_cache: Dict[str, Any]
     ):
         self.agent = agent
+        self.acting_address = acting_address
         self.agent_manager = agent_manager
         self.clients = clients
         self.chain = chain

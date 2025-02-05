@@ -13,6 +13,8 @@ from src.protocols.interfaces.wxdai import WXDAIClient
 from src.protocols.interfaces.balancerv2vault import BalancerV2VaultClient
 from src.protocols.interfaces.balancerv2lbpfactory import BalancerV2LBPFactoryClient
 from src.protocols.interfaces.erc20 import ERC20Client
+from src.protocols.interfaces.circlesdemurrageerc20 import CirclesDemurrageERC20Client
+from src.protocols.interfaces.circlesinflationaryerc20 import CirclesInflationaryERC20Client
 from src.protocols.interfaces.master import MasterClient
 
 from src.framework.state.graph_converter import StateToGraphConverter
@@ -87,6 +89,20 @@ class CirclesSimulation(BaseSimulation):
             'abi_folder': 'tokens',
             'abi_name': 'erc20.json',
         },
+        'circlesdemurrageerc20': {
+            'address': '',  # Generic
+            'client_class': CirclesDemurrageERC20Client,
+            'module_name': 'circlesdemurrageerc20',
+            'abi_folder': 'circles',
+            'abi_name': 'CirclesDemurrageERC20.json',
+        },
+        'circlesinflationaryerc20': {
+            'address': '',  # Generic
+            'client_class': CirclesInflationaryERC20Client,
+            'module_name': 'circlesinflationaryerc20',
+            'abi_folder': 'circles',
+            'abi_name': 'CirclesInflationaryERC20.json',
+        },
         'master': {
             'client_class': MasterClient,
             'module_name': 'master',
@@ -150,14 +166,14 @@ class CirclesSimulation(BaseSimulation):
         Returns: dict of { avatar_address : { token_id: balance } }.
         """
         # We read from self.initial_state['CirclesHub'], which is set up in get_initial_state()
-        circles_state = self.initial_state.get('CirclesHub', {})
+        circles_state = self.initial_state['contract_states'].get('CirclesHub', {})
         
         # trustMarkers is dict-of-dicts: {truster: {trustee: expiry}, ...}
         trustMarkers: Dict[str, Dict[str, int]] = circles_state.get('trustMarkers', {})
         avatars: List[str] = circles_state.get('avatars', [])
 
         if not trustMarkers and not avatars:
-            logger.info(f"Current state keys: {self.initial_state.keys()}")
+            logger.info(f"Current state keys: {self.initial_state['contract_states'].keys()}")
             logger.info(f"CirclesHub state content: {circles_state}")
             logger.warning("No trustMarkers or avatars found for balance computation")
             return {}
@@ -167,7 +183,7 @@ class CirclesSimulation(BaseSimulation):
             logger.warning("No CirclesHub client found for balance computation")
             return {}
 
-        # We'll gather (account, tokenID) pairs in bulk for balanceOfBatch
+        # Gather (account, tokenID) pairs in bulk for balanceOfBatch
         accounts_list = []
         ids_list = []
         mapping = []
@@ -249,7 +265,7 @@ class CirclesSimulation(BaseSimulation):
         instead of at the top level.
         """
         # 1) Start with the parent's decoded state
-        base_state = super().get_initial_state()
+        base_state = super().get_initial_state()['contract_states']
 
         # 2) If CirclesHub is missing, create it
         if 'CirclesHub' not in base_state:
@@ -377,6 +393,7 @@ class CirclesSimulation(BaseSimulation):
                             'tokens': [],
                             'owner': tx.sender
                         }
+                        print(lbpfactory_state['LBPs'][poolId])
                        
 
                 elif decoded_log.event_name == 'TokensRegistered':
