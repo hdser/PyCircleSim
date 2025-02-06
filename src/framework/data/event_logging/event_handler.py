@@ -24,7 +24,7 @@ class ContractEventHandler:
 
 
     
-    def handle_transaction_events(self, tx) -> None:
+    def handle_transaction_events(self, tx, context: Optional['SimulationContext'] = None) -> None:
         """Process and log all events from a transaction"""
         if not tx:
             return
@@ -37,9 +37,11 @@ class ContractEventHandler:
                 topic0 = log.get('topics', [])[0]
                 topic0_string = '0x' + topic0.hex().upper()
                 event_data = decoded_log.event_arguments
+
                
                 event = ContractEvent(
                     simulation_run_id=self.simulation_run_id,
+                    action_name=context.current_action if context else None,
                     event_name=decoded_log.event_name,
                     block_number=tx.block_number,
                     block_timestamp=datetime.fromtimestamp(tx.timestamp),
@@ -50,7 +52,7 @@ class ContractEventHandler:
                     log_index=log.get('logIndex'),
                     contract_address=str(decoded_log.contract_address),
                     topic0=topic0_string,
-                    event_data=event_data,
+                    event_data=event_data
                 )
                
                 self.logger.record_event(event)

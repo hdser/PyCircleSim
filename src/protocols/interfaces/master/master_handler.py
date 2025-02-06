@@ -32,6 +32,7 @@ class MasterHandler:
                 return False
                 
             self.logger.info(f"Executing implementation {implementation}")
+            context.current_action = implementation 
             success, error = self.client.execute(
                 implementation,
                 context,

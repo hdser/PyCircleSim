@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS events (
   --  id INTEGER PRIMARY KEY,
     simulation_run_id INTEGER NOT NULL,
+    action_name VARCHAR,
     event_name VARCHAR NOT NULL,
     block_number BIGINT NOT NULL,
     block_timestamp TIMESTAMP NOT NULL,

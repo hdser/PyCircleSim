@@ -84,7 +84,7 @@ class WXDAIClient:
             if success:
                 # Record events if collector exists
                 if self.collector:
-                    self.collector.record_transaction_events(tx)
+                    self.collector.record_transaction_events(tx, context)
                 
                 # Get simulation from context if it exists
                 if context and context.simulation:
@@ -132,7 +132,7 @@ class WXDAIClient:
             if success:
                 # Record events if collector exists
                 if self.collector:
-                    self.collector.record_transaction_events(tx)
+                    self.collector.record_transaction_events(tx, context)
                 
                 # Get simulation from context if it exists
                 if context and context.simulation:
@@ -164,7 +164,7 @@ class WXDAIClient:
             if success:
                 # Record events if collector exists
                 if self.collector:
-                    self.collector.record_transaction_events(tx)
+                    self.collector.record_transaction_events(tx, context)
                 
                 # Get simulation from context if it exists
                 if context and context.simulation:
@@ -237,7 +237,7 @@ class WXDAIClient:
             if success:
                 # Record events if collector exists
                 if self.collector:
-                    self.collector.record_transaction_events(tx)
+                    self.collector.record_transaction_events(tx, context)
                 
                 # Get simulation from context if it exists
                 if context and context.simulation:
@@ -267,7 +267,7 @@ class WXDAIClient:
             if success:
                 # Record events if collector exists
                 if self.collector:
-                    self.collector.record_transaction_events(tx)
+                    self.collector.record_transaction_events(tx, context)
                 
                 # Get simulation from context if it exists
                 if context and context.simulation:

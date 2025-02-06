@@ -176,7 +176,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"burn failed: {e}")
@@ -204,7 +204,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"calculateIssuanceWithCheck failed: {e}")
@@ -252,7 +252,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"groupMint failed: {e}")
@@ -350,7 +350,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"migrate failed: {e}")
@@ -388,7 +388,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"operateFlowMatrix failed: {e}")
@@ -406,7 +406,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"personalMint failed: {e}")
@@ -424,7 +424,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerCustomGroup failed: {e}")
@@ -442,7 +442,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerGroup failed: {e}")
@@ -460,7 +460,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerHuman failed: {e}")
@@ -478,7 +478,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"registerOrganization failed: {e}")
@@ -496,7 +496,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"safeBatchTransferFrom failed: {e}")
@@ -514,7 +514,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"safeTransferFrom failed: {e}")
@@ -532,7 +532,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"setAdvancedUsageFlag failed: {e}")
@@ -550,7 +550,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"setApprovalForAll failed: {e}")
@@ -568,7 +568,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"stop failed: {e}")
@@ -646,7 +646,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"trust failed: {e}")
@@ -684,7 +684,7 @@ class RingsHubClient:
             )
             success = bool(tx and tx.status == 1)
             if success and self.collector:
-                self.collector.record_transaction_events(tx)
+                self.collector.record_transaction_events(tx, context)
             return success
         except Exception as e:
             logger.error(f"wrap failed: {e}")

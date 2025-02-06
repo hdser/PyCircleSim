@@ -340,10 +340,10 @@ class DataCollector(BaseDataCollector):
             logger.error(f"Failed to record network statistics: {e}")
             raise
 
-    def record_transaction_events(self, tx) -> None:
+    def record_transaction_events(self, tx, context: Optional['SimulationContext'] = None) -> None:
         """Forward transaction events to event handler"""
         if self.event_handler:
-            self.event_handler.handle_transaction_events(tx)
+            self.event_handler.handle_transaction_events(tx, context)
 
 
     def get_simulation_results(self, run_id: int) -> Dict:

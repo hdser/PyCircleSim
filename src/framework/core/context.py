@@ -41,6 +41,7 @@ class SimulationContext:
         self._cache = iteration_cache
         self.graph_manager: Optional[GraphManager] = None
         self._last_graph_rebuild: Optional[datetime] = None
+        self.current_action: Optional[str] = None 
 
         
     def rebuild_graph(self) -> None:

@@ -228,7 +228,10 @@ class ArbLBP(BaseImplementation):
             )
         )
 
-        
+
+        client_Hub = context.get_client('circleshub')
+        if not client_Hub:
+            return []
 
         # TODO: Add unwrap, pathfinding arbitrage, wrap steps
         # These would follow similar pattern to your existing PathFinderArb

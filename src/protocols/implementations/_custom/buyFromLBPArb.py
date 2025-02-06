@@ -10,8 +10,8 @@ import random
 logger = get_logger(__name__, logging.INFO)
 
 
-@register_implementation("custom_arbLBP")
-class ArbLBP(BaseImplementation):
+@register_implementation("custom_buyFromLBPArb")
+class BuyFromLBPArb(BaseImplementation):
 
     def get_calls(self, context: SimulationContext) -> List[ContractCall]:
         """Find and execute arbitrage across LBP pools"""
@@ -93,8 +93,6 @@ class ArbLBP(BaseImplementation):
         pool_price = buy_pool['balances'][backing_index] / buy_pool['balances'][crc_index]
         slippage = 0.05  # 5% slippage
         amount_out = int((amount_in / pool_price) * (1 - slippage)) 
-
-        print('===== ',amount_in)
 
         # 1. Deposit xDAI to get WXDAI
         batch_calls.append(
@@ -209,54 +207,6 @@ class ArbLBP(BaseImplementation):
                         "toInternalBalance": False
                     },
                     "limit": amount_in,
-                    "deadline": swap_deadline
-                }
-            )
-        )
-
-
-        batch_calls.append(
-            ContractCall(
-                client_name="circlesdemurrageerc20",
-                method="unwrap",
-                params={
-                    "sender": sender,
-                    "value": 0,
-                    "contract_address": buy_pool['crc_token'],
-                    "_amount": amount_out,
-                },
-            )
-        )
-
-        
-
-        # TODO: Add unwrap, pathfinding arbitrage, wrap steps
-        # These would follow similar pattern to your existing PathFinderArb
-        
-        # Step N: Swap in sell pool
-        batch_calls2 = []
-        batch_calls2.append(
-            ContractCall(
-                client_name="balancerv2vault",
-                method="swap",
-                params={
-                    "sender": sender,
-                    "value": 0,
-                    "singleSwap": {
-                        "poolId": sell_pool_id,
-                        "kind": 0,  # GIVEN_IN
-                        "assetIn": sell_pool['crc_token'],
-                        "assetOut": sell_pool['backing_token'],
-                        "amount": amount_in,  # Use same amount for example
-                        "userData": b''
-                    },
-                    "funds": {
-                        "sender": sender,
-                        "fromInternalBalance": False,
-                        "recipient": sender,
-                        "toInternalBalance": False
-                    },
-                    "limit": 0,
                     "deadline": swap_deadline
                 }
             )

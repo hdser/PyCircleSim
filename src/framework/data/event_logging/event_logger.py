@@ -22,6 +22,7 @@ class ContractEvent:
     contract_address: str
     topic0: str
     event_data: Dict
+    action_name: Optional[str] = None
 
 class EventLogger:
     """Efficient event logging system for contract events"""
@@ -61,6 +62,7 @@ class EventLogger:
             
             self.con.execute(sql, [
                 data['simulation_run_id'],
+                data['action_name'],
                 data['event_name'],
                 data['block_number'],
                 data['block_timestamp'],
