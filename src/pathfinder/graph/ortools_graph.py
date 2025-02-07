@@ -8,7 +8,7 @@ from .flow.decomposition import decompose_flow, simplify_paths
 from src.framework.logging import get_logger
 import logging
 
-logger = get_logger(__name__,logging.DEBUG)
+logger = get_logger(__name__,logging.INFO)
 
 class ORToolsGraph(BaseGraph):
     def __init__(self, edges: List[Tuple[str, str]], capacities: List[float], tokens: List[str]):
@@ -93,7 +93,7 @@ class ORToolsGraph(BaseGraph):
         sink_idx = self.node_to_index[sink]
         
         if self.solver.num_arcs() == 0:
-            logger.info("No edges in graph. No flow is possible.")
+            logger.debug("No edges in graph. No flow is possible.")
             return 0, {}
 
         # Store original capacities for direct paths before processing
@@ -120,7 +120,7 @@ class ORToolsGraph(BaseGraph):
             self.solver.set_arc_capacity(arc_idx, original_capacity)
 
         if requested_flow and direct_flow >= int(requested_flow):
-            logger.info(f"Satisfied requested flow of {requested_flow} with direct edges.")
+            logger.debug(f"Satisfied requested flow of {requested_flow} with direct edges.")
             return direct_flow, direct_flow_dict
 
         remaining_flow = None if requested_flow is None else int(requested_flow) - direct_flow
@@ -128,7 +128,7 @@ class ORToolsGraph(BaseGraph):
         # Solve max flow
         start_time = time.time()
         status = self.solver.solve(source_idx, sink_idx)
-        logger.info(f"Solver Time: {time.time() - start_time}")
+        logger.debug(f"Solver Time: {time.time() - start_time}")
 
         if status == self.solver.OPTIMAL:
             total_flow, flow_dict = self._build_flow_dict(
@@ -374,7 +374,7 @@ class ORToolsGraph(BaseGraph):
                 self._restore_edges()
                 return None, None
 
-            self.logger.info(f"Added {edges_added} edges to virtual sink")
+            self.logger.debug(f"Added {edges_added} edges to virtual sink")
             return start_node, virtual_sink_id
 
         except Exception as e:

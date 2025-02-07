@@ -1,11 +1,17 @@
+{# First handle regular contract implementations #}
 {% for contract in contracts %}
 {% for func in contract.functions %}
 from .{{ contract.name }}.{{ func.name }} import {{ func.class_name }}
 {% endfor %}
 {% endfor %}
 
+{# Handle custom implementations with nested folders #}
 {% for custom_impl in custom_implementations %}
+{% if custom_impl.subfolder %}
+from .{{ custom_impl.folder }}.{{ custom_impl.subfolder }}.{{ custom_impl.file }} import {{ custom_impl.class_name }}
+{% else %}
 from .{{ custom_impl.folder }}.{{ custom_impl.file }} import {{ custom_impl.class_name }}
+{% endif %}
 {% endfor %}
 
 # Implementation registry 

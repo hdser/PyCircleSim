@@ -237,24 +237,35 @@ class ContractGenerator:
         self._write_formatted_python(content, output_path)
 
     def get_custom_implementations(self) -> List[Dict]:
-        """Scan _custom folder for implementations"""
+        """Scan _custom folder recursively for implementations"""
         custom_impls = []
         custom_dir = self.protocols_dir / "implementations" / "_custom"
+        
+        def scan_directory(directory: Path, current_subfolder: Optional[str] = None):
+            for item in directory.iterdir():
+                if item.is_dir():
+                    # Recursively scan subdirectories
+                    scan_directory(item, item.name)
+                elif item.is_file() and item.suffix == '.py' and item.name != "__init__.py":
+                    try:
+                        with open(item) as f:
+                            content = f.read()
+                            class_match = re.search(r"class (\w+)", content)
+                            register_match = re.search(r"@register_implementation\(['\"](.+)['\"]\)", content)
+                            if class_match and register_match:
+                                custom_impls.append({
+                                    "folder": "_custom",
+                                    "subfolder": current_subfolder,  # This will now be the correct subfolder name
+                                    "file": item.stem,
+                                    "class_name": class_match.group(1),
+                                    "key": register_match.group(1)
+                                })
+                    except Exception as e:
+                        logger.error(f"Failed to parse {item}: {e}")
+                        
         if custom_dir.exists():
-            for file in custom_dir.glob("*.py"):
-                if file.name == "__init__.py":
-                    continue
-                with open(file) as f:
-                    content = f.read()
-                    class_match = re.search(r"class (\w+)", content)
-                    register_match = re.search(r"@register_implementation\(['\"](.+)['\"]\)", content)
-                    if class_match and register_match:
-                        custom_impls.append({
-                            "folder": "_custom",
-                            "file": file.stem,
-                            "class_name": class_match.group(1),
-                            "key": register_match.group(1)
-                        })
+            scan_directory(custom_dir)
+            
         return custom_impls
 
     def generate_implementations(self, output_dir: Path):

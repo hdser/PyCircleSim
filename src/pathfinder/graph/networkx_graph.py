@@ -8,7 +8,7 @@ from .flow.decomposition import decompose_flow, simplify_paths
 from src.framework.logging import get_logger
 import logging
 
-logger = get_logger(__name__,logging.DEBUG)
+logger = get_logger(__name__,logging.INFO)
 
 class NetworkXGraph(BaseGraph):
     def __init__(self, edges: List[Tuple[str, str]], capacities: List[float], tokens: List[str]):
@@ -37,7 +37,7 @@ class NetworkXGraph(BaseGraph):
 
         # Early exit if sink has no incoming edges
         if self.g_nx.in_degree(sink) == 0:
-            logger.info("Sink has no incoming edges. No flow is possible.")
+            logger.debug("Sink has no incoming edges. No flow is possible.")
             return 0, {}
 
         # Create a copy of the graph for modification
@@ -81,7 +81,7 @@ class NetworkXGraph(BaseGraph):
 
             # Early return if direct edges satisfy requested flow
             if req_flow_int is not None and direct_flow >= req_flow_int:
-                logger.info(f"Satisfied requested flow of {requested_flow} with direct edges.")
+                logger.debug(f"Satisfied requested flow of {requested_flow} with direct edges.")
                 self._flow_dict = direct_flow_dict  # Cache the flow dictionary
                 return direct_flow, direct_flow_dict
 
@@ -107,7 +107,7 @@ class NetworkXGraph(BaseGraph):
                     graph_copy, source, sink,
                     flow_func=flow_func
                 )
-            logger.info(f"Solver Time: {time.time() - start}")
+            logger.debug(f"Solver Time: {time.time() - start}")
 
             # Convert values to integers and remove zero flows
             flow_dict = {
@@ -254,7 +254,7 @@ class NetworkXGraph(BaseGraph):
             # Add the single allowed outgoing edge
             self.g_nx.add_edge(start_node, start_intermediate, **edge_data)
             available_capacity = edge_data['capacity']
-            self.logger.info(f"Capacity from {start_node} to {start_intermediate}: {available_capacity}")
+            self.logger.debug(f"Capacity from {start_node} to {start_intermediate}: {available_capacity}")
 
             # Create virtual sink with unique ID
             virtual_sink = f"virtual_sink_{start_node}_{start_token}_{end_token}"
@@ -287,7 +287,7 @@ class NetworkXGraph(BaseGraph):
                 self._restore_edges()
                 return None, None
 
-            self.logger.info(f"Added {edges_added} edges to virtual sink")
+            self.logger.debug(f"Added {edges_added} edges to virtual sink")
             return start_node, virtual_sink
 
         except Exception as e:

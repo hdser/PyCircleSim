@@ -8,7 +8,7 @@ from .decomposition import simplify_paths
 from src.framework.logging import get_logger
 import logging
 
-logger = get_logger(__name__,logging.DEBUG)
+logger = get_logger(__name__,logging.INFO)
 
 class NetworkFlowAnalysis:
     """Handle flow analysis for all graph implementations."""
@@ -41,9 +41,9 @@ class NetworkFlowAnalysis:
             flow_func = self._get_default_algorithm()
 
         # Compute flow only once
-        logger.info(f"Computing flow from {source} to {sink}")
+        logger.debug(f"Computing flow from {source} to {sink}")
         if flow_func:
-            logger.info(f"Flow function: {flow_func.__name__}")
+            logger.debug(f"Flow function: {flow_func.__name__}")
             
         flow_value, flow_dict = self.graph.compute_flow(
             source, 
@@ -52,12 +52,12 @@ class NetworkFlowAnalysis:
             requested_flow
         )
 
-        logger.info(f"Raw flow computation returned: {flow_value}")
+        logger.debug(f"Raw flow computation returned: {flow_value}")
     
         # Before decomposition
-        logger.info(f"Flow into sink nodes:")
+        logger.debug(f"Flow into sink nodes:")
         sink_flows = sum(flows.get(sink, 0) for flows in flow_dict.values())
-        logger.info(f"Total sink flow from dictionary: {sink_flows}")
+        logger.debug(f"Total sink flow from dictionary: {sink_flows}")
 
         # Decompose into paths
         paths, edge_flows = self.graph.flow_decomposition(
@@ -129,12 +129,12 @@ class NetworkFlowAnalysis:
             if flow_value == 0:
                 return 0, [], {}, {}
                 
-            self.logger.info(f"Found max flow: {flow_value}")
+            self.logger.debug(f"Found max flow: {flow_value}")
 
-            self.logger.info("flows")
+            self.logger.debug("flows")
             for end_pos, flows in flow_dict.items():
                 if flows != {}:
-                    self.logger.info(f"{end_pos}: {flows}")
+                    self.logger.debug(f"{end_pos}: {flows}")
             
             # Find all possible paths to virtual sink
             all_paths = self._find_all_flow_paths(flow_dict, source, virtual_sink)

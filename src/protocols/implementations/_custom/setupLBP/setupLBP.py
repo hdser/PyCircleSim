@@ -1,6 +1,6 @@
 from typing import Dict, List, Any
-from ..registry import register_implementation, ContractCall
-from ..base import BaseImplementation
+from ...registry import register_implementation, ContractCall
+from ...base import BaseImplementation
 from src.framework.core.context import SimulationContext
 from src.framework.logging import get_logger
 import logging

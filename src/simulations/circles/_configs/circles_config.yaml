@@ -1,6 +1,6 @@
 # Base network parameters
 batch_size: 10           
-iterations: 100           
+iterations: 200           
 blocks_per_iteration: 10  
 block_time: 5            
 compute_initial_balances: true

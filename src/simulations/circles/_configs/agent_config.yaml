@@ -18,8 +18,8 @@ profiles:
     base_config:
       target_account_count: 1
       risk_tolerance: 0.5 
-      sequence_probability: 0.3
-      max_sequence_iterations: 1
+      sequence_probability: 1
+      max_sequence_iterations: 10
       preset_addresses: 
         - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
 
@@ -35,8 +35,8 @@ profiles:
           - action: "custom_setupLBP"
             repeat: 1
             constraints:
-              XDAI_AMOUNT: 50
-              CRC_AMOUNT: 48
+              XDAI_AMOUNT: 100
+              CRC_AMOUNT: 10
               WRAP_TYPE: 0
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
               WEIGHT_CRC: 10000000000000000
@@ -46,6 +46,33 @@ profiles:
             repeat: 1
             constraints:
               CRC_TYPE: 0
+              
+      - name: "lbp_arbitrage"
+        max_executions: 1
+        steps:
+          - action: "custom_arbGetBackingToken"
+            repeat: 1
+            constraints: {}
+          - action: "custom_arbBuyCRC"
+            repeat: 1
+            constraints: {}
+          - action: "custom_arbUnWrapCRC"
+            repeat: 1
+            constraints: {}
+          - action: "custom_arbPathFinder"  
+            repeat: 1
+            constraints: {}
+          - action: "custom_arbWrapCRC"
+            repeat: 1
+            constraints: {}
+          - action: "custom_arbSellToLBP"
+            repeat: 1
+            constraints: {}
+
+    available_actions:
+      - action: "custom_arbCheckOpportunity"
+        probability: 0.5
+        cooldown_blocks: 500
 
   circles_user:
     description: "Regular network participant"
@@ -82,32 +109,28 @@ profiles:
             constraints:
               CRC_TYPE: 0
 
-    available_actions:   
+    #available_actions:   
 
-      - action: "custom_arbLBP"
-        probability: 1
-        cooldown_blocks: 2
+    #  - action: "custom_pathFinderArb"
+    #    probability: 0.1
+    #    cooldown_blocks: 2
 
-      - action: "custom_pathFinderArb"
-        probability: 0.1
-        cooldown_blocks: 2
+    #  - action: "circleshub_trust"
+    #    probability: .6
+    #    cooldown_blocks: 2
 
-      - action: "circleshub_trust"
-        probability: .6
-        cooldown_blocks: 2
-
-      - action: "circleshub_registerHuman"
-        probability: 0.5
-        cooldown_blocks: 2
+    #  - action: "circleshub_registerHuman"
+    #    probability: 0.5
+    #    cooldown_blocks: 2
         
     #  - action: "custom_setupLBP"
     #    probability: 1
     #    cooldown_blocks: 2
     #    constraints: {}
 
-      - action: "circleshub_personalMint"
-        probability: .6
-        cooldown_blocks: 720
+    #  - action: "circleshub_personalMint"
+    #    probability: .6
+    #    cooldown_blocks: 720
 
     #  - action: "circleshub_operateFlowMatrix"
     #    probability: 1.0

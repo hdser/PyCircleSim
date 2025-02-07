@@ -431,7 +431,9 @@ class CirclesSimulation(BaseSimulation):
             logger.debug(f"Found involved addresses: {involved_addresses}")
 
             # For each involved address, also get their trusted addresses
-            addresses_to_check = set(involved_addresses)
+            additional_addresses = context.network_state.get('additional_balance_checks', [])
+            addresses_to_check = set(involved_addresses) | set(additional_addresses)
+            #addresses_to_check = set(involved_addresses)
             if trusts_updated:  # Only do this expanded check if trust relationships changed
                 for address in list(involved_addresses):
                     # Get addresses this account trusts

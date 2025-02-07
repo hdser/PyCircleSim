@@ -51,44 +51,6 @@ class MasterClient:
         if name not in self._impl_cache:
             raise ValueError(f"Unknown implementation: {name}")
         return self._impl_cache[name]
-
-    def execute(self, implementation_name: str, context: 'SimulationContext', **kwargs) -> Tuple[bool, Optional[str]]:
-        """Execute an implementation."""
-        try:
-            logger.info(f"Executing implementation {implementation_name}")
-            
-            implementation = self._get_implementation(implementation_name)
-            if not implementation:
-                return False, "Implementation not found"
-
-            calls = implementation.get_calls(context)
-            if not calls:
-                return False, "No calls generated"
-
-            logger.info(f"Executing {len(calls)} calls")
-            
-            for call in calls:
-                client = context.get_client(call.client_name)
-                if not client:
-                    continue
-
-                try:
-                    if hasattr(client, call.method):
-                        method = getattr(client, call.method)
-                        success = method(**call.params, context=context)
-                        if not success:
-                            return False, f"Call to {call.method} failed"
-                except Exception as e:
-                    logger.error(f"Call failed: {e}")
-                    return False, str(e)
-
-            logger.info(f"Implementation completed with success=True")
-            return True, None
-
-        except Exception as e:
-            error_msg = f"Error executing {implementation_name}: {str(e)}"
-            logger.error(error_msg)
-            return False, error_msg
     
     def execute(self, implementation_name: str, context: 'SimulationContext', **kwargs) -> Tuple[bool, Optional[str]]:
         """Execute an implementation."""
@@ -111,6 +73,7 @@ class MasterClient:
             all_receipts = []
             
             # Execute all calls
+            success=True
             for call in calls:
                 client = context.get_client(call.client_name)
                 if not client:
@@ -128,13 +91,16 @@ class MasterClient:
                             # Update state immediately after each successful call
                             if context and context.simulation:
                                 context.simulation.update_state_from_transaction(result, context)
+                        elif not result:
+                            success=False
                                 
                 except Exception as e:
                     logger.error(f"Call failed: {e}")
+                    success=False
                     continue
 
-            logger.info(f"Implementation completed with success=True")
-            return True, None
+            logger.info(f"Implementation completed with success={success}")
+            return success, None
 
         except Exception as e:
             error_msg = f"Error executing {implementation_name}: {str(e)}"

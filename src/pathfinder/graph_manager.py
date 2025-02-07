@@ -9,7 +9,7 @@ from src.pathfinder.graph import GraphCreator, NetworkFlowAnalysis
 from src.framework.logging import get_logger
 import logging
 
-logger = get_logger(__name__,logging.DEBUG)
+logger = get_logger(__name__,logging.INFO)
 
 class GraphManager:
     """
@@ -26,7 +26,7 @@ class GraphManager:
         """Initialize GraphManager with data source and graph implementation."""
         start = time.time()
         self.data_ingestion = self._initialize_data_ingestion(data_source)
-        logger.info(f"Ingestion time: {time.time()-start}")
+        logger.debug(f"Ingestion time: {time.time()-start}")
         
         start = time.time()
         self.graph = GraphCreator.create_graph(
@@ -35,7 +35,7 @@ class GraphManager:
             self.data_ingestion.capacities, 
             self.data_ingestion.tokens
         )
-        logger.info(f"Graph Creation time: {time.time()-start}")
+        logger.debug(f"Graph Creation time: {time.time()-start}")
         
         self.flow_analysis = NetworkFlowAnalysis(self.graph)
 

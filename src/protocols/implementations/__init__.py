@@ -206,13 +206,26 @@ from .circleshub.migrate import CirclesHubMigrate
 
 from ._custom.pathFinderArb import PathFinderArb
 
-from ._custom.setupLBP import SetupLBP
+from ._custom.setupLBP.setupLBP import SetupLBP
+
+from ._custom.setupLBP.joinLBP import JoinLBP
 
 from ._custom.pathFinderTransfer import PathFinderTransfer
 
-from ._custom.arbLBP import ArbLBP
 
-from ._custom.joinLBP import JoinLBP
+from ._custom.arbLBP.arb6SellToLBP import ArbSellToLBP
+
+from ._custom.arbLBP.arb4PathFinder import ArbPathFinder
+
+from ._custom.arbLBP.arb3UnWrapCRC import ArbUnWrapCRC
+
+from ._custom.arbLBP.arb5WrapCRC import ArbWrapCRC
+
+from ._custom.arbLBP.arb1GetBackingToken import ArbGetBackingToken
+
+from ._custom.arbLBP.arb2BuyCRC import ArbBuyCRC
+
+from ._custom.arbLBP.arbCheckOpportunity import ArbCheckOpportunity
 
 
 # Implementation registry
@@ -313,6 +326,12 @@ IMPLEMENTATIONS = {
     "custom_pathFinderArb": PathFinderArb,
     "custom_setupLBP": SetupLBP,
     "custom_pathFinderTransfer": PathFinderTransfer,
-    "custom_arbLBP": ArbLBP,
     "custom_joinLBP": JoinLBP,
+    "custom_arbPathFinder": ArbPathFinder,
+    "custom_arbSellToLBP": ArbSellToLBP,
+    "custom_arbUnWrapCRC": ArbUnWrapCRC,
+    "custom_arbWrapCRC": ArbWrapCRC,
+    "custom_arbGetBackingToken": ArbGetBackingToken,
+    "custom_arbBuyCRC": ArbBuyCRC,
+    "custom_arbCheckOpportunity": ArbCheckOpportunity
 }

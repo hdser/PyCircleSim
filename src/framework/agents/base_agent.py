@@ -97,7 +97,7 @@ class BaseAgent:
                 "active": False,
                 "current_step_index": 0,
                 "executed_repeats_for_step": 0,
-                "sequence_executions": 0  # how many times the entire sequence was done
+                "sequence_executions": 0  # Track completed sequences
             }
 
         # Initialize action tracking dictionaries
@@ -133,9 +133,6 @@ class BaseAgent:
     def select_action(self, current_block: int, network_state: Dict[str, Any]) -> Tuple[Optional[str], str]:
         """
         Selects an action for an agent, prioritizing sequences but handling failures gracefully.
-        
-        Returns:
-            Tuple of (implementation_name, address) or (None, "")
         """
         base_cfg = self.profile.base_config
         seq_probability = getattr(base_cfg, "sequence_probability", 0.0)
@@ -144,46 +141,48 @@ class BaseAgent:
         logger.debug(f"Selecting action with sequence probability {seq_probability}")
         logger.debug(f"Available sequences: {[s.name for s in self.profile.sequences]}")
 
-        # 1. First check any active sequences that need to be continued
+        # 1. First check any incomplete active sequences
         for address in addresses:
             for seq_def in self.profile.sequences:
                 seq_name = seq_def.name
                 seq_state = self.sequence_states[address][seq_name]
 
-                # Skip if sequence has failed for this address
-                if seq_state.get("failed"):
-                    continue
-                    
-                # Skip if sequence is completed for this address
-                if seq_state["sequence_executions"] >= seq_def.max_executions:
+                # Skip if sequence has reached max executions
+                if seq_def.max_executions is not None and seq_state["sequence_executions"] >= seq_def.max_executions:
                     continue
 
-                # If sequence is active, try to continue it
+                # If sequence is active and not in cooldown, try to continue it
                 if seq_state["active"]:
+                    if seq_state.get("last_failed_block") and (current_block - seq_state["last_failed_block"]) < 300:
+                        continue  # Skip if in cooldown from failure
+                        
                     action_tuple = self._execute_sequence_step(address, seq_def, seq_state, current_block)
                     if action_tuple:
                         action_name, addr, _ = action_tuple
                         return action_name, addr
 
-        # 2. Then check if we should start a new sequence
+        # 2. Then check if we should start a new sequence or retry a failed one
         if random.random() < seq_probability:
             for address in addresses:
                 for seq_def in self.profile.sequences:
                     seq_name = seq_def.name
                     seq_state = self.sequence_states[address][seq_name]
                     
-                    # Only try to start sequence if:
-                    # - It's not active
-                    # - Hasn't failed
-                    # - Hasn't reached max executions
-                    if (not seq_state["active"] and 
-                        not seq_state.get("failed") and
-                        seq_state["sequence_executions"] < seq_def.max_executions):
+                    # Skip if reached max executions
+                    if seq_def.max_executions is not None and seq_state["sequence_executions"] >= seq_def.max_executions:
+                        continue
+                        
+                    # Skip if in cooldown
+                    if seq_state.get("last_failed_block") and (current_block - seq_state["last_failed_block"]) < 300:
+                        continue
 
-                        logger.info(f"Starting new sequence {seq_name} for address {address}")
+                    if not seq_state["active"]:
+                        logger.info(f"Starting/resuming sequence {seq_name} for address {address}")
                         seq_state["active"] = True
-                        seq_state["current_step_index"] = 0
-                        seq_state["executed_repeats_for_step"] = 0
+                        # Don't reset step index if resuming after failure
+                        if "failed_step" not in seq_state:
+                            seq_state["current_step_index"] = 0
+                            seq_state["executed_repeats_for_step"] = 0
                         
                         action_tuple = self._execute_sequence_step(address, seq_def, seq_state, current_block)
                         if action_tuple:
@@ -358,23 +357,14 @@ class BaseAgent:
         return params
 
     def record_action(
-            self, 
-            action_name: str, 
-            address: str, 
-            block_number: int, 
-            success: bool, 
-            context: Optional['SimulationContext'] = None
-        ):
-        """
-        Record action execution and update sequence state.
-        
-        Args:
-            action_name: Name of the executed action
-            address: Address that executed the action
-            block_number: Block number where action was executed
-            success: Whether the action executed successfully
-            context: Optional simulation context containing error information
-        """
+        self, 
+        action_name: str, 
+        address: str, 
+        block_number: int, 
+        success: bool, 
+        context: Optional['SimulationContext'] = None
+    ):
+        """Record action execution and update sequence state."""
         logger.debug(f"Recording action {action_name} for address {address} (success={success})")
 
         # Handle action failure
@@ -386,15 +376,15 @@ class BaseAgent:
             # Update sequence states to mark failure
             for seq_name, seq_state in self.sequence_states[address].items():
                 if seq_state.get("active"):
-                    logger.info(f"Marking sequence {seq_name} as failed for {address} at step {seq_state['current_step_index']}")
+                    logger.info(f"Sequence {seq_name} failed at step {seq_state['current_step_index']}")
                     logger.info(f"Failure reason: {error_msg}")
-                    # Update sequence state with failure information
+                    
+                    # Store failure info but allow retry
                     seq_state.update({
                         "active": False,
-                        "failed": True,
+                        "last_failed_block": block_number,
                         "failed_step": seq_state["current_step_index"],
-                        "failed_action": action_name,
-                        "failure_reason": error_msg
+                        "failed_action": action_name
                     })
             return
 
@@ -427,6 +417,11 @@ class BaseAgent:
                 state["executed_repeats_for_step"] += 1
                 logger.debug(f"Executed repeats: {state['executed_repeats_for_step']}/{current_step.repeat}")
                 
+                # Clear any failure state on success
+                state.pop("failed_step", None)
+                state.pop("failed_action", None)
+                state.pop("last_failed_block", None)
+                
                 # Check if step is complete
                 if state["executed_repeats_for_step"] >= current_step.repeat:
                     # Move to next step
@@ -443,7 +438,43 @@ class BaseAgent:
                         })
                     else:
                         logger.debug(f"Moving to step {state['current_step_index']} for {address}")
-                    
+
+
+    def can_execute_sequence(self, sequence: 'ActionSequence', address: str) -> bool:
+        """Check if a sequence can be executed, including retry logic"""
+        # Check max executions
+        if (sequence.max_executions is not None and 
+            sequence.current_execution >= sequence.max_executions):
+            return False
+
+        # Check max iterations per address
+        if (self.base_config.max_sequence_iterations is not None and
+            self.current_sequence_iterations[sequence.name] >= self.base_config.max_sequence_iterations):
+            return False
+
+        # Get sequence state
+        seq_state = self.sequence_states[address][sequence.name]
+        
+        # If sequence recently failed, check cooldown
+        if "last_failed_block" in seq_state:
+            current_block = self.chain.blocks.head.number
+            blocks_since_failure = current_block - seq_state["last_failed_block"]
+            
+            # Exponential backoff for retries (300 blocks * 2^failure_count)
+            retry_cooldown = 300 * (2 ** (seq_state.get("failure_count", 0) - 1))
+            if blocks_since_failure < retry_cooldown:
+                return False
+            
+            # Reset failure state to allow retry
+            if not seq_state.get("active"):
+                seq_state.update({
+                    "active": False,
+                    "current_step_index": 0,
+                    "executed_repeats_for_step": 0
+                })
+
+        return True
+
 
     def update_state(self, key: str, value: Any):
         """Update agent's internal state"""
