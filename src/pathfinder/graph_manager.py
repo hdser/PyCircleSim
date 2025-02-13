@@ -92,10 +92,11 @@ class GraphManager:
                     
         except Exception as e:
             return f"Error getting node info: {str(e)}"
-        
+    
 
     def analyze_arbitrage(self, source: str, start_token: str, end_token: str,
-                         flow_func: Optional[Callable] = None) -> Tuple[int, List, Dict, Dict]:
+                        flow_func: Optional[Callable] = None,
+                        cutoff: Optional[int] = None) -> Tuple[int, List, Dict, Dict]:
         """
         Find arbitrage opportunities using max flow.
         
@@ -104,6 +105,7 @@ class GraphManager:
             start_token: Address of token to start with
             end_token: Address of token to end with
             flow_func: Optional flow algorithm to use
+            cutoff: Optional maximum flow limit
             
         Returns:
             Tuple containing:
@@ -120,12 +122,13 @@ class GraphManager:
         if not all([source_id, start_token_id, end_token_id]):
             raise ValueError("Invalid addresses provided")
             
-        # Run arbitrage analysis
+        # Run arbitrage analysis with cutoff
         results = self.flow_analysis.analyze_arbitrage(
             source_id,
             start_token_id,
             end_token_id,
-            flow_func
+            flow_func,
+            cutoff
         )
         
         return results

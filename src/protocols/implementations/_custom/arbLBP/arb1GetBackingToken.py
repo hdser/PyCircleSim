@@ -22,8 +22,9 @@ class ArbGetBackingToken(BaseImplementation):
         VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
         buy_pool = arb_info['buy_pool_data']
         
-        # Start with fixed amount of WXDAI
-        xdai_amount = int(10e18)  # 10 XDAI
+        # Use optimal amount to determine WXDAI needed
+        optimal_amount = arb_info.get('optimal_amount', int(10e18))  # Default to 10 if not set
+        xdai_amount = int(optimal_amount * 1.1)  # Add 10% buffer for slippage
 
         batch_calls = []
         # 1. Deposit xDAI to get WXDAI
@@ -46,7 +47,7 @@ class ArbGetBackingToken(BaseImplementation):
                 params={
                     "token_address": WXDAI,
                     "spender": VAULT,
-                    "amount": xdai_amount * 2,
+                    "amount": xdai_amount * 2,  # Double for safety
                     "sender": sender,
                     "value": 0
                 }
@@ -75,8 +76,9 @@ class ArbGetBackingToken(BaseImplementation):
                     'userData': b''
                 })
 
-
-            arb_info['expected_backing_amount'] = int(8e18)
+            # Store expected backing amount in state
+            expected_backing = int(optimal_amount * 0.95)  # Account for 5% slippage
+            arb_info['expected_backing_amount'] = expected_backing
             context.update_running_state({'arb_check': arb_info})
 
             slippage = 0.05

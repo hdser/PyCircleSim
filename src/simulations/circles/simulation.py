@@ -353,7 +353,7 @@ class CirclesSimulation(BaseSimulation):
                     event_data = decoded_log.event_arguments
                     truster = event_data.get('truster')
                     trustee = event_data.get('trustee')
-                    expiry = event_data.get('expiry')
+                    expiry = event_data.get('expiryTime')
              
                     if truster and trustee and expiry:
                         # Update trust markers
@@ -433,21 +433,22 @@ class CirclesSimulation(BaseSimulation):
             # For each involved address, also get their trusted addresses
             additional_addresses = context.network_state.get('additional_balance_checks', [])
             addresses_to_check = set(involved_addresses) | set(additional_addresses)
-            #addresses_to_check = set(involved_addresses)
-            if trusts_updated:  # Only do this expanded check if trust relationships changed
-                for address in list(involved_addresses):
-                    # Get addresses this account trusts
-                    trust_markers = circles_state.get('trustMarkers', {}).get(address, {})
-                    for trustee, expiry in trust_markers.items():
-                        if expiry > context.chain.blocks.head.timestamp:  # Only include active trusts
-                            addresses_to_check.add(trustee)
-                    
-                    # Get addresses that trust this account
-                    for truster, trustees in circles_state.get('trustMarkers', {}).items():
-                        if address in trustees:
-                            if trustees[address] > context.chain.blocks.head.timestamp:  # Only include active trusts
-                                addresses_to_check.add(truster)
 
+            # Always check trust relationships for involved addresses 
+            """ 
+            for address in list(involved_addresses):
+                # Get addresses this account trusts
+                trust_markers = circles_state.get('trustMarkers', {}).get(address, {})
+                for trustee, expiry in trust_markers.items():
+                    if expiry > context.chain.blocks.head.timestamp:  # Only include active trusts
+                        addresses_to_check.add(trustee)
+                
+                # Get addresses that trust this account
+                for truster, trustees in circles_state.get('trustMarkers', {}).items():
+                    if address in trustees:
+                        if trustees[address] > context.chain.blocks.head.timestamp:
+                            addresses_to_check.add(truster)
+            """
             logger.debug(f"Checking balances for addresses: {addresses_to_check}")
             
             # Update token balances for all affected addresses
@@ -459,6 +460,90 @@ class CirclesSimulation(BaseSimulation):
 
 
     def _update_token_balances(
+        self, 
+        context: 'SimulationContext', 
+        addresses: set, 
+        token_id: Optional[int] = None
+    ) -> None:
+        """
+        Update token balances for the given addresses in CirclesHub.
+        For each involved address, check their balance of all involved addresses' tokens.
+        """
+        client = context.get_client('circleshub')
+        if not client:
+            return
+
+        circles_state = context.network_state['contract_states']['CirclesHub']['state']
+        token_balances = circles_state.setdefault('token_balances', {})
+
+        if not addresses:
+            return
+
+        try:
+            # Get token IDs for all involved addresses
+            token_ids = {}  # address -> token_id mapping
+            for addr in addresses:
+                try:
+                    token_ids[addr] = client.toTokenId(addr)
+                except Exception as e:
+                    logger.debug(f"Error getting token ID for {addr}: {e}")
+                    continue
+
+            # For each involved address, check their balance of each involved token
+            balance_checks = []  # list of (account, token_id) pairs to check
+            for address in addresses:  # address holding the tokens
+                for token_addr, token_id in token_ids.items():  # tokens to check
+                    balance_checks.append((address, token_id))
+
+            # Process in smaller batches to avoid gas issues
+            BATCH_SIZE = 50  # Adjust this number if needed
+            for i in range(0, len(balance_checks), BATCH_SIZE):
+                batch = balance_checks[i:i + BATCH_SIZE]
+                
+                accounts_list = []
+                ids_list = []
+                mapping = []
+
+                # Build lists for this batch
+                for account, token_id in batch:
+                    accounts_list.append(account)
+                    ids_list.append(token_id)
+                    mapping.append((account, token_id))
+
+                try:
+                    logger.debug(f"Querying batch of {len(accounts_list)} balances")
+                    balances = client.balanceOfBatch(accounts_list, ids_list)
+                    
+                    if balances is None:  # Handle failed query
+                        logger.warning(f"Failed to get balances for batch {i}")
+                        continue
+                        
+                    date_object = datetime.fromtimestamp(context.chain.blocks.head.timestamp).date()
+
+                    for (address, t_id), bal in zip(mapping, balances):
+                        if bal > 0:
+                            if address not in token_balances:
+                                token_balances[address] = {}
+                            token_balances[address][t_id] = {
+                                'balance': bal, 
+                                'last_day_updated': date_object
+                            }
+                            logger.debug(f"Updated balance for {address} token {t_id}: {bal}")
+                        else:
+                            # Clean up zero balances
+                            if address in token_balances and t_id in token_balances[address]:
+                                del token_balances[address][t_id]
+                                if not token_balances[address]:
+                                    del token_balances[address]
+
+                except Exception as e:
+                    logger.warning(f"Failed to process batch {i}: {e}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Failed to update token balances: {e}", exc_info=True)
+
+    def _update_token_balances2(
         self, 
         context: 'SimulationContext', 
         addresses: set, 

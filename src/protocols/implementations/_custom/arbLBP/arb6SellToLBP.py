@@ -3,7 +3,6 @@ from ...registry import register_implementation, ContractCall
 from ...base import BaseImplementation
 from src.framework.core.context import SimulationContext
 from src.framework.logging import get_logger
-from .._utils import _get_pool_reserves
 import logging
 
 logger = get_logger(__name__, logging.INFO)
@@ -24,20 +23,31 @@ class ArbSellToLBP(BaseImplementation):
         if not sell_pool:
             return []
 
+        # Get the amount we wrapped from arbitrage
+        wrapped_amount = arb_info.get('wrapped_amount')
+        if not wrapped_amount:
+            logger.warning("No wrapped amount found in arb_info")
+            return []
+
         # Check actual wrapped token balance
         erc20_client = context.get_client('erc20')
         if not erc20_client:
             return []
 
-        wrapped_balance = erc20_client.balance_of(sell_pool['crc_token'], sender)
-        if wrapped_balance == 0:
+        current_balance = erc20_client.balance_of(sell_pool['crc_token'], sender)
+        if current_balance == 0:
             return []
+
+        # Only sell the amount that came from our arbitrage
+        sell_amount = min(current_balance, wrapped_amount)
+        logger.info(f"Selling {sell_amount} tokens out of {current_balance} total balance")
 
         VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
         batch_calls = []
 
-        # Get current pool reserves
-        tokens, balances = _get_pool_reserves(context, sell_pool['id'])
+        # Get current pool reserves - properly handle 3 return values
+        vault_client = context.get_client('balancerv2vault')
+        tokens, balances, _ = vault_client.getPoolTokens(sell_pool['id'])
         if not tokens or not balances:
             return []
 
@@ -50,10 +60,12 @@ class ArbSellToLBP(BaseImplementation):
             return []
 
         # Calculate maximum amount per swap (20% of pool reserves)
-        max_per_swap = int(pool_crc_balance * 0.2)  # 20% of current reserves
+        #max_per_swap = int(pool_crc_balance * 0.2)
         
-        # Split total amount into chunks
-        remaining_amount = wrapped_balance
+        max_per_swap = int(sell_amount * 0.2)
+        
+        # Split sell amount into chunks
+        remaining_amount = sell_amount
         total_chunks = []
         
         while remaining_amount > 0:
@@ -74,7 +86,7 @@ class ArbSellToLBP(BaseImplementation):
                 params={
                     "token_address": sell_pool['crc_token'],
                     "spender": VAULT,
-                    "amount": wrapped_balance * 2,  # Extra allowance for safety
+                    "amount": sell_amount * 2,  # Extra allowance for safety
                     "sender": sender,
                     "value": 0
                 }

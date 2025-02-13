@@ -8,7 +8,7 @@ from .flow.decomposition import decompose_flow, simplify_paths
 from src.framework.logging import get_logger
 import logging
 
-logger = get_logger(__name__,logging.INFO)
+logger = get_logger(__name__,logging.DEBUG)
 
 class ORToolsGraph(BaseGraph):
     def __init__(self, edges: List[Tuple[str, str]], capacities: List[float], tokens: List[str]):
@@ -298,9 +298,8 @@ class ORToolsGraph(BaseGraph):
                 counted_edges.add((u, sink_id))
         
         return total_capacity
-    
 
-    def prepare_arbitrage_graph(self, start_node: str, start_token: str, end_token: str) -> Tuple[str, str]:
+    def prepare_arbitrage_graph3(self, start_node: str, start_token: str, end_token: str) -> Tuple[str, str]:
         """
         Prepare graph for arbitrage analysis with OR-Tools implementation.
         """
@@ -318,6 +317,96 @@ class ORToolsGraph(BaseGraph):
             
             for arc_idx, target_idx, capacity in source_arcs:
                 target_node = self.index_to_node[target_idx]
+                self._temp_edges.append((
+                    arc_idx,
+                    target_node,
+                    self.solver.capacity(arc_idx)
+                ))
+                # Temporarily set capacity to 0
+                self.solver.set_arc_capacity(arc_idx, 0)
+
+            # Restore only the edge to start token intermediate node
+            start_inter_idx = self.node_to_index[start_intermediate]
+            available_capacity = 0
+            for arc_idx, target_idx, _ in source_arcs:
+                if target_idx == start_inter_idx:
+                    original_capacity = next(
+                        cap for a_idx, _, cap in self._temp_edges 
+                        if a_idx == arc_idx
+                    )
+                    self.solver.set_arc_capacity(arc_idx, original_capacity)
+                    available_capacity = original_capacity
+                    break
+
+            if available_capacity == 0:
+                self.logger.warning(f"No edge found from {start_node} to {start_intermediate}")
+                self._restore_edges()
+                return None, None
+
+            # Create virtual sink
+            virtual_sink_id = f"virtual_sink_{start_node}_{start_token}_{end_token}"
+            virtual_sink_idx = len(self.node_to_index)
+            self.node_to_index[virtual_sink_id] = virtual_sink_idx
+            self.index_to_node[virtual_sink_idx] = virtual_sink_id
+
+            # Find end positions using reverse arc adjacency
+            edges_added = 0
+            source_idx = self.node_to_index[start_node]
+            
+            # Process incoming edges to start_node directly from reverse_arc_adjacency
+            for arc_idx, from_idx, capacity in self.reverse_arc_adjacency.get(source_idx, []):
+                from_node = self.index_to_node[from_idx]
+                if '_' in from_node:
+                    holder, token = from_node.split('_')
+                    if token == end_token:
+                        # Add edge to virtual sink with limited capacity
+                        limited_capacity = min(capacity, available_capacity)
+                        arc_idx = self.solver.add_arc_with_capacity(
+                            from_idx,
+                            virtual_sink_idx,
+                            limited_capacity
+                        )
+                        edges_added += 1
+
+            if edges_added == 0:
+                self.logger.warning("No valid end states found for arbitrage")
+                self._restore_edges()
+                return None, None
+
+            self.logger.debug(f"Added {edges_added} edges to virtual sink")
+            return start_node, virtual_sink_id
+
+        except Exception as e:
+            self.logger.error(f"Error preparing arbitrage graph: {e}")
+            self._restore_edges()
+            raise
+
+    def prepare_arbitrage_graph(self, start_node: str, start_token: str, end_token: str, cutoff: Optional[int] = None) -> Tuple[str, str]:
+        """
+        Prepare graph for arbitrage analysis with OR-Tools implementation.
+        Args:
+            start_node: Starting node ID
+            start_token: Token to start with
+            end_token: Token to end with 
+            cutoff: Optional maximum flow to allow
+        """
+        try:
+            # Verify start intermediate node exists
+            start_intermediate = f"{start_node}_{start_token}"
+            if start_intermediate not in self.node_to_index:
+                self.logger.warning(f"No intermediate node found for {start_node} with token {start_token}")
+                return None, None
+
+            # Store original edges and capacities
+            self._temp_edges = []
+            source_idx = self.node_to_index[start_node]
+            source_arcs = self.arc_adjacency.get(source_idx, [])
+            
+            for arc_idx, target_idx, capacity in source_arcs:
+                target_node = self.index_to_node[target_idx]
+                # If cutoff specified, limit initial capacity
+                if cutoff is not None:
+                    capacity = min(capacity, cutoff)
                 self._temp_edges.append((
                     arc_idx,
                     target_node,
@@ -406,27 +495,34 @@ class ORToolsGraph(BaseGraph):
             self.logger.error(f"Error cleaning up arbitrage graph: {e}")
             raise
 
+
     def interpret_arbitrage_flow(self, flow_dict: Dict[str, Dict[str, int]], 
-                            start_node: str, virtual_sink: str) -> Dict[str, Dict[str, int]]:
+                        start_node: str, virtual_sink: str,
+                        cutoff: Optional[int] = None) -> Dict[str, Dict[str, int]]:
         """Convert flows through virtual sink back to actual token flows."""
         real_flows = defaultdict(dict)
         
-        # First copy all non-virtual flows
+        # First copy all non-virtual flows, limited by cutoff
         for u, flows in flow_dict.items():
             for v, flow in flows.items():
                 if v != virtual_sink and flow > 0:
+                    if cutoff is not None:
+                        flow = min(flow, cutoff)
                     real_flows[u][v] = flow
         
         # Process flows to virtual sink
         for u, flows in flow_dict.items():
             virtual_flow = flows.get(virtual_sink, 0)
             if virtual_flow > 0:
+                if cutoff is not None:
+                    virtual_flow = min(virtual_flow, cutoff)
                 # Get capacity of edge from u back to start_node
                 if self.has_edge(u, start_node):
                     # Add the return flow
                     real_flows[u][start_node] = virtual_flow
         
         return dict(real_flows)
+
 
     def _restore_edges(self):
         """Restore temporarily removed edges."""

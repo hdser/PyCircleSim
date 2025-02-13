@@ -73,7 +73,7 @@ def main():
 
     # 2. List of contract addresses to fetch
     addresses = [
-        "0x85a80afee867aDf27B50BdB7b76DA70f1E853062"
+        "0xD5934724C19f9DbEeBC263066D627872e55e63Aa"
     ]
 
     # 3. Fetch and save each address's ABI

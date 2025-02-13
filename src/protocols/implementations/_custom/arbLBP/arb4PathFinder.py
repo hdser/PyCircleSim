@@ -1,133 +1,159 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Set, Tuple, Optional
+from collections import defaultdict
 from ...registry import register_implementation, ContractCall
 from ...base import BaseImplementation
 from src.framework.core.context import SimulationContext
 from src.framework.logging import get_logger
-import logging
 from .._utils import _analyze_arbitrage
+import logging
 
-logger = get_logger(__name__, logging.INFO)
+logger = get_logger(__name__, logging.DEBUG)
 
 @register_implementation("custom_arbPathFinder")
 class ArbPathFinder(BaseImplementation):
     def get_calls(self, context: SimulationContext) -> List[ContractCall]:
         """Execute pathfinder with unwrapped CRC"""
-        sender = context.acting_address
-
-        # Get stored arbitrage info
+        sender = context.acting_address.lower()
+        
+        # Get arbitrage info
         arb_info = context.get_running_state('arb_check')
         if not arb_info:
             return []
-        
+            
         client = context.get_client("circleshub")
         if not client:
             return []
 
-        buy_pool = arb_info['buy_pool_data']
-        sell_pool = arb_info['sell_pool_data']
-        
-        # Get CirclesHub state for unwrapped balance check
+        buy_unwrapped = arb_info['buy_unwrapped']
+        sell_unwrapped = arb_info['sell_unwrapped']
 
-        start_token = buy_pool['unwrapped_crc']
-        end_token = sell_pool['unwrapped_crc']
-        unwrapped_balance = client.balanceOf(sender,client.toTokenId(start_token))
-
-        if unwrapped_balance == 0:
-            return []
-
-        # Store unwrapped amount for subsequent steps
-        arb_info['unwrapped_balance'] = unwrapped_balance
-        context.update_running_state({'arb_check': arb_info})
-        
-        client = context.get_client("circleshub")
-        if not client:
-            return []
-
-        # This will rebuild graph with current balances after unwrap
-        #context.rebuild_graph()
-
-        # Use unwrapped addresses for pathfinding
-        _, _, edge_flows, _ = _analyze_arbitrage(
+        cutoff = int(arb_info['received_crc_amount'] / 10**15)
+        # Calculate flows
+        max_flow, _, edge_flows, _ = _analyze_arbitrage(
             context,
-            sender,
-            start_token,  
-            end_token    
+            sender, 
+            buy_unwrapped,
+            sell_unwrapped,
+            cutoff
         )
+        print('======== ',max_flow, cutoff)
 
         if not edge_flows:
             return []
 
-        filtered_edge_flows = {}
-        for edge, token_flows in edge_flows.items():
-            # Skip any edge where either endpoint is a virtual sink
-            if edge[0].startswith("virtual_sink_") or edge[1].startswith("virtual_sink_"):
+        logger.debug("Original flows:")
+        for (f, t), flows in edge_flows.items():
+            logger.debug(f"{f} -> {t}: {flows}")
+
+        # Build vertices list first
+        vertices = set([sender])  # Start with sender
+        node_map = {}  # Map of node IDs to resolved addresses
+
+        # First pass: resolve all addresses and build vertex set
+        for (from_node, to_node), token_flows in edge_flows.items():
+            if from_node.startswith('virtual_sink_') or to_node.startswith('virtual_sink_'):
                 continue
-            filtered_edge_flows[edge] = token_flows
 
-        def resolve_node(node_id: str) -> str:
-            """
-            If node_id is composite (e.g. "24_543"), use only the first part.
-            Otherwise, use the mapping from GraphLoader.
-            """
-            if '_' in node_id:
-                pure_id = node_id.split('_')[0]
-                resolved = context.graph_manager.data_ingestion.get_address_for_id(pure_id)
-                return resolved if resolved is not None else node_id
-            else:
-                return context.graph_manager.data_ingestion.get_address_for_id(node_id)
+            # Resolve from node
+            if from_node not in node_map:
+                addr = context.graph_manager.data_ingestion.get_address_for_id(from_node)
+                if addr:
+                    node_map[from_node] = addr.lower()
+                    vertices.add(addr.lower())
 
-        # Build the set of addresses that will be vertices in call
-        address_set = set()
-        # Always include the sender
-        address_set.add(sender.lower())
-        for edge, token_flows in filtered_edge_flows.items():
-            from_addr = resolve_node(edge[0])
-            to_addr = resolve_node(edge[1])
-            if from_addr:
-                address_set.add(from_addr.lower())
-            if to_addr:
-                address_set.add(to_addr.lower())
+            # Resolve to node
+            if to_node not in node_map:
+                addr = context.graph_manager.data_ingestion.get_address_for_id(to_node)
+                if addr:
+                    node_map[to_node] = addr.lower()
+                    vertices.add(addr.lower())
+
+            # Resolve tokens
             for token_id in token_flows.keys():
-                token_addr = context.graph_manager.data_ingestion.get_address_for_id(token_id)
-                if token_addr:
-                    address_set.add(token_addr.lower())
+                if token_id not in node_map:
+                    addr = context.graph_manager.data_ingestion.get_address_for_id(token_id)
+                    if addr:
+                        node_map[token_id] = addr.lower()
+                        vertices.add(addr.lower())
 
-        flow_vertices = sorted(list(address_set))
+        # Sort vertices and create lookup
+        flow_vertices = sorted(list(vertices))
         lookup_map = {addr: idx for idx, addr in enumerate(flow_vertices)}
 
-        # Build the flow edges and coordinate array
+        logger.debug("Node mappings:")
+        for node, addr in node_map.items():
+            logger.debug(f"{node} -> {addr}")
+
+        # Build edges and coordinates
         flow_edges = []
         coordinates = []
 
-        for edge, token_flows in filtered_edge_flows.items():
-            from_addr = resolve_node(edge[0])
-            to_addr = resolve_node(edge[1])
+        # Process edges in order
+        for (from_node, to_node), token_flows in edge_flows.items():
+            if from_node.startswith('virtual_sink_') or to_node.startswith('virtual_sink_'):
+                continue
+
+            if from_node not in node_map or to_node not in node_map:
+                continue
+
+            from_addr = node_map[from_node]
+            to_addr = node_map[to_node]
+
             for token_id, flow_value in token_flows.items():
-                token_addr = context.graph_manager.data_ingestion.get_address_for_id(token_id)
-                amount = int(flow_value * 1e15)
+                if token_id not in node_map:
+                    continue
+
+                token_addr = node_map[token_id]
+                edge_idx = len(flow_edges)
+
+                # Add flow edge
                 flow_edges.append({
-                    'streamSinkId': 1 if to_addr.lower() == sender.lower() else 0,
-                    'amount': amount
+                    'streamSinkId': 1 if to_addr == sender else 0,
+                    'amount': flow_value * 10**15
                 })
+
+                # Add coordinates
                 coordinates.extend([
-                    lookup_map[token_addr.lower()],
-                    lookup_map[from_addr.lower()],
-                    lookup_map[to_addr.lower()]
+                    lookup_map[token_addr],
+                    lookup_map[from_addr],
+                    lookup_map[to_addr]
                 ])
 
+        # Create stream object
+        stream = {
+            'sourceCoordinate': lookup_map[sender],
+            'flowEdgeIds': [i for i, edge in enumerate(flow_edges) if edge['streamSinkId'] == 1],
+            'data': bytes()
+        }
+
+        # Pack coordinates
         packed_coordinates = bytes([
             b for coord in coordinates
             for b in [(coord >> 8) & 0xff, coord & 0xff]
         ])
 
-        stream = {
-            'sourceCoordinate': lookup_map[sender.lower()],
-            'flowEdgeIds': [i for i, edge in enumerate(flow_edges) if edge['streamSinkId'] == 1],
-            'data': bytes()
-        }
+        logger.debug("Final parameters:")
+        logger.debug(f"Vertices ({len(flow_vertices)}): {flow_vertices}")
+        logger.debug(f"Flow edges ({len(flow_edges)}): {flow_edges}")
+        logger.debug(f"Stream edge indices: {stream['flowEdgeIds']}")
+        logger.debug(f"Coordinate pairs: {[coordinates[i:i+3] for i in range(0, len(coordinates), 3)]}")
 
+        CIRCLES_HUB = '0xc12C1E50ABB450d6205Ea2C3Fa861b3B834d13e8' 
+        batch_calls = []
+        batch_calls.append(
+            ContractCall(
+                client_name="circleshub",
+                method="setApprovalForAll",
+                params={
+                    '_operator': CIRCLES_HUB,
+                    '_approved': True,
+                    'sender': sender,
+                    'value': 0
+                }
+            )
+        )
 
-        return [
+        batch_calls.append(
             ContractCall(
                 client_name="circleshub",
                 method="operateFlowMatrix",
@@ -138,6 +164,8 @@ class ArbPathFinder(BaseImplementation):
                     "_flow": flow_edges,
                     "_streams": [stream],
                     "_packedCoordinates": packed_coordinates,
-                },
+                }
             )
-        ]
+        )
+
+        return batch_calls

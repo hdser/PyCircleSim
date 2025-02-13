@@ -108,7 +108,77 @@ class NetworkFlowAnalysis:
         return simplified
     
 
+
     def analyze_arbitrage(self, start_node: str, start_token: str, end_token: str,  
+                        flow_func: Optional[Callable] = None,
+                        cutoff: Optional[int] = None) -> Tuple[int, List, Dict, Dict]:
+        """Analyze arbitrage opportunities with optional cutoff."""
+        try:
+            source, virtual_sink = self.graph.prepare_arbitrage_graph(
+                start_node, start_token, end_token
+            )
+            
+            if source is None or virtual_sink is None:
+                return 0, [], {}, {}
+
+            # Pass cutoff directly to compute_flow
+            flow_value, flow_dict = self.graph.compute_flow(
+                source, 
+                virtual_sink,
+                flow_func,
+                cutoff
+            )
+            
+            if flow_value == 0:
+                return 0, [], {}, {}
+                    
+            self.logger.debug(f"Found max flow: {flow_value}")
+            # Pass cutoff to interpret_arbitrage_flow
+            real_flow_dict = self.graph.interpret_arbitrage_flow(
+                flow_dict, start_node, virtual_sink, cutoff
+            )
+            
+            all_paths = self._find_all_flow_paths(flow_dict, source, virtual_sink)
+            paths = []
+            edge_flows = {}
+            current_flow = 0
+            
+            for path, path_flow_value in all_paths:
+                # Limit path flow by remaining cutoff
+                if cutoff is not None:
+                    path_flow_value = min(path_flow_value, cutoff - current_flow)
+                    if path_flow_value <= 0:
+                        continue
+
+                real_path = path[:-1] + [source]
+                tokens = []
+                for node in real_path[1:-1]:
+                    if '_' in node:
+                        _, token = node.split('_')
+                        tokens.append(token)
+                
+                for i in range(len(real_path)-1):
+                    edge = (real_path[i], real_path[i+1])
+                    edge_flows[edge] = edge_flows.get(edge, 0) + path_flow_value
+                
+                paths.append((real_path, tokens, path_flow_value))
+                current_flow += path_flow_value
+                
+                if cutoff is not None and current_flow >= cutoff:
+                    break
+            
+            if not paths:
+                return flow_value, [], {}, {}
+                
+            simplified_paths = simplify_paths(paths)
+            simplified_flows = self._simplify_edge_flows(edge_flows)
+            
+            return min(current_flow, cutoff) if cutoff else current_flow, simplified_paths, simplified_flows, edge_flows
+                
+        finally:
+            self.graph.cleanup_arbitrage_graph()
+
+    def analyze_arbitrage2(self, start_node: str, start_token: str, end_token: str,  
                      flow_func: Optional[Callable] = None) -> Tuple[int, List, Dict, Dict]:
         """Analyze arbitrage opportunities."""
         try:

@@ -19,7 +19,8 @@ class ArbBuyCRC(BaseImplementation):
             return []
 
         buy_pool = arb_info['buy_pool_data']
-        expected_amount = arb_info.get('expected_backing_amount', 0)
+        optimal_amount = arb_info.get('optimal_amount', int(10e18))
+        expected_amount = int(optimal_amount * 0.95)  # Account for slippage
         VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
 
         # Get current backing token balance to know how much we got
@@ -32,9 +33,9 @@ class ArbBuyCRC(BaseImplementation):
             sender
         )
 
-        if backing_balance < expected_amount:
-            logger.warning(f"Actual balance {backing_balance} less than expected {expected_amount}")
-            return []
+        #if backing_balance < expected_amount:
+        ##    logger.warning(f"Actual balance {backing_balance} less than expected {expected_amount}")
+        #    return []
 
         batch_calls = []
         # 1. Approve backing token for vault
@@ -52,7 +53,6 @@ class ArbBuyCRC(BaseImplementation):
             )
         )
 
-
         # 2. Buy CRC token from cheaper pool
         swap_deadline = context.chain.blocks.head.timestamp + 3600
         batch_calls.append(
@@ -67,7 +67,7 @@ class ArbBuyCRC(BaseImplementation):
                         "kind": 0,  # GIVEN_IN
                         "assetIn": buy_pool['backing_token'],
                         "assetOut": buy_pool['crc_token'],
-                        "amount": expected_amount,
+                        "amount": min(backing_balance, optimal_amount),
                         "userData": b''
                     },
                     "funds": {
@@ -84,7 +84,7 @@ class ArbBuyCRC(BaseImplementation):
 
         # Store current pool data for later steps
         arb_info['current_pool'] = buy_pool
-        arb_info['backing_amount_used'] = expected_amount
+        arb_info['backing_amount_used'] = min(backing_balance, optimal_amount)
         context.update_running_state({'arb_check': arb_info})
 
         return batch_calls

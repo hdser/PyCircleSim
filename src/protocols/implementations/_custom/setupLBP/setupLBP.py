@@ -206,7 +206,7 @@ class SetupLBP(BaseImplementation):
                 params={
                     'token_address': BACKING_ASSET,
                     'spender': VAULT,
-                    'amount': int(100e18), 
+                    'amount': int(1e30), 
                     'sender': sender,
                     'value': 0
                 }
@@ -220,7 +220,7 @@ class SetupLBP(BaseImplementation):
                 params={
                     'token_address': CRC20,
                     'spender': VAULT,
-                    'amount': int(100e18), 
+                    'amount': int(1e30), 
                     'sender': sender,
                     'value': 0
                 }

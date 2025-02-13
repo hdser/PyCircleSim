@@ -23,12 +23,18 @@ class ArbWrapCRC(BaseImplementation):
         if not sell_pool:
             return []
 
+        # Get the received_crc_amount from previous steps
+        received_amount = arb_info.get('received_crc_amount')
+        if not received_amount:
+            logger.warning("No received CRC amount found in arb_info")
+            return []
+
         # Check CirclesHub state for actual unwrapped balance
         hub_state = context.network_state['contract_states']['CirclesHub']['state']
         token_balances = hub_state.get('token_balances', {})
         sender_balances = token_balances.get(sender, {})
 
-        # Find balance for sell pool's unwrapped token
+        # Find balance of sell pool's unwrapped token
         unwrapped_balance = 0
         unwrapped_crc = sell_pool['unwrapped_crc']
         
@@ -38,6 +44,7 @@ class ArbWrapCRC(BaseImplementation):
             return []
             
         token_id = client.toTokenId(unwrapped_crc)
+        
         # Check balance in token_balances
         for id, balance_info in sender_balances.items():
             if str(id) == str(token_id):
@@ -47,8 +54,12 @@ class ArbWrapCRC(BaseImplementation):
         if unwrapped_balance == 0:
             return []
 
-        # Store unwrapped amount for sell step
-        arb_info['unwrapped_amount'] = unwrapped_balance
+        # Only wrap the amount we received from arbitrage path
+        wrap_amount = min(unwrapped_balance, received_amount)
+        logger.info(f"Wrapping {wrap_amount} tokens out of {unwrapped_balance} total balance")
+
+        # Store wrap amount for sell step
+        arb_info['wrapped_amount'] = wrap_amount
         context.update_running_state({'arb_check': arb_info})
 
         return [
@@ -59,7 +70,7 @@ class ArbWrapCRC(BaseImplementation):
                     "sender": sender,
                     "value": 0,
                     "_avatar": unwrapped_crc,
-                    "_amount": unwrapped_balance,
+                    "_amount": wrap_amount,
                     "_type": 0,
                 }
             )
