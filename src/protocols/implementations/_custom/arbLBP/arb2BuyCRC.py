@@ -19,7 +19,7 @@ class ArbBuyCRC(BaseImplementation):
             return []
 
         buy_pool = arb_info['buy_pool_data']
-        optimal_amount = arb_info.get('optimal_amount', int(10e18))
+        optimal_amount = arb_info.get('optimal_amount', 10**18)
         expected_amount = int(optimal_amount * 0.95)  # Account for slippage
         VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
 
@@ -85,6 +85,9 @@ class ArbBuyCRC(BaseImplementation):
         # Store current pool data for later steps
         arb_info['current_pool'] = buy_pool
         arb_info['backing_amount_used'] = min(backing_balance, optimal_amount)
+
+        crc_balance = erc20_client.balance_of(buy_pool['crc_token'], sender)
+        arb_info['received_crc_amount_prev'] = crc_balance
         context.update_running_state({'arb_check': arb_info})
 
         return batch_calls

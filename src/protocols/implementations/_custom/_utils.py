@@ -209,68 +209,6 @@ def _calculate_optimal_swap_amount(
         logger.error(f"Error calculating optimal swap amount: {e}")
         return 0
 
-def _find_arb_opportunity2(pools_data: List[Dict]) -> Tuple[Optional[str], Optional[str], float]:
-    """
-    Find the best arbitrage opportunity between pools
-    Returns: (buy_pool_id, sell_pool_id, price_difference)
-    """
-    best_opportunity = (None, None, 0.0)
-    
-    for i, pool1 in enumerate(pools_data):
-        for j, pool2 in enumerate(pools_data):
-            if i >= j:
-                continue
-                
-            price1 = pool1['balances'][1] / pool1['balances'][0] 
-            price2 = pool2['balances'][1] / pool2['balances'][0]
-            
-            price_diff = abs(price1 - price2)
-            if price_diff > best_opportunity[2]:
-                if price1 < price2:
-                    best_opportunity = (pool1['id'], pool2['id'], price_diff)
-                else:
-                    best_opportunity = (pool2['id'], pool1['id'], price_diff)
-                    
-    return best_opportunity
-
-
-def _calculate_optimal_swap_amount2(
-        tokens_in_pool: List[str],
-        balances: List[int], 
-        token_in_idx: int,
-        token_out_idx: int
-    ) -> int:
-        """
-        Calculate optimal swap amount considering pool ratios.
-        Balancer pools have a maxInRatio of 0.3 (30%) to protect against price manipulation.
-        """
-        try:
-            # Get current pool balances for the tokens we care about
-            balance_in = balances[token_in_idx]
-            balance_out = balances[token_out_idx]
-
-            # Balancer's maxInRatio is 0.3 (30% of balance)
-            MAX_IN_RATIO = 0.3
-            max_in_amount = int(balance_in * MAX_IN_RATIO)
-
-            # Use a conservative amount (80% of max) to ensure success
-            safe_amount = int(max_in_amount * 0.8)
-
-            # Ensure we don't completely drain the output token
-            max_out_drain = int(balance_out * 0.3)  # Also limit output to 30%
-            
-            # Convert to standard unit (18 decimals)
-            normalized_amount = min(safe_amount, int(1e18))
-
-            return normalized_amount
-
-        except Exception as e:
-            logger.error(f"Error calculating optimal swap amount: {e}")
-            return int(1e18)  # Default to 1 token if calculation fails
-        
-
-
-
 
 
 

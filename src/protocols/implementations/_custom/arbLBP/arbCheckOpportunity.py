@@ -115,6 +115,7 @@ class ArbCheckOpportunity(BaseImplementation):
 
             # 3. Find potential arbitrage
             buy_pool_id, sell_pool_id, price_diff = _find_arb_opportunity(pools_data)
+          
             if not buy_pool_id or price_diff < 0.02:  # requiring at least 2% difference
                 logger.info(f"No arbitrage found above threshold. Best diff was {price_diff}.")
                 return []
@@ -122,6 +123,7 @@ class ArbCheckOpportunity(BaseImplementation):
             # Identify the chosen pools
             buy_pool = next(p for p in pools_data if p['id'] == buy_pool_id)
             sell_pool = next(p for p in pools_data if p['id'] == sell_pool_id)
+
 
             # 4. Calculate how much to buy / sell (max_in ratio logic)
             buy_amount = _calculate_optimal_swap_amount(
@@ -139,7 +141,7 @@ class ArbCheckOpportunity(BaseImplementation):
             optimal_amount = min(buy_amount, sell_amount)
             logger.info(f"Potential buy_amount={buy_amount}, sell_amount={sell_amount}, using {optimal_amount}.")
 
-            if optimal_amount <= 1e18:
+            if optimal_amount <= 10**17:
                 logger.info("Optimal buy/sell amount is too small or zero.")
                 return []
 

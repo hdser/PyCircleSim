@@ -9,7 +9,7 @@ simulation_params:
 # Agent distribution (total should be your target network size)
 agent_distribution:
   arbitrage_user: 1
-  circles_user: 0
+  circles_user: 1
   circles_user_old: 1
 
 # Agent profiles and their actions
@@ -37,12 +37,12 @@ profiles:
           - action: "custom_setupLBP"
             repeat: 1
             constraints:
-              XDAI_AMOUNT: 10
-              CRC_AMOUNT: 10
+              XDAI_AMOUNT: 100
+              CRC_AMOUNT: 100
               WRAP_TYPE: 0
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
-              WEIGHT_CRC: 10000000000000000
-              WEIGHT_BACKING: 990000000000000000
+              WEIGHT_CRC: 500000000000000000
+              WEIGHT_BACKING: 500000000000000000
 
           - action: "custom_joinLBP"
             repeat: 1
@@ -159,8 +159,8 @@ profiles:
               CRC_AMOUNT: 10
               WRAP_TYPE: 0
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
-              WEIGHT_CRC: 500000000000000000
-              WEIGHT_BACKING: 500000000000000000
+              WEIGHT_CRC: 10000000000000000
+              WEIGHT_BACKING: 990000000000000000
 
           - action: "custom_joinLBP"
             repeat: 1

@@ -23,7 +23,7 @@ class ArbGetBackingToken(BaseImplementation):
         buy_pool = arb_info['buy_pool_data']
         
         # Use optimal amount to determine WXDAI needed
-        optimal_amount = arb_info.get('optimal_amount', int(10e18))  # Default to 10 if not set
+        optimal_amount = arb_info.get('optimal_amount', 10**18)  # Default to 10 if not set
         xdai_amount = int(optimal_amount * 1.1)  # Add 10% buffer for slippage
 
         batch_calls = []

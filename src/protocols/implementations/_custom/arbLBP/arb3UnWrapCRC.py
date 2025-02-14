@@ -37,7 +37,7 @@ class ArbUnWrapCRC(BaseImplementation):
             return []
 
         # Store unwrap amount in state for path finding
-        arb_info['received_crc_amount'] = 10**18 #crc_balance
+        arb_info['received_crc_amount'] = crc_balance - arb_info['received_crc_amount_prev']
         context.update_running_state({'arb_check': arb_info})
 
         # Add address to be checked for balance updates
