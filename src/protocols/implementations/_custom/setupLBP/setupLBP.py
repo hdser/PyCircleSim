@@ -29,13 +29,33 @@ class SetupLBP(BaseImplementation):
 
         # Get constraints from profile
         constraints = context.agent.profile.get_action_config("custom_setupLBP").constraints
-        XDAI_AMOUNT = int(constraints.get('XDAI_AMOUNT',100) * 1e18 )
-        CRC_AMOUNT = int(constraints.get('CRC_AMOUNT',48) * 1e18 )
+
+        XDAI_AMOUNT_MAX = constraints.get('XDAI_AMOUNT_MAX',1000)
+        XDAI_AMOUNT_MIN = constraints.get('XDAI_AMOUNT_MIN',1) 
+        if constraints.get('XDAI_AMOUNT',True):
+            XDAI_AMOUNT = int(random.randint(XDAI_AMOUNT_MIN,XDAI_AMOUNT_MAX) * 10**18)
+        else:
+            XDAI_AMOUNT = int(constraints.get('XDAI_AMOUNT',100) * 10**18)
+
+        CRC_AMOUNT_MAX = constraints.get('XDAI_AMOUNT_MAX',100)
+        CRC_AMOUNT_MIN = constraints.get('XDAI_AMOUNT_MIN',1) 
+        if constraints.get('CRC_AMOUNT',True):
+            CRC_AMOUNT = int(random.randint(CRC_AMOUNT_MIN,CRC_AMOUNT_MAX) * 10**18)
+        else:
+            CRC_AMOUNT = int(constraints.get('CRC_AMOUNT',48) * 10**18 )
+        
         CRC_TOKEN = constraints.get('CRC_TOKEN',sender)
         WRAP_TYPE = constraints.get('WRAP_TYPE',0)
         BACKING_ASSET = constraints.get('BACKING_ASSET','0xaf204776c7245bF4147c2612BF6e5972Ee483701')
-        WEIGHT_CRC = constraints.get('WEIGHT_CRC',10000000000000000)
-        WEIGHT_BACKING = constraints.get('WEIGHT_BACKING',990000000000000000)
+
+        WEIGHT_CRC_MAX = constraints.get('WEIGHT_CRC_MAX',990000000000000000)
+        WEIGHT_CRC_MIN = constraints.get('WEIGHT_CRC_MIN',10000000000000000) 
+        if constraints.get('WEIGHT_CRC',True):
+            WEIGHT_CRC = int(random.randint(WEIGHT_CRC_MIN,WEIGHT_CRC_MAX))
+            WEIGHT_BACKING = 1000000000000000000 - WEIGHT_CRC
+        else:
+            WEIGHT_CRC = constraints.get('WEIGHT_CRC',10000000000000000)
+            WEIGHT_BACKING = 1000000000000000000 - WEIGHT_CRC
 
         batch_calls = []
 
@@ -196,7 +216,17 @@ class SetupLBP(BaseImplementation):
                 }
             )
         )
-
+        print({
+                    'name': 'crc-test'+ id,
+                    'symbol': 'TP'+ id,
+                    'tokens': tokens,
+                    'weights': weights,
+                    'swapFeePercentage': 10000000000000000,  # 1%
+                    'owner': sender,
+                    'swapEnabledOnStart': True,
+                    'sender': sender,
+                    'value': 0
+                })
         # 7) Set WxDAI/CRC approval from VAULT
         #_____________________________________
         batch_calls.append(

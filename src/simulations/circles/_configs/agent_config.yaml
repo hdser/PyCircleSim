@@ -50,7 +50,7 @@ profiles:
               CRC_TYPE: 0
               
       - name: "lbp_arbitrage"
-        max_executions: 100
+        max_executions: 1000
         steps:
           - action: "custom_arbCheckOpportunity"
             repeat: 1
@@ -75,9 +75,13 @@ profiles:
             constraints: {}
 
     available_actions:
-     # - action: "custom_arbCheckOpportunity"
-     #   probability: 0.4
-     #   cooldown_blocks: 50
+      - action: "circleshub_trust"
+        probability: .6
+        cooldown_blocks: 100
+
+      - action: "circleshub_registerHuman"
+        probability: 0.5
+        cooldown_blocks: 500
 
       - action: "circleshub_personalMint"
         probability: 0.6
@@ -87,7 +91,7 @@ profiles:
   circles_user:
     description: "Regular network participant"
     base_config:
-      target_account_count: 1
+      target_account_count: 100
       risk_tolerance: 0.5 
       sequence_probability: 0.6
       max_sequence_iterations: 1
@@ -104,12 +108,14 @@ profiles:
           - action: "custom_setupLBP"
             repeat: 1
             constraints:
-              XDAI_AMOUNT: 1000
-              CRC_AMOUNT: 100
+              XDAI_AMOUNT_MAX: 1000
+              XDAI_AMOUNT_MIN: 10
+              CRC_AMOUNT_MAX: 100
+              CRC_AMOUNT_MIN: 1
               WRAP_TYPE: 0
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
-              WEIGHT_CRC: 500000000000000000
-              WEIGHT_BACKING: 500000000000000000
+              WEIGHT_CRC_MIN: 10000000000000000
+              WEIGHT_CRC_MAX: 990000000000000000
 
           - action: "custom_joinLBP"
             repeat: 1
@@ -133,7 +139,7 @@ profiles:
   circles_user_old:
     description: "Regular network participant"
     base_config:
-      target_account_count: 10
+      target_account_count: 100
       risk_tolerance: 0.5 
       sequence_probability: 0.6
       max_sequence_iterations: 1
@@ -155,12 +161,14 @@ profiles:
           - action: "custom_setupLBP"
             repeat: 1
             constraints:
-              XDAI_AMOUNT: 300
-              CRC_AMOUNT: 10
+              XDAI_AMOUNT_MAX: 100
+              XDAI_AMOUNT_MIN: 10
+              CRC_AMOUNT_MAX: 100
+              CRC_AMOUNT_MIN: 10
               WRAP_TYPE: 0
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
-              WEIGHT_CRC: 10000000000000000
-              WEIGHT_BACKING: 990000000000000000
+              WEIGHT_CRC_MIN: 200000000000000000
+              WEIGHT_CRC_MAX: 800000000000000000
 
           - action: "custom_joinLBP"
             repeat: 1
