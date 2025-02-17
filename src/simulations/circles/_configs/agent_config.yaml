@@ -20,7 +20,7 @@ profiles:
       target_account_count: 1
       risk_tolerance: 0.5 
       sequence_probability: 0.6
-      max_sequence_iterations: 10
+      max_sequence_iterations: 1000
       preset_addresses: 
         - "0x42cEDde51198D1773590311E2A340DC06B24cB37"
         - "0x57928Fb15ffB7303b65EDC326dc4dc38150008e1"
@@ -50,7 +50,7 @@ profiles:
               CRC_TYPE: 0
               
       - name: "lbp_arbitrage"
-        max_executions: 1000
+        max_executions: 10000
         steps:
           - action: "custom_arbCheckOpportunity"
             repeat: 1
@@ -91,7 +91,7 @@ profiles:
   circles_user:
     description: "Regular network participant"
     base_config:
-      target_account_count: 100
+      target_account_count: 10
       risk_tolerance: 0.5 
       sequence_probability: 0.6
       max_sequence_iterations: 1
@@ -139,7 +139,7 @@ profiles:
   circles_user_old:
     description: "Regular network participant"
     base_config:
-      target_account_count: 100
+      target_account_count: 10
       risk_tolerance: 0.5 
       sequence_probability: 0.6
       max_sequence_iterations: 1
@@ -167,8 +167,8 @@ profiles:
               CRC_AMOUNT_MIN: 10
               WRAP_TYPE: 0
               BACKING_ASSET: '0xaf204776c7245bF4147c2612BF6e5972Ee483701'
-              WEIGHT_CRC_MIN: 200000000000000000
-              WEIGHT_CRC_MAX: 800000000000000000
+              WEIGHT_CRC_MIN: 300000000000000000
+              WEIGHT_CRC_MAX: 700000000000000000
 
           - action: "custom_joinLBP"
             repeat: 1
