@@ -15,6 +15,7 @@ from src.protocols.interfaces.balancerv2lbpfactory import BalancerV2LBPFactoryCl
 from src.protocols.interfaces.erc20 import ERC20Client
 from src.protocols.interfaces.circlesdemurrageerc20 import CirclesDemurrageERC20Client
 from src.protocols.interfaces.circlesinflationaryerc20 import CirclesInflationaryERC20Client
+from src.protocols.interfaces.balancerv2lbp import BalancerV2LBPClient
 from src.protocols.interfaces.master import MasterClient
 
 from src.framework.state.graph_converter import StateToGraphConverter
@@ -76,7 +77,7 @@ class CirclesSimulation(BaseSimulation):
             'module_name': 'balancerv2vault',
             'abi_folder': 'balancer_v2',
         },
-        'balancerv2lbp': {
+        'balancerv2lbpfactory': {
             'address': '0x85a80afee867aDf27B50BdB7b76DA70f1E853062',
             'client_class': BalancerV2LBPFactoryClient,
             'module_name': 'balancerv2lbpfactory',
@@ -102,6 +103,13 @@ class CirclesSimulation(BaseSimulation):
             'module_name': 'circlesinflationaryerc20',
             'abi_folder': 'circles',
             'abi_name': 'CirclesInflationaryERC20.json',
+        },
+        'balancerv2lbp': {
+            'address': '',  # Generic
+            'client_class': BalancerV2LBPClient,
+            'module_name': 'balancerv2lbp',
+            'abi_folder': 'balancer_v2',
+            'abi_name': 'BalancerV2LBP.json',
         },
         'master': {
             'client_class': MasterClient,
@@ -374,7 +382,7 @@ class CirclesSimulation(BaseSimulation):
                     
                     if not isinstance(context.network_state['contract_states'].get('BalancerV2LBPFactory'), dict):
                         lbpfactory_state = context.network_state['contract_states']['BalancerV2LBPFactory'] =  {
-                            'address': self.CONTRACT_CONFIGS['balancerv2lbp']['address'],
+                            'address': self.CONTRACT_CONFIGS['balancerv2lbpfactory']['address'],
                             'state': {}
                             }
                         

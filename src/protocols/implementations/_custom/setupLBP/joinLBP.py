@@ -58,6 +58,7 @@ class JoinLBP(BaseImplementation):
         userData = encode(['uint256', 'uint256[]'], [join_kind, maxAmountsIn])
         fromInternalBalance = False
 
+        batch_calls = []
 
         request = {
             'assets': assets,
@@ -66,7 +67,7 @@ class JoinLBP(BaseImplementation):
             'fromInternalBalance': fromInternalBalance,
         }
 
-        return [
+        batch_calls.append(
             ContractCall(
                 client_name="balancerv2vault",
                 method="joinPool",
@@ -78,5 +79,23 @@ class JoinLBP(BaseImplementation):
                     "recipient": sender,
                     "request": request,
                 },
+            ))
+        
+
+        batch_calls.append(
+            ContractCall(
+                client_name="balancerv2lbp",
+                method="updateWeightsGradually",
+                params={
+                    "sender": sender,
+                    "value": 0,
+                    "contract_address": LBPs_state[poolId]["poolAddress"],
+                    "startTime": int(context.chain.blocks.head.timestamp),
+                    "endTime": int(context.chain.blocks.head.timestamp + 60*60*24*365),
+                    "endWeights": [500000000000000000, 500000000000000000],
+                },
             )
-        ]
+        )
+
+
+        return batch_calls

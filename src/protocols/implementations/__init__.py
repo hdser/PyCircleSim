@@ -89,28 +89,62 @@ from .supergroup.registerOperatorRequest import SuperGroupRegisterOperatorReques
 
 from .circlesdemurrageerc20.approve import CirclesDemurrageERC20Approve
 
-from .circlesdemurrageerc20.transfer import CirclesDemurrageERC20Transfer
-
-from .circlesdemurrageerc20.unwrap import CirclesDemurrageERC20Unwrap
-
 from .circlesdemurrageerc20.decreaseAllowance import (
     CirclesDemurrageERC20DecreaseAllowance,
 )
 
 from .circlesdemurrageerc20.transferFrom import CirclesDemurrageERC20TransferFrom
 
-from .circlesdemurrageerc20.increaseAllowance import (
-    CirclesDemurrageERC20IncreaseAllowance,
-)
+from .circlesdemurrageerc20.unwrap import CirclesDemurrageERC20Unwrap
+
+from .circlesdemurrageerc20.transfer import CirclesDemurrageERC20Transfer
+
+from .circlesdemurrageerc20.setup import CirclesDemurrageERC20Setup
 
 from .circlesdemurrageerc20.permit import CirclesDemurrageERC20Permit
 
-from .circlesdemurrageerc20.setup import CirclesDemurrageERC20Setup
+from .circlesdemurrageerc20.increaseAllowance import (
+    CirclesDemurrageERC20IncreaseAllowance,
+)
 
 from .circlesdemurrageerc20.onERC1155Received import (
     CirclesDemurrageERC20OnERC1155Received,
 )
 
+
+from .balancerv2lbp.approve import BalancerV2LBPApprove
+
+from .balancerv2lbp.onExitPool import BalancerV2LBPOnExitPool
+
+from .balancerv2lbp.transfer import BalancerV2LBPTransfer
+
+from .balancerv2lbp.setSwapFeePercentage import BalancerV2LBPSetSwapFeePercentage
+
+from .balancerv2lbp.queryJoin import BalancerV2LBPQueryJoin
+
+from .balancerv2lbp.onJoinPool import BalancerV2LBPOnJoinPool
+
+from .balancerv2lbp.decreaseAllowance import BalancerV2LBPDecreaseAllowance
+
+from .balancerv2lbp.setAssetManagerPoolConfig import (
+    BalancerV2LBPSetAssetManagerPoolConfig,
+)
+
+from .balancerv2lbp.transferFrom import BalancerV2LBPTransferFrom
+
+from .balancerv2lbp.increaseAllowance import BalancerV2LBPIncreaseAllowance
+
+from .balancerv2lbp.setPaused import BalancerV2LBPSetPaused
+
+from .balancerv2lbp.updateWeightsGradually import BalancerV2LBPUpdateWeightsGradually
+
+from .balancerv2lbp.setSwapEnabled import BalancerV2LBPSetSwapEnabled
+
+from .balancerv2lbp.permit import BalancerV2LBPPermit
+
+from .balancerv2lbp.queryExit import BalancerV2LBPQueryExit
+
+from .balancerv2lbp.onSwap import BalancerV2LBPOnSwap
 
 from .circleserc20lift.ensureERC20 import CirclesERC20LiftEnsureERC20
 
@@ -146,23 +180,23 @@ from .balancerv2vault.joinPool import BalancerV2VaultJoinPool
 
 from .circlesinflationaryerc20.approve import CirclesInflationaryERC20Approve
 
-from .circlesinflationaryerc20.transfer import CirclesInflationaryERC20Transfer
-
-from .circlesinflationaryerc20.unwrap import CirclesInflationaryERC20Unwrap
-
 from .circlesinflationaryerc20.decreaseAllowance import (
     CirclesInflationaryERC20DecreaseAllowance,
 )
 
 from .circlesinflationaryerc20.transferFrom import CirclesInflationaryERC20TransferFrom
 
-from .circlesinflationaryerc20.increaseAllowance import (
-    CirclesInflationaryERC20IncreaseAllowance,
-)
+from .circlesinflationaryerc20.unwrap import CirclesInflationaryERC20Unwrap
+
+from .circlesinflationaryerc20.transfer import CirclesInflationaryERC20Transfer
+
+from .circlesinflationaryerc20.setup import CirclesInflationaryERC20Setup
 
 from .circlesinflationaryerc20.permit import CirclesInflationaryERC20Permit
 
-from .circlesinflationaryerc20.setup import CirclesInflationaryERC20Setup
+from .circlesinflationaryerc20.increaseAllowance import (
+    CirclesInflationaryERC20IncreaseAllowance,
+)
 
 from .circlesinflationaryerc20.onERC1155Received import (
     CirclesInflationaryERC20OnERC1155Received,
@@ -206,26 +240,35 @@ from .circleshub.migrate import CirclesHubMigrate
 
 from ._custom.pathFinderArb import PathFinderArb
 
-from ._custom.setupLBP.setupLBP import SetupLBP
-
-from ._custom.setupLBP.joinLBP import JoinLBP
 
 from ._custom.pathFinderTransfer import PathFinderTransfer
 
 
+from ._custom.setupLBP.setupLBP import SetupLBP
+
+
+from ._custom.setupLBP.joinLBP import JoinLBP
+
+
 from ._custom.arbLBP.arb6SellToLBP import ArbSellToLBP
 
-from ._custom.arbLBP.arb4PathFinder import ArbPathFinder
+
+from ._custom.arbLBP.arbCheckOpportunity import ArbCheckOpportunity
+
 
 from ._custom.arbLBP.arb3UnWrapCRC import ArbUnWrapCRC
 
-from ._custom.arbLBP.arb5WrapCRC import ArbWrapCRC
-
-from ._custom.arbLBP.arb1GetBackingToken import ArbGetBackingToken
 
 from ._custom.arbLBP.arb2BuyCRC import ArbBuyCRC
 
-from ._custom.arbLBP.arbCheckOpportunity import ArbCheckOpportunity
+
+from ._custom.arbLBP.arb1GetBackingToken import ArbGetBackingToken
+
+
+from ._custom.arbLBP.arb4PathFinder import ArbPathFinder
+
+
+from ._custom.arbLBP.arb5WrapCRC import ArbWrapCRC
 
 
 # Implementation registry
@@ -273,14 +316,30 @@ IMPLEMENTATIONS = {
     "supergroup_onERC1155Received": SuperGroupOnERC1155Received,
     "supergroup_registerOperatorRequest": SuperGroupRegisterOperatorRequest,
     "circlesdemurrageerc20_approve": CirclesDemurrageERC20Approve,
-    "circlesdemurrageerc20_transfer": CirclesDemurrageERC20Transfer,
-    "circlesdemurrageerc20_unwrap": CirclesDemurrageERC20Unwrap,
     "circlesdemurrageerc20_decreaseAllowance": CirclesDemurrageERC20DecreaseAllowance,
     "circlesdemurrageerc20_transferFrom": CirclesDemurrageERC20TransferFrom,
-    "circlesdemurrageerc20_increaseAllowance": CirclesDemurrageERC20IncreaseAllowance,
-    "circlesdemurrageerc20_permit": CirclesDemurrageERC20Permit,
+    "circlesdemurrageerc20_unwrap": CirclesDemurrageERC20Unwrap,
+    "circlesdemurrageerc20_transfer": CirclesDemurrageERC20Transfer,
     "circlesdemurrageerc20_setup": CirclesDemurrageERC20Setup,
+    "circlesdemurrageerc20_permit": CirclesDemurrageERC20Permit,
+    "circlesdemurrageerc20_increaseAllowance": CirclesDemurrageERC20IncreaseAllowance,
     "circlesdemurrageerc20_onERC1155Received": CirclesDemurrageERC20OnERC1155Received,
+    "balancerv2lbp_approve": BalancerV2LBPApprove,
+    "balancerv2lbp_onExitPool": BalancerV2LBPOnExitPool,
+    "balancerv2lbp_transfer": BalancerV2LBPTransfer,
+    "balancerv2lbp_setSwapFeePercentage": BalancerV2LBPSetSwapFeePercentage,
+    "balancerv2lbp_queryJoin": BalancerV2LBPQueryJoin,
+    "balancerv2lbp_onJoinPool": BalancerV2LBPOnJoinPool,
+    "balancerv2lbp_decreaseAllowance": BalancerV2LBPDecreaseAllowance,
+    "balancerv2lbp_setAssetManagerPoolConfig": BalancerV2LBPSetAssetManagerPoolConfig,
+    "balancerv2lbp_transferFrom": BalancerV2LBPTransferFrom,
+    "balancerv2lbp_increaseAllowance": BalancerV2LBPIncreaseAllowance,
+    "balancerv2lbp_setPaused": BalancerV2LBPSetPaused,
+    "balancerv2lbp_updateWeightsGradually": BalancerV2LBPUpdateWeightsGradually,
+    "balancerv2lbp_setSwapEnabled": BalancerV2LBPSetSwapEnabled,
+    "balancerv2lbp_permit": BalancerV2LBPPermit,
+    "balancerv2lbp_queryExit": BalancerV2LBPQueryExit,
+    "balancerv2lbp_onSwap": BalancerV2LBPOnSwap,
     "circleserc20lift_ensureERC20": CirclesERC20LiftEnsureERC20,
     "balancerv2vault_registerPool": BalancerV2VaultRegisterPool,
     "balancerv2vault_queryBatchSwap": BalancerV2VaultQueryBatchSwap,
@@ -297,13 +356,13 @@ IMPLEMENTATIONS = {
     "balancerv2vault_exitPool": BalancerV2VaultExitPool,
     "balancerv2vault_joinPool": BalancerV2VaultJoinPool,
     "circlesinflationaryerc20_approve": CirclesInflationaryERC20Approve,
-    "circlesinflationaryerc20_transfer": CirclesInflationaryERC20Transfer,
-    "circlesinflationaryerc20_unwrap": CirclesInflationaryERC20Unwrap,
     "circlesinflationaryerc20_decreaseAllowance": CirclesInflationaryERC20DecreaseAllowance,
     "circlesinflationaryerc20_transferFrom": CirclesInflationaryERC20TransferFrom,
-    "circlesinflationaryerc20_increaseAllowance": CirclesInflationaryERC20IncreaseAllowance,
-    "circlesinflationaryerc20_permit": CirclesInflationaryERC20Permit,
+    "circlesinflationaryerc20_unwrap": CirclesInflationaryERC20Unwrap,
+    "circlesinflationaryerc20_transfer": CirclesInflationaryERC20Transfer,
     "circlesinflationaryerc20_setup": CirclesInflationaryERC20Setup,
+    "circlesinflationaryerc20_permit": CirclesInflationaryERC20Permit,
+    "circlesinflationaryerc20_increaseAllowance": CirclesInflationaryERC20IncreaseAllowance,
     "circlesinflationaryerc20_onERC1155Received": CirclesInflationaryERC20OnERC1155Received,
     "circleshub_operateFlowMatrix": CirclesHubOperateFlowMatrix,
     "circleshub_setAdvancedUsageFlag": CirclesHubSetAdvancedUsageFlag,
@@ -324,14 +383,14 @@ IMPLEMENTATIONS = {
     "circleshub_migrate": CirclesHubMigrate,
     # Custom implementations
     "custom_pathFinderArb": PathFinderArb,
-    "custom_setupLBP": SetupLBP,
     "custom_pathFinderTransfer": PathFinderTransfer,
+    "custom_setupLBP": SetupLBP,
     "custom_joinLBP": JoinLBP,
-    "custom_arbPathFinder": ArbPathFinder,
     "custom_arbSellToLBP": ArbSellToLBP,
+    "custom_arbCheckOpportunity": ArbCheckOpportunity,
     "custom_arbUnWrapCRC": ArbUnWrapCRC,
-    "custom_arbWrapCRC": ArbWrapCRC,
-    "custom_arbGetBackingToken": ArbGetBackingToken,
     "custom_arbBuyCRC": ArbBuyCRC,
-    "custom_arbCheckOpportunity": ArbCheckOpportunity
+    "custom_arbGetBackingToken": ArbGetBackingToken,
+    "custom_arbPathFinder": ArbPathFinder,
+    "custom_arbWrapCRC": ArbWrapCRC,
 }
