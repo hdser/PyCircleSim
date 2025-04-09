@@ -11,7 +11,7 @@ etherscan:
 node:
   gnosis:
     mainnet:
-      uri: http://192.168.2.186:8545 #https://rpc.eu-central-2.gateway.fm/v4/gnosis/non-archival/mainnet #http://192.168.2.186:8545
+      uri: http://192.168.2.186:8545 
 
 gnosis:
   default_network: mainnet-fork
