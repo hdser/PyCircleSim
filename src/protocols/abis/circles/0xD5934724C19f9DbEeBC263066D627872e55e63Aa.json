@@ -1,0 +1,173 @@
+[
+    {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+            }
+        ],
+        "name": "getAllDataForUser",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "bool",
+                        "name": "isOrg",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isHuman",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "totalSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "stopped",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "lastTouched",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct CirclesHelper.V1Data",
+                "name": "v1Data",
+                "type": "tuple"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "bool",
+                        "name": "isHuman",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isOrg",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isGroup",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "crcAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "ts1",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "ts2",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "totalSupply",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct CirclesHelper.V2Data",
+                "name": "v2Data",
+                "type": "tuple"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "trustedAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "expiry",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "v1Org",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "v1Human",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "v2Human",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "v2Org",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "v2Group",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "v2TotalSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "userHolds",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct CirclesHelper.TrustedAddressData[]",
+                "name": "trustedAddresses",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "v1Hub",
+        "outputs": [
+            {
+                "internalType": "contract IV1Hub",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "v2Hub",
+        "outputs": [
+            {
+                "internalType": "contract IV2Hub",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
